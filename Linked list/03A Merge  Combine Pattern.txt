@@ -1,0 +1,159 @@
+# Merge / Combine Pattern
+
+---
+
+## Core Idea
+
+Merging means **combining two or more linked lists into one** while maintaining some order (usually sorted). The key insight is you never create new nodes — you just **relink existing nodes** by comparing values and adjusting pointers.
+
+There are two flavors:
+
+**A) Merge Two Sorted Lists**
+- Compare heads of both lists
+- Pick the smaller one
+- Move that pointer forward
+- Repeat until one list is exhausted
+
+**B) Merge K Sorted Lists**
+- Extend the two-list merge to K lists
+- Use **Min Heap** or **Divide & Conquer**
+
+---
+
+## How to Recognize These Problems
+
+- "Merge two sorted lists"
+- "Merge k sorted lists"
+- "Sort a linked list"
+- "Combine two lists"
+- Any problem where you need to **interleave or join** lists in order
+
+---
+
+## The Foundation — Merge Two Sorted Lists
+
+This is the base of EVERY merge problem. Master this first.
+
+**Visual:**
+```
+List1: 1 → 3 → 5
+List2: 2 → 4 → 6
+
+Step 1: compare 1 vs 2 → pick 1,  L1 moves → dummy → 1
+Step 2: compare 3 vs 2 → pick 2,  L2 moves → dummy → 1 → 2
+Step 3: compare 3 vs 4 → pick 3,  L1 moves → dummy → 1 → 2 → 3
+Step 4: compare 5 vs 4 → pick 4,  L2 moves → dummy → 1 → 2 → 3 → 4
+Step 5: compare 5 vs 6 → pick 5,  L1 moves → dummy → 1 → 2 → 3 → 4 → 5
+Step 6: L1 exhausted → attach rest of L2
+        dummy → 1 → 2 → 3 → 4 → 5 → 6 ✅
+```
+
+**Code:**
+```java
+public ListNode mergeTwoLists(ListNode l1, ListNode l2) {
+    ListNode dummy = new ListNode(0);
+    ListNode curr = dummy;
+
+    while (l1 != null && l2 != null) {
+        if (l1.val <= l2.val) {
+            curr.next = l1;
+            l1 = l1.next;
+        } else {
+            curr.next = l2;
+            l2 = l2.next;
+        }
+        curr = curr.next;
+    }
+
+    // attach remaining list
+    curr.next = (l1 != null) ? l1 : l2;
+
+    return dummy.next;
+}
+```
+
+---
+
+## The Golden Template
+
+```java
+ListNode dummy = new ListNode(0);
+ListNode curr = dummy;
+
+while (l1 != null && l2 != null) {
+    if (l1.val <= l2.val) {
+        curr.next = l1;
+        l1 = l1.next;
+    } else {
+        curr.next = l2;
+        l2 = l2.next;
+    }
+    curr = curr.next;
+}
+
+curr.next = (l1 != null) ? l1 : l2;
+return dummy.next;
+```
+
+Almost every merge problem builds on top of this.
+
+---
+
+## Variant 1 — Merge K Lists using Min Heap
+
+**Visual:**
+```
+Lists: [1→4→7], [2→5→8], [3→6→9]
+
+MinHeap initially: [1, 2, 3]
+
+Step 1: poll 1, push 4  → result: 1,  heap: [2,3,4]
+Step 2: poll 2, push 5  → result: 1→2, heap: [3,4,5]
+Step 3: poll 3, push 6  → result: 1→2→3, heap: [4,5,6]
+...and so on
+
+Final: 1→2→3→4→5→6→7→8→9 ✅
+```
+
+---
+
+## Variant 2 — Merge K Lists using Divide & Conquer
+
+**Visual:**
+```
+Lists: [L1, L2, L3, L4]
+
+Round 1: merge(L1,L2), merge(L3,L4) → [L12, L34]
+Round 2: merge(L12, L34)            → [L1234] ✅
+
+Like merge sort — split in half, merge pairs, repeat
+```
+
+---
+
+## Key Rules to Remember
+
+| Situation | Approach |
+|---|---|
+| Merge 2 sorted lists | Dummy node + compare heads |
+| Merge K sorted lists | Min Heap (PriorityQueue) |
+| Merge K sorted lists (alt) | Divide & Conquer |
+| Sort a linked list | Merge Sort (find middle + merge) |
+
+---
+
+# Practice Problems
+
+### 🟢 Easy
+1. **Merge Two Sorted Lists** — LC 21
+2. **Merge Sorted Array** — LC 88 *(arrays but same merge logic)*
+
+### 🟡 Medium
+3. **Sort List** — LC 148 *(merge sort on linked list)*
+4. **Merge In Between Linked Lists** — LC 1669
+5. **Flatten a Multilevel Doubly Linked List** — LC 430
+
+### 🔴 Hard
+6. **Merge k Sorted Lists** — LC 23
+
+---
