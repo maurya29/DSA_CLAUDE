@@ -1,0 +1,170 @@
+# Dummy Node Technique
+
+---
+
+## Core Idea
+
+A **dummy node** is a fake node you create at the beginning of the list with any value (usually 0). It acts as a **placeholder head** so you never have to worry about edge cases like:
+- Deleting the head node
+- Inserting before the head
+- Returning an empty list
+
+```java
+ListNode dummy = new ListNode(0);
+dummy.next = head; // attach real list to dummy
+```
+
+At the end you always return `dummy.next` — the real head of the result.
+
+---
+
+## Why Do We Need It?
+
+**Without dummy node — problem:**
+```java
+// What if you need to delete node 1 (the head)?
+// You have no previous node to update!
+
+List: 1 → 2 → 3
+      ↑
+   no prev here — stuck!
+```
+
+**With dummy node — solved:**
+```java
+// Dummy acts as the prev of head
+// Now you can always do prev.next = prev.next.next
+
+dummy → 1 → 2 → 3
+  ↑
+prev starts here — safe!
+```
+
+---
+
+## How to Recognize These Problems
+
+- "Remove a node" from list
+- "Insert a node" at specific position
+- "Partition" a list
+- "Return modified head" — head might change
+- Any problem where the **head itself could be deleted or changed**
+
+---
+
+## The Golden Template
+
+```java
+ListNode dummy = new ListNode(0);
+dummy.next = head;
+
+ListNode curr = dummy; // or prev = dummy
+
+// do your operations
+
+return dummy.next; // always return this, not head
+```
+
+**Three rules:**
+1. Always attach dummy to head → `dummy.next = head`
+2. Start your pointer at dummy → `ListNode curr = dummy`
+3. Always return `dummy.next` at the end
+
+---
+
+## Classic Example — Delete a Node
+
+**Without dummy (messy):**
+```java
+// have to handle head deletion separately
+if (head.val == target) return head.next; // special case
+// then handle rest...
+```
+
+**With dummy (clean):**
+```java
+ListNode dummy = new ListNode(0);
+dummy.next = head;
+ListNode curr = dummy;
+
+while (curr.next != null) {
+    if (curr.next.val == target) {
+        curr.next = curr.next.next; // works even if target is head!
+        break;
+    }
+    curr = curr.next;
+}
+
+return dummy.next;
+```
+
+---
+
+## Variant 1 — Two Dummy Nodes (Partition Problems)
+
+Some problems need you to **build two separate lists** and connect them at the end. Use two dummy nodes — one for each partition.
+
+```java
+ListNode dummy1 = new ListNode(0); // first partition
+ListNode dummy2 = new ListNode(0); // second partition
+
+ListNode curr1 = dummy1;
+ListNode curr2 = dummy2;
+
+// fill both lists based on condition
+
+curr2.next = null;          // end second partition
+curr1.next = dummy2.next;   // connect first to second
+
+return dummy1.next;
+```
+
+---
+
+## Variant 2 — Dummy + Fast & Slow
+
+Combine dummy node with two pointers. Very common in deletion problems.
+
+```java
+ListNode dummy = new ListNode(0);
+dummy.next = head;
+
+ListNode slow = dummy;
+ListNode fast = dummy;
+
+// move fast ahead by k steps
+// then move both until fast hits null
+// slow is now just before the target node
+slow.next = slow.next.next; // delete target
+```
+
+---
+
+## Key Rules to Remember
+
+| Situation | Why Dummy Helps |
+|---|---|
+| Delete head node | dummy is prev of head, can delete cleanly |
+| Insert before head | dummy gives you a node to attach to |
+| Partition into two lists | use two dummies, merge at end |
+| Result list built from scratch | dummy as starting anchor |
+| Head might change | return dummy.next instead of head |
+
+---
+
+# Practice Problems
+
+### 🟢 Easy
+1. **Remove Linked List Elements** — LC 203 *(delete all nodes with target value)*
+2. **Remove Duplicates from Sorted List** — LC 83
+
+### 🟡 Medium
+3. **Remove Nth Node From End of List** — LC 19 *(dummy + fast & slow)*
+4. **Partition List** — LC 86 *(two dummy nodes)*
+5. **Odd Even Linked List** — LC 328 *(two dummy nodes)*
+6. **Swap Nodes in Pairs** — LC 24 *(dummy + reversal)*
+
+### 🔴 Hard
+7. **Remove Duplicates from Sorted List II** — LC 82 *(delete ALL nodes with duplicates)*
+
+---

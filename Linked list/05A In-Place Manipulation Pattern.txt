@@ -1,0 +1,202 @@
+# In-Place Manipulation Pattern
+
+---
+
+## Core Idea
+
+In-place manipulation means **rearranging nodes without creating new nodes or using extra space**. You just change the `next` pointers of existing nodes to achieve the desired order.
+
+The key insight is — you don't need to create anything new. Just **rewire the connections** between existing nodes.
+
+---
+
+## How to Recognize These Problems
+
+- "Rearrange the list"
+- "Reorder nodes"
+- "Move nodes to specific positions"
+- "Interleave two halves"
+- No extra space allowed — O(1) space complexity required
+- Any problem where the **structure changes but nodes stay the same**
+
+---
+
+## The Foundation — How In-Place Rewiring Works
+
+```
+Original: 1 → 2 → 3 → 4 → 5
+
+Goal: 1 → 5 → 2 → 4 → 3
+
+You are NOT creating new nodes.
+You are just changing where each node's
+next pointer points to.
+
+1.next = 5  (was 2)
+5.next = 2  (was null)
+2.next = 4  (was 3)
+4.next = 3  (was 5)
+3.next = null
+```
+
+---
+
+## Most Problems Follow This 3-Step Framework
+
+```
+Step 1: Find middle          → fast & slow pointers
+Step 2: Reverse second half  → reversal pattern
+Step 3: Merge / Rewire       → interleave or compare
+```
+
+Almost every in-place manipulation problem is a **combination of patterns you already know.**
+
+---
+
+## Variant 1 — Interleave Two Halves
+
+**Visual:**
+```
+Original: 1 → 2 → 3 → 4 → 5
+
+Step 1: find middle
+  first half:  1 → 2 → 3
+  second half: 4 → 5
+
+Step 2: reverse second half
+  second half: 5 → 4
+
+Step 3: interleave
+  1 → 5 → 2 → 4 → 3
+```
+
+**Code:**
+```java
+public void reorderList(ListNode head) {
+    if (head == null || head.next == null) return;
+
+    // Step 1: find middle
+    ListNode slow = head;
+    ListNode fast = head;
+
+    while (fast.next != null && fast.next.next != null) {
+        slow = slow.next;
+        fast = fast.next.next;
+    }
+
+    // Step 2: reverse second half
+    ListNode secondHalf = reverse(slow.next);
+    slow.next = null; // cut first and second half
+
+    // Step 3: interleave
+    ListNode first  = head;
+    ListNode second = secondHalf;
+
+    while (second != null) {
+        ListNode tmp1 = first.next;
+        ListNode tmp2 = second.next;
+
+        first.next  = second;
+        second.next = tmp1;
+
+        first  = tmp1;
+        second = tmp2;
+    }
+}
+
+private ListNode reverse(ListNode head) {
+    ListNode prev = null;
+    ListNode curr = head;
+
+    while (curr != null) {
+        ListNode next = curr.next;
+        curr.next = prev;
+        prev = curr;
+        curr = next;
+    }
+
+    return prev;
+}
+```
+
+---
+
+## Variant 2 — Rotate List
+
+**Visual:**
+```
+List: 1 → 2 → 3 → 4 → 5, k=2
+
+Make circular: 1 → 2 → 3 → 4 → 5 → back to 1
+Find new tail at position (n - k % n - 1) = 5-2-1 = 2 → node 3
+New head = node 4
+Break circle: 3.next = null
+
+Result: 4 → 5 → 1 → 2 → 3
+```
+
+---
+
+## Variant 3 — Move Specific Nodes
+
+**Visual:**
+```
+Move all zeros to end:
+1 → 0 → 2 → 0 → 3
+
+Two pointers — one builds non-zero list,
+one tracks where zeros go
+
+Result: 1 → 2 → 3 → 0 → 0
+```
+
+---
+
+## The Interleave Template (Most Important)
+
+```java
+// save next pointers before rewiring
+ListNode tmp1 = first.next;
+ListNode tmp2 = second.next;
+
+// rewire
+first.next  = second;
+second.next = tmp1;
+
+// advance both pointers
+first  = tmp1;
+second = tmp2;
+```
+
+**Always save `next` before you rewire — otherwise you lose the rest of the list!**
+
+---
+
+## Key Rules to Remember
+
+| Situation | Approach |
+|---|---|
+| Interleave two halves | Find middle + reverse + merge |
+| Rotate list | Make circular + find new tail + break |
+| Move nodes by value | Two pointer partition |
+| Rearrange by position | Odd/even pointer technique |
+
+---
+
+# Practice Problems
+
+### 🟢 Easy
+1. **Move Zeroes** — LC 283 *(array but same in-place logic)*
+2. **Palindrome Linked List** — LC 234 *(find middle + reverse + compare)*
+
+### 🟡 Medium
+3. **Reorder List** — LC 143 *(find middle + reverse + interleave)*
+4. **Rotate List** — LC 61 *(make circular + break at new point)*
+5. **Odd Even Linked List** — LC 328 *(separate odd/even positions)*
+6. **Swap Nodes in Pairs** — LC 24 *(swap every 2 nodes in place)*
+
+### 🔴 Hard
+7. **Reverse Nodes in k-Group** — LC 25 *(reverse k nodes in place)*
+8. **Split Linked List in Parts** — LC 725 *(split into k parts evenly)*
+
+---
