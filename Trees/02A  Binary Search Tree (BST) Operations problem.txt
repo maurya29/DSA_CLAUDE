@@ -1,0 +1,942 @@
+# 🌳 BST Operations — All Solutions
+
+---
+
+# 🟢 LC 700 — Search in a Binary Search Tree
+
+## Intuition
+Use BST property: if target < current node go left, if target > current node go right. This eliminates half the tree at each step, giving O(H) time.
+
+### Tree used:
+```
+        4
+       / \
+      2   7
+     / \
+    1   3
+
+Search for val = 2
+```
+
+---
+
+### ✅ Recursive Solution
+```java
+class Solution {
+    public TreeNode searchBST(TreeNode root, int val) {
+        // Base case: not found or exact match
+        if (root == null || root.val == val) return root;
+
+        // BST property: go left if val smaller, right if larger
+        if (val < root.val) return searchBST(root.left, val);
+        return searchBST(root.right, val);
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+searchBST(4, 2)
+  2 < 4 → go left
+  searchBST(2, 2)
+    2 == 2 → return node(2) ✅
+
+Returns subtree rooted at 2:
+    2
+   / \
+  1   3
+```
+
+---
+
+### ✅ Iterative Solution
+```java
+class Solution {
+    public TreeNode searchBST(TreeNode root, int val) {
+        while (root != null && root.val != val) {
+            // Navigate left or right based on BST property
+            root = val < root.val ? root.left : root.right;
+        }
+        return root; // null if not found, node if found
+    }
+}
+```
+
+### 🔍 Iterative Dry Run
+```
+curr = node(4), val = 2
+Step 1: 2 != 4, 2 < 4 → curr = node(2)
+Step 2: 2 == 2 → exit loop
+Return node(2) ✅
+```
+
+### ⚡ When to prefer which?
+| | Recursive | Iterative |
+|---|---|---|
+| Readability | ✅ Cleaner | More explicit |
+| Stack overflow | Possible on skewed tree | ✅ Safe |
+| Performance | Same O(H) | Same O(H) |
+
+---
+---
+
+# 🟢 LC 701 — Insert into a Binary Search Tree
+
+## Intuition
+Navigate the BST like a search until you hit null — that null spot is the correct insertion point. Return the new node up the recursion chain to maintain parent-child links.
+
+### Tree used:
+```
+        4
+       / \
+      2   7
+     / \
+    1   3
+
+Insert val = 5
+```
+
+---
+
+### ✅ Recursive Solution
+```java
+class Solution {
+    public TreeNode insertIntoBST(TreeNode root, int val) {
+        // Found insertion point
+        if (root == null) return new TreeNode(val);
+
+        if (val < root.val) {
+            root.left = insertIntoBST(root.left, val);   // Insert in left subtree
+        } else {
+            root.right = insertIntoBST(root.right, val); // Insert in right subtree
+        }
+
+        return root; // KEY: always return root to maintain links
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+insertIntoBST(4, 5)
+  5 > 4 → go right
+  insertIntoBST(7, 5)
+    5 < 7 → go left
+    insertIntoBST(null, 5)
+      root == null → return new TreeNode(5)
+    7.left = node(5)
+  return node(7)
+4.right = node(7) [unchanged]
+return node(4)
+
+Result:
+        4
+       / \
+      2   7
+     / \ /
+    1  3 5  ← inserted ✅
+```
+
+---
+
+### ✅ Iterative Solution
+```java
+class Solution {
+    public TreeNode insertIntoBST(TreeNode root, int val) {
+        TreeNode newNode = new TreeNode(val);
+        if (root == null) return newNode;
+
+        TreeNode curr = root;
+        TreeNode parent = null;
+
+        // Navigate to insertion point
+        while (curr != null) {
+            parent = curr;
+            if (val < curr.val) curr = curr.left;
+            else curr = curr.right;
+        }
+
+        // Attach new node to parent
+        if (val < parent.val) parent.left = newNode;
+        else parent.right = newNode;
+
+        return root;
+    }
+}
+```
+
+### 🔍 Iterative Dry Run
+```
+curr=4, parent=null, val=5
+
+Step 1: parent=4, 5>4 → curr=7
+Step 2: parent=7, 5<7 → curr=7.left=null
+Step 3: curr==null → stop
+
+5 < 7 → parent.left = node(5)
+
+Result:
+        4
+       / \
+      2   7
+         /
+        5  ← inserted ✅
+```
+
+---
+---
+
+# 🟢 LC 938 — Range Sum of BST
+
+## Intuition
+Use BST property to prune unnecessary branches. If node < low, skip entire left subtree. If node > high, skip entire right subtree. Only recurse into relevant branches.
+
+### Tree used:
+```
+        10
+       /  \
+      5   15
+     / \    \
+    3   7   18
+
+Range: [7, 15]
+Answer: 7 + 10 + 15 = 32
+```
+
+---
+
+### ✅ Recursive Solution
+```java
+class Solution {
+    public int rangeSumBST(TreeNode root, int low, int high) {
+        if (root == null) return 0;
+
+        // Prune: entire left subtree < low, skip it
+        if (root.val < low) return rangeSumBST(root.right, low, high);
+
+        // Prune: entire right subtree > high, skip it
+        if (root.val > high) return rangeSumBST(root.left, low, high);
+
+        // Node is in range: add it + explore both sides
+        return root.val
+             + rangeSumBST(root.left, low, high)
+             + rangeSumBST(root.right, low, high);
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+rangeSumBST(10, 7, 15)
+  10 in [7,15] → add 10
+  Left: rangeSumBST(5, 7, 15)
+    5 < 7 → skip left, go right only
+    rangeSumBST(7, 7, 15)
+      7 in [7,15] → add 7
+      Left: rangeSumBST(null) → 0
+      Right: rangeSumBST(null) → 0
+      return 7
+    return 7
+  Right: rangeSumBST(15, 7, 15)
+    15 in [7,15] → add 15
+    Left: null → 0
+    Right: rangeSumBST(18, 7, 15)
+      18 > 15 → go left only → null → 0
+    return 15
+  return 15
+
+Total = 10 + 7 + 15 = 32 ✅
+```
+
+---
+
+### ✅ Iterative Solution (Stack)
+```java
+class Solution {
+    public int rangeSumBST(TreeNode root, int low, int high) {
+        int sum = 0;
+        Stack<TreeNode> stack = new Stack<>();
+        stack.push(root);
+
+        while (!stack.isEmpty()) {
+            TreeNode node = stack.pop();
+            if (node == null) continue;
+
+            if (node.val >= low && node.val <= high) {
+                sum += node.val;         // In range: add to sum
+            }
+            // BST pruning
+            if (node.val > low) stack.push(node.left);   // Left might have valid nodes
+            if (node.val < high) stack.push(node.right); // Right might have valid nodes
+        }
+        return sum;
+    }
+}
+```
+
+### 🔍 Iterative Dry Run
+```
+Stack: [10]
+
+Pop 10: in [7,15] → sum=10
+  10>7 → push left(5)
+  10<15 → push right(15)
+  Stack: [5, 15]
+
+Pop 15: in [7,15] → sum=25
+  15>7 → push left(null) → skip
+  15<15? No → don't push right(18)
+  Stack: [5]
+
+Pop 5: 5 < 7, not in range → sum=25
+  5>7? No → don't push left(3)
+  5<15 → push right(7)
+  Stack: [7]
+
+Pop 7: in [7,15] → sum=32
+  7>7? No → don't push left
+  7<15 → push right(null) → skip
+
+Final sum = 32 ✅
+```
+
+---
+---
+
+# 🟡 LC 450 — Delete Node in a BST
+
+## Intuition
+Find the node first using BST search. Then handle 3 cases: leaf node (just remove), one child (replace with child), two children (replace value with inorder successor — smallest in right subtree — then delete that successor).
+
+### Tree used:
+```
+        5
+       / \
+      3   6
+     / \   \
+    2   4   7
+
+Delete key = 3
+Inorder successor of 3 = 4 (min of right subtree)
+```
+
+---
+
+### ✅ Recursive Solution
+```java
+class Solution {
+    public TreeNode deleteNode(TreeNode root, int key) {
+        if (root == null) return null;
+
+        if (key < root.val) {
+            root.left = deleteNode(root.left, key);   // Search left
+        } else if (key > root.val) {
+            root.right = deleteNode(root.right, key); // Search right
+        } else {
+            // Found node to delete — handle 3 cases
+            if (root.left == null) return root.right;  // Case 1 & 2: no left child
+            if (root.right == null) return root.left;  // Case 2: no right child
+
+            // Case 3: two children
+            TreeNode successor = findMin(root.right);  // Inorder successor
+            root.val = successor.val;                  // Replace value
+            root.right = deleteNode(root.right, successor.val); // Delete successor
+        }
+        return root;
+    }
+
+    private TreeNode findMin(TreeNode node) {
+        while (node.left != null) node = node.left;
+        return node;
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+deleteNode(5, 3)
+  3 < 5 → go left
+  deleteNode(3, 3)
+    3 == 3 → found!
+    Has both children (2 and 4)
+    findMin(right=4) → successor = 4
+    root.val = 4   [node(3) becomes node(4)]
+    root.right = deleteNode(4, 4)
+      4 == 4, no children → return null
+    return node(now val=4, left=2, right=null)
+  5.left = node(4, left=2)
+
+Result:
+        5
+       / \
+      4   6
+     /     \
+    2       7  ✅
+```
+
+---
+
+### ✅ Iterative Solution
+```java
+class Solution {
+    public TreeNode deleteNode(TreeNode root, int key) {
+        TreeNode parent = null;
+        TreeNode curr = root;
+
+        // Step 1: Find node to delete
+        while (curr != null && curr.val != key) {
+            parent = curr;
+            curr = key < curr.val ? curr.left : curr.right;
+        }
+
+        if (curr == null) return root; // Key not found
+
+        // Step 2: Handle deletion
+        curr = deleteFoundNode(curr);
+
+        // Step 3: Reconnect to parent
+        if (parent == null) return curr; // Deleted root
+        if (parent.left != null && parent.left.val == key) parent.left = curr;
+        else parent.right = curr;
+
+        return root;
+    }
+
+    private TreeNode deleteFoundNode(TreeNode node) {
+        // Case 1 & 2: one or no children
+        if (node.left == null) return node.right;
+        if (node.right == null) return node.left;
+
+        // Case 3: two children
+        // Find inorder successor (min of right) and its parent
+        TreeNode successorParent = node;
+        TreeNode successor = node.right;
+        while (successor.left != null) {
+            successorParent = successor;
+            successor = successor.left;
+        }
+
+        // Detach successor
+        if (successorParent == node) {
+            successorParent.right = successor.right;
+        } else {
+            successorParent.left = successor.right;
+        }
+
+        // Replace node's value with successor
+        node.val = successor.val;
+        return node;
+    }
+}
+```
+
+---
+---
+
+# 🟡 LC 98 — Validate Binary Search Tree
+
+## Intuition
+Simply checking `left < root < right` at each node is WRONG — it misses deep violations. Instead pass a valid `[min, max]` range down the tree. Every node must fall strictly within its inherited range.
+
+### Trees used:
+```
+Valid BST:          Invalid BST:
+     5                   5
+    / \                 / \
+   1   7               1   4    ← 4 < 5 (INVALID)
+                          / \
+                         3   6
+```
+
+---
+
+### ✅ Recursive Solution (Bounds passing)
+```java
+class Solution {
+    public boolean isValidBST(TreeNode root) {
+        return validate(root, Long.MIN_VALUE, Long.MAX_VALUE);
+    }
+
+    private boolean validate(TreeNode node, long min, long max) {
+        if (node == null) return true; // Empty tree/leaf's child is valid
+
+        // Node must be strictly within (min, max)
+        if (node.val <= min || node.val >= max) return false;
+
+        // Left subtree: max shrinks to current node's value
+        // Right subtree: min grows to current node's value
+        return validate(node.left, min, node.val) &&
+               validate(node.right, node.val, max);
+    }
+}
+```
+
+### 🔍 Recursive Dry Run (Invalid tree)
+```
+validate(5, -∞, +∞)
+  5 in (-∞,+∞) ✅
+  Left: validate(1, -∞, 5)
+    1 in (-∞,5) ✅
+    Left: validate(null) → true
+    Right: validate(null) → true
+    return true
+  Right: validate(4, 5, +∞)
+    4 <= 5 → INVALID ❌
+    return false
+
+Final: false ✅ (correctly identified as invalid)
+```
+
+---
+
+### ✅ Iterative Solution (Inorder must be sorted)
+```java
+class Solution {
+    public boolean isValidBST(TreeNode root) {
+        Stack<TreeNode> stack = new Stack<>();
+        TreeNode curr = root;
+        long prevVal = Long.MIN_VALUE; // Track previous inorder value
+
+        while (curr != null || !stack.isEmpty()) {
+            // Go as left as possible
+            while (curr != null) {
+                stack.push(curr);
+                curr = curr.left;
+            }
+
+            curr = stack.pop();
+
+            // Inorder of BST must be strictly increasing
+            if (curr.val <= prevVal) return false;
+            prevVal = curr.val;
+
+            curr = curr.right;
+        }
+        return true;
+    }
+}
+```
+
+### 🔍 Iterative Dry Run
+```
+Tree:    2
+        / \
+       1   3
+
+prevVal = Long.MIN_VALUE
+
+Push 2, push 1 (go left)   Stack:[2,1]
+Pop 1: 1 > MIN_VALUE ✅  prevVal=1, curr=1.right=null
+Pop 2: 2 > 1 ✅          prevVal=2, curr=2.right=3
+Push 3                    Stack:[3]
+Pop 3: 3 > 2 ✅          prevVal=3
+
+Never returned false → return true ✅
+```
+
+---
+---
+
+# 🟡 LC 230 — Kth Smallest Element in a BST
+
+## Intuition
+Inorder traversal of BST gives elements in sorted ascending order. Count nodes during inorder traversal and return when count reaches k. No need to collect all elements.
+
+### Tree used:
+```
+        5
+       / \
+      3   6
+     / \
+    2   4
+   /
+  1
+
+Inorder: 1,2,3,4,5,6
+K=3 → answer = 3
+```
+
+---
+
+### ✅ Recursive Solution
+```java
+class Solution {
+    private int count = 0;
+    private int result = 0;
+
+    public int kthSmallest(TreeNode root, int k) {
+        inorder(root, k);
+        return result;
+    }
+
+    private void inorder(TreeNode node, int k) {
+        if (node == null) return;
+
+        inorder(node.left, k);          // Go left first
+
+        count++;                         // Process current node
+        if (count == k) {
+            result = node.val;           // Found kth smallest
+            return;
+        }
+
+        inorder(node.right, k);         // Go right
+    }
+}
+```
+
+### 🔍 Recursive Dry Run (k=3)
+```
+inorder(5)
+  inorder(3)
+    inorder(2)
+      inorder(1)
+        inorder(null) → return
+        count=1, k=3, not equal
+        inorder(null) → return
+      count=2, k=3, not equal
+      inorder(null) → return
+    count=3, k=3 → result=3, return ✅
+```
+
+---
+
+### ✅ Iterative Solution
+```java
+class Solution {
+    public int kthSmallest(TreeNode root, int k) {
+        Stack<TreeNode> stack = new Stack<>();
+        TreeNode curr = root;
+
+        while (curr != null || !stack.isEmpty()) {
+            // Go as far left as possible
+            while (curr != null) {
+                stack.push(curr);
+                curr = curr.left;
+            }
+
+            curr = stack.pop();
+            k--;                           // Count down
+            if (k == 0) return curr.val;   // Found kth smallest
+
+            curr = curr.right;
+        }
+        return -1;
+    }
+}
+```
+
+### 🔍 Iterative Dry Run (k=3)
+```
+Push 5→3→2→1   Stack:[5,3,2,1]
+
+Pop 1: k=3→2, k!=0, curr=1.right=null
+Pop 2: k=2→1, k!=0, curr=2.right=null
+Pop 3: k=1→0 → return 3 ✅
+```
+
+---
+---
+
+# 🔴 LC 99 — Recover Binary Search Tree
+
+## Intuition
+In a valid BST, inorder traversal is strictly sorted. When exactly two nodes are swapped, the inorder sequence has either one or two "inversions" (places where prev > curr). Find the two problematic nodes and swap their values back.
+
+### Tree used:
+```
+Correct BST:     Swapped (3 and 1 exchanged):
+     1                 3
+    / \               / \
+   2   3             2   1   ← 3 and 1 are swapped
+
+Inorder of swapped: 2, 3, 1
+                       ↑  ↑
+               inversion1  inversion2
+first = 3, second = 1 → swap them back
+```
+
+---
+
+### ✅ Recursive Solution (O(1) space with two pointers)
+```java
+class Solution {
+    TreeNode first = null;   // First wrong node
+    TreeNode second = null;  // Second wrong node
+    TreeNode prev = null;    // Previous inorder node
+
+    public void recoverTree(TreeNode root) {
+        inorder(root);
+        // Swap values of the two misplaced nodes
+        int temp = first.val;
+        first.val = second.val;
+        second.val = temp;
+    }
+
+    private void inorder(TreeNode node) {
+        if (node == null) return;
+
+        inorder(node.left);
+
+        // Detect inversion
+        if (prev != null && prev.val > node.val) {
+            if (first == null) first = prev;  // First inversion: mark prev
+            second = node;                    // Always update second to curr
+        }
+        prev = node;
+
+        inorder(node.right);
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+Swapped tree inorder traversal: 2 → 3 → 1
+
+Step 1: prev=null, visit 2. prev=node(2)
+Step 2: prev=2, visit 3.
+  prev(2) < curr(3) → no inversion
+  prev = node(3)
+Step 3: prev=3, visit 1.
+  prev(3) > curr(1) → INVERSION!
+  first == null → first = node(3)
+  second = node(1)
+  prev = node(1)
+
+Swap first(3) and second(1):
+  node(3).val = 1, node(1).val = 3
+
+Tree restored:
+     1
+    / \
+   2   3  ✅
+```
+
+---
+
+### ✅ Iterative Solution
+```java
+class Solution {
+    public void recoverTree(TreeNode root) {
+        Stack<TreeNode> stack = new Stack<>();
+        TreeNode curr = root;
+        TreeNode first = null, second = null, prev = null;
+
+        while (curr != null || !stack.isEmpty()) {
+            while (curr != null) {
+                stack.push(curr);
+                curr = curr.left;
+            }
+
+            curr = stack.pop();
+
+            // Detect inversion
+            if (prev != null && prev.val > curr.val) {
+                if (first == null) first = prev;
+                second = curr;
+            }
+            prev = curr;
+            curr = curr.right;
+        }
+
+        // Swap the two misplaced nodes
+        int temp = first.val;
+        first.val = second.val;
+        second.val = temp;
+    }
+}
+```
+
+### 🔍 Iterative Dry Run
+```
+Inorder of [3,2,1] swapped tree: visits 2, 3, 1
+
+Visit 2: prev=null → no check. prev=node(2)
+Visit 3: prev(2) < curr(3) → no inversion. prev=node(3)
+Visit 1: prev(3) > curr(1) → INVERSION!
+  first=node(3), second=node(1)
+
+Swap → node(3).val=1, node(1).val=3 ✅
+```
+
+---
+---
+
+# 🔴 LC 315 — Count of Smaller Numbers After Self
+
+## Intuition
+Process numbers from RIGHT to LEFT. Insert each number into a BST, and while inserting, count how many nodes already in the tree are smaller (using a `count` field at each node that tracks how many nodes are in its left subtree).
+
+### Array used:
+```
+nums = [5, 2, 6, 1]
+Expected: [2, 1, 1, 0]
+```
+
+---
+
+### ✅ Solution (BST with left subtree count)
+```java
+class Solution {
+    // BST Node with left subtree count
+    class BSTreeNode {
+        int val, count; // count = nodes in left subtree
+        BSTreeNode left, right;
+        BSTreeNode(int val) { this.val = val; this.count = 1; }
+    }
+
+    private int insert(BSTreeNode root, int val, int preCount) {
+        if (root == null) return preCount;
+
+        if (val <= root.val) {
+            root.count++;                              // One more in left subtree
+            return insert(root.left == null
+                    ? (root.left = new BSTreeNode(val))
+                    : root.left, val, preCount);
+        } else {
+            // Going right: all left subtree nodes + root itself are smaller
+            return insert(root.right == null
+                    ? (root.right = new BSTreeNode(val))
+                    : root.right, val, preCount + root.count);
+        }
+    }
+
+    public List<Integer> countSmaller(int[] nums) {
+        int n = nums.length;
+        int[] result = new int[n];
+        BSTreeNode root = null;
+
+        // Process right to left
+        for (int i = n - 1; i >= 0; i--) {
+            if (root == null) {
+                root = new BSTreeNode(nums[i]);
+                result[i] = 0;
+            } else {
+                result[i] = insert(root, nums[i], 0);
+            }
+        }
+
+        List<Integer> ans = new ArrayList<>();
+        for (int r : result) ans.add(r);
+        return ans;
+    }
+}
+```
+
+### 🔍 Dry Run
+```
+nums = [5, 2, 6, 1]   Process right to left:
+
+i=3: Insert 1. root=null → root=BST(1,count=1). result[3]=0
+
+i=2: Insert 6. root=BST(1)
+  6 > 1 → go right, preCount = 0 + 1(root.count) = 1
+  right is null → create node(6). result[2] = 1
+
+BST:
+  1(count=1)
+    \
+    6(count=1)
+
+i=1: Insert 2. root=BST(1)
+  2 > 1 → go right, preCount = 0 + 1 = 1
+  2 <= 6 → go left of 6, 6.count++ = 2
+  left is null → create node(2). result[1] = 1
+
+BST:
+  1(count=1)
+    \
+    6(count=2)
+    /
+   2(count=1)
+
+i=0: Insert 5. root=BST(1)
+  5 > 1 → go right, preCount = 0 + 1 = 1
+  5 <= 6 → go left of 6, 6.count++ = 3
+  5 > 2 → go right of 2, preCount = 1 + 1(2.count) = 2
+  right is null → create node(5). result[0] = 2
+
+Final result: [2, 1, 1, 0] ✅
+```
+
+### ✅ Iterative Solution (Merge Sort — more robust for duplicates)
+```java
+class Solution {
+    int[] result;
+    int[] indexes;
+
+    public List<Integer> countSmaller(int[] nums) {
+        int n = nums.length;
+        result = new int[n];
+        indexes = new int[n];
+
+        for (int i = 0; i < n; i++) indexes[i] = i;
+
+        mergeSort(nums, 0, n - 1);
+
+        List<Integer> ans = new ArrayList<>();
+        for (int r : result) ans.add(r);
+        return ans;
+    }
+
+    private void mergeSort(int[] nums, int left, int right) {
+        if (left >= right) return;
+        int mid = left + (right - left) / 2;
+        mergeSort(nums, left, mid);
+        mergeSort(nums, mid + 1, right);
+        merge(nums, left, mid, right);
+    }
+
+    private void merge(int[] nums, int left, int mid, int right) {
+        int[] tempIdx = new int[right - left + 1];
+        int i = left, j = mid + 1, k = 0;
+
+        while (i <= mid && j <= right) {
+            if (nums[indexes[i]] <= nums[indexes[j]]) {
+                // All elements from j to current j-1 crossed over i → smaller
+                result[indexes[i]] += j - (mid + 1);
+                tempIdx[k++] = indexes[i++];
+            } else {
+                tempIdx[k++] = indexes[j++];
+            }
+        }
+        while (i <= mid) {
+            result[indexes[i]] += j - (mid + 1);
+            tempIdx[k++] = indexes[i++];
+        }
+        while (j <= right) {
+            tempIdx[k++] = indexes[j++];
+        }
+        for (int x = 0; x < tempIdx.length; x++) {
+            indexes[left + x] = tempIdx[x];
+        }
+    }
+}
+```
+
+---
+---
+
+# 📊 Final Summary Table
+
+| Problem | Key Technique | Trick |
+|---|---|---|
+| LC 700 — Search BST | BST navigation | `val < root.val` → left, else right |
+| LC 701 — Insert BST | Recurse + return root | Always `return root` to maintain links |
+| LC 938 — Range Sum | BST pruning | Skip whole subtree if out of range |
+| LC 450 — Delete BST | 3-case deletion | Two children → replace with **inorder successor** |
+| LC 98 — Validate BST | Bounds passing | Use `Long.MIN/MAX`; pass `(min, node.val)` left, `(node.val, max)` right |
+| LC 230 — Kth Smallest | Inorder counter | Inorder of BST = sorted; stop at kth node |
+| LC 99 — Recover BST | Inorder inversion | Find 1 or 2 inversions; swap `first` and `second` |
+| LC 315 — Count Smaller | BST left-count / Merge Sort | Track left subtree count on insert; merge sort for robustness |
+
+---
+
+## 💡 3 Golden Rules for BST
+
+> **Rule 1:** Inorder of BST = Sorted — this alone solves kth smallest, validate, recover
+>
+> **Rule 2:** Always `return root` after insert/delete — recursion rewires parent-child links through return values
+>
+> **Rule 3:** Validate with range bounds `(min, max)`, not just parent — parent check alone misses deep violations

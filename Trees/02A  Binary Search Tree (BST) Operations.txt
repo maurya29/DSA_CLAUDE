@@ -1,0 +1,355 @@
+# 🌳 Pattern 2 — Binary Search Tree (BST) Operations
+
+---
+
+## 1. Core Idea
+
+> **BST Property:** For every node:
+> - All nodes in **left subtree < current node**
+> - All nodes in **right subtree > current node**
+> - This holds **recursively** for every node in the tree
+
+```
+        8
+       / \
+      3   10
+     / \    \
+    1   6    14
+       / \   /
+      4   7 13
+
+Left of 8 → all < 8 ✅
+Right of 8 → all > 8 ✅
+Left of 3 → all < 3 ✅
+Right of 3 → all > 3, < 8 ✅
+```
+
+---
+
+## 🧠 How to Recognize BST Problems
+
+| Clue in Problem | Pattern |
+|---|---|
+| "sorted order", "kth smallest" | Inorder traversal of BST = sorted |
+| "search / find in BST" | Binary search left or right |
+| "insert into BST" | Recurse left/right, attach at null |
+| "delete from BST" | 3 cases: leaf, one child, two children |
+| "validate BST" | Pass min/max bounds down recursively |
+| "closest value", "floor/ceil" | Navigate BST + track closest |
+| "convert to/from sorted array" | BST ↔ sorted array relationship |
+| "lowest common ancestor in BST" | Use BST property to decide direction |
+
+---
+
+## 📌 Key Variants
+
+---
+
+### Variant 1 — Search in BST
+
+```
+Search for 6 in:
+        8
+       / \
+      3   10
+     / \
+    1   6
+
+Step 1: 6 < 8 → go left to 3
+Step 2: 6 > 3 → go right to 6
+Step 3: 6 == 6 → FOUND ✅
+
+Time: O(H) where H = height
+Best case O(log N) balanced, Worst O(N) skewed
+```
+
+---
+
+### Variant 2 — Insert in BST
+
+```
+Insert 5 into:
+        8
+       / \
+      3   10
+     / \
+    1   6
+       /
+      4
+
+Step 1: 5 < 8 → go left
+Step 2: 5 > 3 → go right
+Step 3: 5 < 6 → go left
+Step 4: 5 > 4 → go right → null found!
+Step 5: Insert 5 as right child of 4
+
+Result:
+        8
+       / \
+      3   10
+     / \
+    1   6
+       /
+      4
+       \
+        5  ← inserted ✅
+```
+
+---
+
+### Variant 3 — Delete in BST (3 Cases)
+
+```
+CASE 1: Node is a LEAF (no children)
+Delete 1:  just remove it → parent's pointer = null
+
+CASE 2: Node has ONE child
+Delete 10 (only right child 14):
+  Replace 10 with its child 14
+
+CASE 3: Node has TWO children ← trickiest
+Delete 3 (has children 1 and 6):
+  Find INORDER SUCCESSOR (smallest in right subtree) = 4
+  Replace 3's value with 4
+  Delete 4 from right subtree
+
+Before:          After:
+    8                8
+   / \              / \
+  3   10           4   10
+ / \               / \
+1   6             1   6
+   /                 /
+  4                 (4 deleted)
+```
+
+---
+
+### Variant 4 — Validate BST
+
+```
+Key insight: Pass valid range [min, max] for each node
+
+        5
+       / \
+      1   4    ← INVALID! 4 < 5 (right child must be > root)
+         / \
+        3   6
+
+validate(5, min=-∞, max=+∞) → 5 in range ✅
+  validate(1, min=-∞, max=5) → 1 in range ✅
+  validate(4, min=5, max=+∞) → 4 < 5 ❌ INVALID!
+```
+
+---
+
+### Variant 5 — Kth Smallest Element
+
+```
+BST Inorder = Sorted Array
+
+        5
+       / \
+      3   6
+     / \
+    2   4
+   /
+  1
+
+Inorder: 1 → 2 → 3 → 4 → 5 → 6
+K=3 → answer is 3 ✅
+
+Just do inorder and stop at kth element!
+```
+
+---
+
+### Variant 6 — Floor and Ceil in BST
+
+```
+Floor(key) = largest value ≤ key
+Ceil(key)  = smallest value ≥ key
+
+Tree:
+        8
+       / \
+      4   12
+     / \
+    2   6
+
+Floor(5): 
+  5 < 8 → go left, floor candidate = null
+  5 > 4 → go right, floor candidate = 4
+  5 > 6? No, 5 < 6 → go left of 6
+  null → stop. Floor = 4 ✅
+
+Ceil(5):
+  5 < 8 → go left, ceil candidate = 8
+  5 > 4 → go right of 4
+  5 < 6 → go left of 6, ceil candidate = 6
+  null → stop. Ceil = 6 ✅
+```
+
+---
+
+## 🏆 Golden Templates in Java
+
+### ✅ Search in BST
+```java
+// Recursive
+TreeNode searchBST(TreeNode root, int val) {
+    if (root == null || root.val == val) return root;
+    if (val < root.val) return searchBST(root.left, val);
+    return searchBST(root.right, val);
+}
+
+// Iterative
+TreeNode searchBSTIterative(TreeNode root, int val) {
+    while (root != null && root.val != val) {
+        root = val < root.val ? root.left : root.right;
+    }
+    return root;
+}
+```
+
+---
+
+### ✅ Insert in BST
+```java
+// Recursive
+TreeNode insertBST(TreeNode root, int val) {
+    if (root == null) return new TreeNode(val); // Found insertion point
+    if (val < root.val) root.left = insertBST(root.left, val);
+    else root.right = insertBST(root.right, val);
+    return root; // KEY: always return root to maintain links
+}
+
+// Iterative
+TreeNode insertBSTIterative(TreeNode root, int val) {
+    TreeNode newNode = new TreeNode(val);
+    if (root == null) return newNode;
+    TreeNode curr = root, parent = null;
+    while (curr != null) {
+        parent = curr;
+        curr = val < curr.val ? curr.left : curr.right;
+    }
+    if (val < parent.val) parent.left = newNode;
+    else parent.right = newNode;
+    return root;
+}
+```
+
+---
+
+### ✅ Delete in BST
+```java
+// Recursive
+TreeNode deleteBST(TreeNode root, int key) {
+    if (root == null) return null;
+
+    if (key < root.val) {
+        root.left = deleteBST(root.left, key);   // go left
+    } else if (key > root.val) {
+        root.right = deleteBST(root.right, key); // go right
+    } else {
+        // Found node to delete
+        if (root.left == null) return root.right; // Case 1 & 2
+        if (root.right == null) return root.left; // Case 2
+
+        // Case 3: two children → find inorder successor
+        TreeNode successor = findMin(root.right);
+        root.val = successor.val;                 // Replace value
+        root.right = deleteBST(root.right, successor.val); // Delete successor
+    }
+    return root;
+}
+
+TreeNode findMin(TreeNode node) {
+    while (node.left != null) node = node.left;
+    return node;
+}
+```
+
+---
+
+### ✅ Validate BST
+```java
+// Recursive with bounds
+boolean isValidBST(TreeNode root) {
+    return validate(root, Long.MIN_VALUE, Long.MAX_VALUE);
+}
+
+boolean validate(TreeNode node, long min, long max) {
+    if (node == null) return true;
+    if (node.val <= min || node.val >= max) return false;
+    return validate(node.left, min, node.val) &&   // left: max shrinks
+           validate(node.right, node.val, max);    // right: min shrinks
+}
+```
+
+---
+
+### ✅ Kth Smallest (Inorder Counter)
+```java
+// Recursive
+int k, result;
+int kthSmallest(TreeNode root, int k) {
+    this.k = k;
+    inorder(root);
+    return result;
+}
+void inorder(TreeNode node) {
+    if (node == null) return;
+    inorder(node.left);
+    if (--k == 0) { result = node.val; return; } // Stop at kth
+    inorder(node.right);
+}
+
+// Iterative
+int kthSmallestIterative(TreeNode root, int k) {
+    Stack<TreeNode> stack = new Stack<>();
+    TreeNode curr = root;
+    while (curr != null || !stack.isEmpty()) {
+        while (curr != null) { stack.push(curr); curr = curr.left; }
+        curr = stack.pop();
+        if (--k == 0) return curr.val;
+        curr = curr.right;
+    }
+    return -1;
+}
+```
+
+---
+
+## 📋 Key Rules to Remember
+
+| Rule | Why it matters |
+|---|---|
+| **Inorder BST = Sorted** | Unlocks kth smallest, range queries, sorted output |
+| **Always return root in insert/delete** | Maintains parent-child links via recursion |
+| **Delete with 2 children → use inorder successor** | Smallest in right subtree maintains BST property |
+| **Validate with bounds not parent** | Parent check alone fails for deep violations |
+| **Use Long.MIN/MAX for bounds** | Avoids overflow when node values are Integer.MIN/MAX |
+| **BST search is O(H)** | O(log N) balanced, O(N) worst case skewed tree |
+| **Floor = go right when node < key** | Track last valid candidate while navigating |
+| **Ceil = go left when node > key** | Track last valid candidate while navigating |
+
+---
+
+## 🏋️ Practice Problems
+
+### 🟢 Easy
+- **LC 700** — Search in a Binary Search Tree
+- **LC 701** — Insert into a Binary Search Tree
+- **LC 938** — Range Sum of BST
+
+### 🟡 Medium
+- **LC 450** — Delete Node in a BST
+- **LC 98** — Validate Binary Search Tree
+- **LC 230** — Kth Smallest Element in a BST
+
+### 🔴 Hard
+- **LC 99** — Recover Binary Search Tree
+- **LC 315** — Count of Smaller Numbers After Self
+
+---
