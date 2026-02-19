@@ -1,0 +1,101 @@
+Here are the core patterns you'll encounter for linked list problems in DSA:
+
+---
+
+**1. Two Pointers / Fast & Slow Pointers**
+The most common pattern. Use two pointers moving at different speeds.
+- Detect a cycle (Floyd's algorithm)
+- Find middle of linked list
+- Find kth node from end
+- Detect start of cycle
+
+---
+
+**2. Reversal**
+Reversing all or part of a list, usually in-place.
+- Reverse entire list
+- Reverse a sublist (between positions i and j)
+- Reverse in k-groups
+- Check if palindrome (reverse second half)
+
+---
+
+**3. Merge / Combine**
+- Merge two sorted lists
+- Merge k sorted lists (uses heap or divide & conquer)
+- Sort a linked list (merge sort)
+
+---
+
+**4. Dummy Node Technique**
+Create a dummy/sentinel head to simplify edge cases like deletions or insertions at the head.
+- Remove nth node from end
+- Partition list around a value
+- Remove duplicates
+
+---
+
+**5. In-Place Manipulation**
+Rearranging nodes without extra space.
+- Odd-even linked list
+- Reorder list (L0 → Ln → L1 → Ln-1...)
+- Swap nodes in pairs
+- Rotate list by k
+
+---
+
+**6. Hashing**
+Use a hash set or hash map to track visited nodes or positions.
+- Detect cycle (O(n) space alternative)
+- Find intersection of two lists
+- Copy list with random pointers
+
+---
+
+**7. Recursion**
+Many list problems have elegant recursive solutions.
+- Reverse list recursively
+- Merge two sorted lists recursively
+- Check palindrome
+
+---
+
+**8. Intersection / Meeting Point**
+Find where two lists meet or share nodes.
+- Intersection of two linked lists (align lengths, then walk together)
+
+---
+
+**9. Clone / Deep Copy**
+- Copy list with random pointers (interleaving technique or hash map)
+
+---
+
+**10. Math / Number Problems**
+- Add two numbers (digits stored as nodes)
+- Multiply/subtract numbers represented as lists
+
+---
+
+**Quick Pattern-to-Problem Map:**
+
+| Pattern | Key Problems |
+|---|---|
+| Fast & Slow | Cycle detection, middle node |
+| Reversal | Reverse sublist, palindrome |
+| Dummy node | Delete nth from end, partition |
+| Two pointers | kth from end, intersection |
+| Hash map | Random pointer copy, detect cycle |
+| Merge | Merge k lists, sort list |
+| Recursion | Reverse, merge |
+
+---
+
+**Tips to recognize which pattern to use:**
+- "Cycle" → Fast & slow pointers
+- "kth from end" or "middle" → Two pointers
+- "Sorted + combine" → Merge
+- "Rearrange" → In-place manipulation + dummy node
+- "Random pointer / visited" → Hash map
+
+Mastering **reversal** and **fast & slow pointers** covers roughly 60–70% of interview problems. Want me to go deep on any specific pattern with examples?

@@ -1,0 +1,391 @@
+# All Solutions in Java
+
+-----------------------------------------------------------------------------------------
+
+## 🟢 Easy
+
+### 1. Middle of the Linked List — LC 876
+
+**Intuition:** When fast reaches end, slow is at middle.
+
+```java
+public ListNode middleNode(ListNode head) {
+    ListNode slow = head;
+    ListNode fast = head;
+
+    while (fast != null && fast.next != null) {
+        slow = slow.next;
+        fast = fast.next.next;
+    }
+
+    return slow; // slow is at middle
+}
+```
+
+**Dry Run:**
+```
+List: 1 → 2 → 3 → 4 → 5
+
+Step 1: slow=2, fast=3
+Step 2: slow=3, fast=5
+fast.next == null → stop
+
+return slow = 3 ✅
+```
+
+--------------------------------------------------------------------------------------------
+
+### 2. Linked List Cycle — LC 141
+
+**Intuition:** If cycle exists, fast will lap slow and they'll meet. If no cycle, fast hits null.
+
+```java
+public boolean hasCycle(ListNode head) {
+    ListNode slow = head;
+    ListNode fast = head;
+
+    while (fast != null && fast.next != null) {
+        slow = slow.next;
+        fast = fast.next.next;
+
+        if (slow == fast) return true; // they met → cycle exists
+    }
+
+    return false; // fast hit null → no cycle
+}
+```
+
+**Dry Run:**
+```
+List: 1 → 2 → 3 → 4 → back to 2
+
+Step 1: slow=2, fast=3
+Step 2: slow=3, fast=2  (cycle wraps)
+Step 3: slow=4, fast=4  → slow == fast ✅ return true
+```
+
+--------------------------------------------------------------------------------------------
+
+### 3. Remove Nth Node From End — LC 19
+
+**Intuition:** Move fast N steps ahead. Then move both. When fast hits null, slow is just before the node to delete.
+
+```java
+public ListNode removeNthFromEnd(ListNode head, int n) {
+    ListNode dummy = new ListNode(0);
+    dummy.next = head;
+
+    ListNode slow = dummy;
+    ListNode fast = dummy;
+
+    // move fast n+1 steps ahead (so slow stops BEFORE the target node)
+    for (int i = 0; i <= n; i++) {
+        fast = fast.next;
+    }
+
+    // move both until fast hits null
+    while (fast != null) {
+        slow = slow.next;
+        fast = fast.next;
+    }
+
+    // slow is just before the node to delete
+    slow.next = slow.next.next;
+
+    return dummy.next;
+}
+```
+
+**Dry Run:**
+```
+List: 1 → 2 → 3 → 4 → 5,  n = 2
+
+dummy → 1 → 2 → 3 → 4 → 5
+
+Move fast 3 steps (n+1): fast = 3
+slow = dummy
+
+Move both:
+  slow=1, fast=4
+  slow=2, fast=5
+  slow=3, fast=null → stop
+
+slow.next = slow.next.next
+→ 3.next = 5  (skip 4)
+
+Result: 1 → 2 → 3 → 5 ✅
+```
+
+**Why dummy node?** Handles edge case where you delete the head node cleanly.
+
+--------------------------------------------------------------------------------------------
+
+## 🟡 Medium
+
+### 1. Linked List Cycle II — LC 142
+
+**Intuition (The Math Behind It):**
+- Let `F` = distance from head to cycle start
+- Let `C` = cycle length
+- When slow and fast meet inside cycle:
+  - slow travelled = `F + a`
+  - fast travelled = `F + a + C`
+  - fast = 2 × slow → `F = C - a`
+- So if you reset one pointer to head and move both 1 step, they meet at cycle start!
+
+```java
+public ListNode detectCycle(ListNode head) {
+    ListNode slow = head;
+    ListNode fast = head;
+
+    // Step 1: detect if cycle exists and find meeting point
+    while (fast != null && fast.next != null) {
+        slow = slow.next;
+        fast = fast.next.next;
+
+        if (slow == fast) {
+            // Step 2: find cycle start
+            ListNode pointer = head;
+
+            while (pointer != slow) {
+                pointer = pointer.next;
+                slow = slow.next;
+            }
+
+            return slow; // cycle start
+        }
+    }
+
+    return null; // no cycle
+}
+```
+
+**Dry Run:**
+```
+List: 1 → 2 → 3 → 4 → 5 → back to 3
+Cycle start = node 3
+
+Step 1 - they meet at node 4 (inside cycle)
+
+Step 2 - reset pointer to head (1)
+  pointer=1, slow=4
+  pointer=2, slow=5
+  pointer=3, slow=3  → they meet at 3 ✅ (cycle start)
+```
+
+--------------------------------------------------------------------------------------------
+
+### 2. Palindrome Linked List — LC 234
+
+**Intuition:** 3 steps:
+1. Find middle using fast & slow
+2. Reverse second half
+3. Compare first half and reversed second half
+
+```java
+public boolean isPalindrome(ListNode head) {
+    // Step 1: find middle
+    ListNode slow = head;
+    ListNode fast = head;
+
+    while (fast != null && fast.next != null) {
+        slow = slow.next;
+        fast = fast.next.next;
+    }
+
+    // Step 2: reverse second half
+    ListNode secondHalf = reverse(slow);
+
+    // Step 3: compare both halves
+    ListNode left = head;
+    ListNode right = secondHalf;
+
+    while (right != null) {
+        if (left.val != right.val) return false;
+        left = left.next;
+        right = right.next;
+    }
+
+    return true;
+}
+
+private ListNode reverse(ListNode head) {
+    ListNode prev = null;
+    ListNode curr = head;
+
+    while (curr != null) {
+        ListNode next = curr.next;
+        curr.next = prev;
+        prev = curr;
+        curr = next;
+    }
+
+    return prev;
+}
+```
+
+**Dry Run:**
+```
+List: 1 → 2 → 3 → 2 → 1
+
+Step 1 - middle = node 3
+
+Step 2 - reverse from node 3:
+  second half: 1 → 2 → 3
+
+Step 3 - compare:
+  1==1 ✅
+  2==2 ✅
+  3==3 ✅
+
+return true ✅
+```
+
+--------------------------------------------------------------------------------------------
+
+### 3. Reorder List — LC 143
+
+**Intuition:** 3 steps:
+1. Find middle
+2. Reverse second half
+3. Merge both halves alternately
+
+```java
+public void reorderList(ListNode head) {
+    if (head == null || head.next == null) return;
+
+    // Step 1: find middle
+    ListNode slow = head;
+    ListNode fast = head;
+
+    while (fast != null && fast.next != null) {
+        slow = slow.next;
+        fast = fast.next.next;
+    }
+
+    // Step 2: reverse second half
+    ListNode secondHalf = reverse(slow.next);
+    slow.next = null; // cut the list into two halves
+
+    // Step 3: merge alternately
+    ListNode first = head;
+    ListNode second = secondHalf;
+
+    while (second != null) {
+        ListNode tmp1 = first.next;
+        ListNode tmp2 = second.next;
+
+        first.next = second;
+        second.next = tmp1;
+
+        first = tmp1;
+        second = tmp2;
+    }
+}
+
+private ListNode reverse(ListNode head) {
+    ListNode prev = null;
+    ListNode curr = head;
+
+    while (curr != null) {
+        ListNode next = curr.next;
+        curr.next = prev;
+        prev = curr;
+        curr = next;
+    }
+
+    return prev;
+}
+```
+
+**Dry Run:**
+```
+List: 1 → 2 → 3 → 4 → 5
+
+Step 1 - middle = 3
+  First half:  1 → 2 → 3
+  Second half: 4 → 5
+
+Step 2 - reverse second half: 5 → 4
+
+Step 3 - merge:
+  1 → 5 → 2 → 4 → 3 ✅
+```
+
+--------------------------------------------------------------------------------------------
+
+## 🔴 Hard
+
+### 1. Find the Duplicate Number — LC 287
+
+**Intuition (Brilliant trick!):**
+- Treat the array as a linked list where `index → nums[index]`
+- e.g. `nums = [1,3,4,2,2]` → `0→1→3→2→4→2→4...` (cycle!)
+- The duplicate number is the **entry point of the cycle**
+- Apply **Cycle Detection II** (same as LC 142)!
+
+```java
+public int findDuplicate(int[] nums) {
+    // treat array as linked list
+    // index is node, nums[index] is next pointer
+
+    int slow = nums[0];
+    int fast = nums[0];
+
+    // Step 1: find meeting point
+    do {
+        slow = nums[slow];
+        fast = nums[nums[fast]];
+    } while (slow != fast);
+
+    // Step 2: find cycle start (duplicate number)
+    int pointer = nums[0];
+
+    while (pointer != slow) {
+        pointer = nums[pointer];
+        slow = nums[slow];
+    }
+
+    return slow; // this is the duplicate
+}
+```
+
+**Dry Run:**
+```
+nums = [1, 3, 4, 2, 2]
+
+Treat as linked list:
+  0 → nums[0]=1
+  1 → nums[1]=3
+  3 → nums[3]=2
+  2 → nums[2]=4
+  4 → nums[4]=2  ← cycle back to 2!
+
+So: 0 → 1 → 3 → 2 → 4 → 2 → 4...
+Cycle starts at 2
+
+Step 1 - slow & fast meet at 4
+
+Step 2 - reset pointer to nums[0]=1
+  pointer=1, slow=4
+  pointer=3, slow=2
+  pointer=2, slow=2  → they meet at 2 ✅
+
+Duplicate = 2 ✅
+```
+
+---
+
+## Summary Table
+
+| Problem | Pattern Used | Key Trick |
+|---|---|---|
+| Middle of List | Fast & Slow | fast reaches end → slow at middle |
+| Detect Cycle | Fast & Slow | they meet inside cycle |
+| Remove Nth from End | Two pointer gap | gap of N between pointers |
+| Cycle Start | Fast & Slow + math | reset one pointer to head after meeting |
+| Palindrome | Fast & Slow + reverse | find middle, reverse second half |
+| Reorder List | Fast & Slow + reverse + merge | split, reverse, interleave |
+| Find Duplicate | Fast & Slow on array | array = linked list, duplicate = cycle start |
+
+---

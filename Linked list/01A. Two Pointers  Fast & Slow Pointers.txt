@@ -1,0 +1,259 @@
+# Two Pointers / Fast & Slow Pointers
+
+---
+
+## Core Idea
+
+You use **two pointers** that move through the list at **different speeds** or from **different positions**. This lets you find relationships between nodes without extra space.
+
+There are two flavors:
+
+**A) Fast & Slow (Floyd's Tortoise & Hare)**
+- `slow` moves 1 step at a time
+- `fast` moves 2 steps at a time
+- If there's a cycle, they'll eventually meet
+
+**B) Two Pointers with a gap**
+- One pointer starts ahead by `k` steps
+- Both then move at the same speed
+- When fast reaches end, slow is exactly where you need it
+
+---
+
+## How to Recognize These Problems
+
+Ask yourself:
+- "Is there a cycle?" → Fast & Slow
+- "Find the middle?" → Fast & Slow
+- "kth node from end?" → Two pointers with gap
+- "Does something depend on two different positions at once?" → Two pointers
+
+---
+
+## Pattern A — Fast & Slow Pointer
+
+### Example: Find Middle of Linked List
+
+```
+List: 1 → 2 → 3 → 4 → 5
+
+slow: 1, 2, 3        (moves 1 step)
+fast: 1, 3, 5        (moves 2 steps)
+
+When fast reaches end → slow is at middle (3) ✅
+```
+
+**Code:**
+```python
+def findMiddle(head):
+    slow = head
+    fast = head
+
+    while fast and fast.next:
+        slow = slow.next
+        fast = fast.next.next
+
+    return slow  # slow is at middle
+```
+
+---
+
+### Example: Detect Cycle
+
+```
+List: 1 → 2 → 3 → 4 → 5 → back to 3
+
+slow and fast both start at head.
+They keep moving. Since it's a cycle,
+fast will lap slow and they'll MEET.
+
+If fast ever hits None → no cycle.
+```
+
+**Code:**
+```python
+def hasCycle(head):
+    slow = head
+    fast = head
+
+    while fast and fast.next:
+        slow = slow.next
+        fast = fast.next.next
+
+        if slow == fast:
+            return True  # cycle detected
+
+    return False
+```
+
+---
+
+## Pattern B — Two Pointers with Gap
+
+### Example: Kth Node from End
+
+```
+List: 1 → 2 → 3 → 4 → 5,  k = 2
+
+Step 1: Move fast k steps ahead
+fast: 1 → 2 → 3  (moved 2 steps, now at node 3)
+slow: 1
+
+Step 2: Move both until fast reaches last node
+fast: 3 → 4 → 5
+slow: 1 → 2 → 3
+
+slow is now at kth node from end ✅
+```
+
+**Code:**
+```python
+def kthFromEnd(head, k):
+    slow = head
+    fast = head
+
+    # move fast k steps ahead
+    for _ in range(k):
+        fast = fast.next
+
+    # move both until fast reaches last node
+    while fast:
+        slow = slow.next
+        fast = fast.next
+
+    return slow
+```
+
+---
+
+## Key Rules to Remember
+
+| Situation | Condition to stop |
+|---|---|
+| Find middle | `while fast and fast.next` |
+| Detect cycle | Check `slow == fast` inside loop |
+| kth from end | Move fast k steps, then move both |
+| Find cycle start | After meeting, reset one pointer to head, move both 1 step |
+
+---
+
+## The Golden Template
+
+```python
+slow = head
+fast = head
+
+while fast and fast.next:
+    slow = slow.next
+    fast = fast.next.next
+    
+    # your condition here
+```
+
+Almost every fast & slow problem uses this exact skeleton.
+
+---
+
+# Practice Problems
+
+Work through these **in order** — each one builds on the last.
+
+### 🟢 Easy
+1. **Middle of the Linked List** — LC 876
+2. **Linked List Cycle** — LC 141 (just detect, return true/false)
+3. **Remove Nth Node From End of List** — LC 19
+
+### 🟡 Medium
+4. **Linked List Cycle II** — LC 142 (find the *start* of the cycle, not just detect)
+5. **Palindrome Linked List** — LC 234 (find middle + reverse second half)
+6. **Reorder List** — LC 143 (find middle + reverse + merge)
+
+### 🔴 Hard
+7. **Find the Duplicate Number** — LC 287 (array treated as linked list with cycle!)
+
+---
+
+## How to Approach Each Problem
+
+1. Ask — *"do I need fast & slow, or a gap between two pointers?"*
+2. Write the golden template
+3. Identify — *when do I stop? what do I return?*
+
+---
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+---
+
+## Core Template in Java
+
+```java
+ListNode slow = head;
+ListNode fast = head;
+
+while (fast != null && fast.next != null) {
+    slow = slow.next;
+    fast = fast.next.next;
+
+    // your condition here
+}
+```
+
+---
+
+## Examples in Java
+
+### Find Middle
+```java
+public ListNode findMiddle(ListNode head) {
+    ListNode slow = head;
+    ListNode fast = head;
+
+    while (fast != null && fast.next != null) {
+        slow = slow.next;
+        fast = fast.next.next;
+    }
+
+    return slow;
+}
+```
+
+### Detect Cycle
+```java
+public boolean hasCycle(ListNode head) {
+    ListNode slow = head;
+    ListNode fast = head;
+
+    while (fast != null && fast.next != null) {
+        slow = slow.next;
+        fast = fast.next.next;
+
+        if (slow == fast) return true;
+    }
+
+    return false;
+}
+```
+
+### Kth Node from End
+```java
+public ListNode kthFromEnd(ListNode head, int k) {
+    ListNode slow = head;
+    ListNode fast = head;
+
+    for (int i = 0; i < k; i++) {
+        fast = fast.next;
+    }
+
+    while (fast != null) {
+        slow = slow.next;
+        fast = fast.next;
+    }
+
+    return slow;
+}
+```
+
+---
