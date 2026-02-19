@@ -1,0 +1,113 @@
+**1. Array**
+⭐ Two Pointers
+⭐ Sliding Window
+⭐ Prefix Sum
+⭐ Binary Search on Answer
+⭐ Kadane's Algorithm
+
+---
+
+**2. Stack & Queue**
+⭐ Monotonic Stack
+⭐ Next Greater Element
+⭐ Sliding Window Maximum
+⭐ Largest Rectangle in Histogram
+
+---
+
+**3. String**
+⭐ Sliding Window
+⭐ KMP
+⭐ Rabin-Karp
+⭐ Expand Around Center
+
+---
+
+**4. Recursion**
+⭐ Backtracking
+⭐ Subsets & Permutations
+⭐ Divide & Conquer
+⭐ Pruning
+
+---
+
+**5. Linked List**
+⭐ Fast & Slow Pointers
+⭐ Reverse List
+⭐ Merge K Sorted Lists
+⭐ LRU Cache
+
+---
+
+**6. Tree**
+⭐ DFS (Pre/In/Post)
+⭐ BFS Level Order
+⭐ LCA
+⭐ Diameter / Max Path Sum
+⭐ Serialize & Deserialize
+
+---
+
+**7. Graph**
+⭐ BFS / DFS
+⭐ Topological Sort
+⭐ Union Find
+⭐ Dijkstra's
+⭐ Bipartite Check
+
+---
+
+**8. Dynamic Programming**
+⭐ 0/1 Knapsack
+⭐ LCS / LIS
+⭐ Interval DP
+⭐ DP on Trees
+⭐ Bitmask DP
+⭐ Digit DP
+
+---
+
+**9. Trie**
+⭐ Insert / Search / Prefix
+⭐ Word Search
+⭐ XOR Maximum (Bit Trie)
+
+---
+
+**10. Heap**
+⭐ Top K Elements
+⭐ Merge K Sorted Lists
+⭐ Median from Data Stream
+⭐ Task Scheduling
+
+---
+
+**11. Bit Manipulation**
+⭐ XOR Tricks
+⭐ Count Set Bits
+⭐ Power of Two Check
+⭐ Subset using Bitmask
+
+---
+
+**12. Maths**
+⭐ GCD / LCM (Euclidean)
+⭐ Sieve of Eratosthenes
+⭐ Modular Arithmetic
+⭐ Fast Exponentiation
+
+---
+
+**13. Greedy**
+⭐ Interval Scheduling
+⭐ Activity Selection
+⭐ Jump Game
+⭐ Huffman Encoding
+
+---
+
+**14. Segment Tree**
+⭐ Range Sum Query
+⭐ Range Min/Max Query
+⭐ Lazy Propagation
+⭐ Point Update
