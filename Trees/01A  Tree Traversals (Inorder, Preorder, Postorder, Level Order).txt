@@ -1,0 +1,285 @@
+# 🌳 Pattern 1 — Tree Traversals
+
+---
+
+## 1. Core Idea
+
+> **Traversal = the order in which you visit nodes.**
+> Every tree problem is secretly a traversal problem in disguise.
+> Master these 4 and you have the foundation for ALL tree patterns.
+
+---
+
+## 🧠 How to Recognize These Problems
+
+- "Print all nodes in sorted order" → **Inorder**
+- "Copy/clone a tree", "serialize" → **Preorder**
+- "Delete a tree", "evaluate expression tree" → **Postorder**
+- "Level by level", "zigzag", "right side view" → **Level Order**
+- Any problem asking for **order of visiting** nodes → Traversal
+
+---
+
+## 🌲 Tree Used for ALL Dry Runs Below
+
+```
+        1
+       / \
+      2   3
+     / \
+    4   5
+```
+
+---
+
+## 📌 Variant 1 — Inorder (Left → Root → Right)
+
+### 🔍 Visual Dry Run
+```
+Visit Left subtree first → then Root → then Right subtree
+
+Step 1: Go left → reach 4 (no children) → print 4
+Step 2: Back to 2 → print 2
+Step 3: Go right → reach 5 (no children) → print 5
+Step 4: Back to 1 → print 1
+Step 5: Go right → reach 3 (no children) → print 3
+
+Output: 4 → 2 → 5 → 1 → 3
+```
+
+---
+
+## 📌 Variant 2 — Preorder (Root → Left → Right)
+
+### 🔍 Visual Dry Run
+```
+Visit Root first → then Left subtree → then Right subtree
+
+Step 1: Visit 1 → print 1
+Step 2: Go left → Visit 2 → print 2
+Step 3: Go left → Visit 4 → print 4 (no children, backtrack)
+Step 4: Go right → Visit 5 → print 5 (no children, backtrack)
+Step 5: Go right from 1 → Visit 3 → print 3
+
+Output: 1 → 2 → 4 → 5 → 3
+```
+
+---
+
+## 📌 Variant 3 — Postorder (Left → Right → Root)
+
+### 🔍 Visual Dry Run
+```
+Visit both children first → then Root
+
+Step 1: Go left all the way → reach 4 → print 4
+Step 2: Go right of 2 → reach 5 → print 5
+Step 3: Now visit 2 → print 2
+Step 4: Go right of 1 → reach 3 → print 3
+Step 5: Finally visit root → print 1
+
+Output: 4 → 5 → 2 → 3 → 1
+```
+
+---
+
+## 📌 Variant 4 — Level Order (BFS)
+
+### 🔍 Visual Dry Run
+```
+Use a Queue. Process level by level.
+
+Queue: [1]
+Step 1: Poll 1 → print 1 → add 2, 3     Queue: [2, 3]
+Step 2: Poll 2 → print 2 → add 4, 5     Queue: [3, 4, 5]
+Step 3: Poll 3 → print 3 → no children  Queue: [4, 5]
+Step 4: Poll 4 → print 4 → no children  Queue: [5]
+Step 5: Poll 5 → print 5 → no children  Queue: []
+
+Output: 1 → 2 → 3 → 4 → 5
+Level-wise: [1] [2,3] [4,5]
+```
+
+---
+
+## 🏆 Golden Templates in Java
+
+### TreeNode class (used everywhere)
+```java
+class TreeNode {
+    int val;
+    TreeNode left, right;
+    TreeNode(int val) { this.val = val; }
+}
+```
+
+---
+
+### ✅ Inorder — Recursive
+```java
+void inorder(TreeNode root, List<Integer> result) {
+    if (root == null) return;
+    inorder(root.left, result);   // Left
+    result.add(root.val);          // Root
+    inorder(root.right, result);  // Right
+}
+```
+
+### ✅ Inorder — Iterative (Stack)
+```java
+List<Integer> inorderIterative(TreeNode root) {
+    List<Integer> result = new ArrayList<>();
+    Stack<TreeNode> stack = new Stack<>();
+    TreeNode curr = root;
+
+    while (curr != null || !stack.isEmpty()) {
+        // Go as left as possible
+        while (curr != null) {
+            stack.push(curr);
+            curr = curr.left;
+        }
+        // Process node
+        curr = stack.pop();
+        result.add(curr.val);
+        // Move to right subtree
+        curr = curr.right;
+    }
+    return result;
+}
+```
+
+---
+
+### ✅ Preorder — Recursive
+```java
+void preorder(TreeNode root, List<Integer> result) {
+    if (root == null) return;
+    result.add(root.val);           // Root
+    preorder(root.left, result);   // Left
+    preorder(root.right, result);  // Right
+}
+```
+
+### ✅ Preorder — Iterative (Stack)
+```java
+List<Integer> preorderIterative(TreeNode root) {
+    List<Integer> result = new ArrayList<>();
+    if (root == null) return result;
+    Stack<TreeNode> stack = new Stack<>();
+    stack.push(root);
+
+    while (!stack.isEmpty()) {
+        TreeNode node = stack.pop();
+        result.add(node.val);          // Process root
+        if (node.right != null) stack.push(node.right); // Right first (LIFO)
+        if (node.left != null) stack.push(node.left);   // Left second
+    }
+    return result;
+}
+```
+
+---
+
+### ✅ Postorder — Recursive
+```java
+void postorder(TreeNode root, List<Integer> result) {
+    if (root == null) return;
+    postorder(root.left, result);   // Left
+    postorder(root.right, result);  // Right
+    result.add(root.val);            // Root
+}
+```
+
+### ✅ Postorder — Iterative (Two Stack trick)
+```java
+List<Integer> postorderIterative(TreeNode root) {
+    List<Integer> result = new ArrayList<>();
+    if (root == null) return result;
+    Stack<TreeNode> stack = new Stack<>();
+    stack.push(root);
+
+    while (!stack.isEmpty()) {
+        TreeNode node = stack.pop();
+        result.add(node.val);  // Add to result
+        // Push left first, right second (reverse of postorder)
+        if (node.left != null) stack.push(node.left);
+        if (node.right != null) stack.push(node.right);
+    }
+    // Reverse gives Left→Right→Root
+    Collections.reverse(result);
+    return result;
+}
+```
+
+---
+
+### ✅ Level Order — Iterative (Queue)
+```java
+List<List<Integer>> levelOrder(TreeNode root) {
+    List<List<Integer>> result = new ArrayList<>();
+    if (root == null) return result;
+    Queue<TreeNode> queue = new LinkedList<>();
+    queue.offer(root);
+
+    while (!queue.isEmpty()) {
+        int size = queue.size(); // KEY: snapshot current level size
+        List<Integer> level = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            TreeNode node = queue.poll();
+            level.add(node.val);
+            if (node.left != null) queue.offer(node.left);
+            if (node.right != null) queue.offer(node.right);
+        }
+        result.add(level);
+    }
+    return result;
+}
+```
+
+### ✅ Level Order — Recursive
+```java
+void levelOrderRecursive(TreeNode root, int level, List<List<Integer>> result) {
+    if (root == null) return;
+    if (result.size() == level)         // New level discovered
+        result.add(new ArrayList<>());
+    result.get(level).add(root.val);
+    levelOrderRecursive(root.left, level + 1, result);
+    levelOrderRecursive(root.right, level + 1, result);
+}
+// Call with: levelOrderRecursive(root, 0, result)
+```
+
+---
+
+## 📋 Key Rules to Remember
+
+| Rule | Detail |
+|---|---|
+| **Inorder of BST = sorted** | Always true — used in many BST problems |
+| **Preorder = Root first** | Great for cloning / serializing trees |
+| **Postorder = children before parent** | Great for deletion / bottom-up computation |
+| **Level Order needs a Queue** | Always use `queue.size()` to separate levels |
+| **Iterative DFS needs a Stack** | Mirrors the call stack of recursion |
+| **Right before Left in Preorder stack** | Because Stack is LIFO, push right first |
+| **Postorder iterative = reverse of modified preorder** | Push left before right, then reverse result |
+| **Base case always** | `if (root == null) return;` |
+
+---
+
+## 🏋️ Practice Problems
+
+### 🟢 Easy
+- **LC 144** — Binary Tree Preorder Traversal
+- **LC 94** — Binary Tree Inorder Traversal
+- **LC 145** — Binary Tree Postorder Traversal
+
+### 🟡 Medium
+- **LC 102** — Binary Tree Level Order Traversal
+- **LC 103** — Binary Tree Zigzag Level Order Traversal
+- **LC 107** — Binary Tree Level Order Traversal II (bottom-up)
+
+### 🔴 Hard
+- **LC 987** — Vertical Order Traversal of a Binary Tree
+- **LC 297** — Serialize and Deserialize Binary Tree
+
+---

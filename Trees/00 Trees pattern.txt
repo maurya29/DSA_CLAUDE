@@ -1,0 +1,64 @@
+# 🌳 Tree DSA Patterns — Master List
+
+| # | Pattern Name | ⭐ Priority |
+|---|---|---|
+| 1 | Tree Traversals (Inorder, Preorder, Postorder, Level Order) | ⭐⭐⭐⭐⭐ |
+| 2 | Binary Search Tree (BST) Operations | ⭐⭐⭐⭐⭐ |
+| 3 | DFS on Trees (Recursive Thinking / Tree DP) | ⭐⭐⭐⭐⭐ |
+| 4 | BFS / Level Order Variations | ⭐⭐⭐⭐⭐ |
+| 5 | Tree Construction (Build from Traversals) | ⭐⭐⭐⭐ |
+| 6 | Lowest Common Ancestor (LCA) | ⭐⭐⭐⭐ |
+| 7 | Path Problems (Root-to-Leaf / Any Path) | ⭐⭐⭐⭐ |
+| 8 | Tree Views (Left, Right, Top, Bottom) | ⭐⭐⭐⭐ |
+| 9 | Diameter / Height / Balance Problems | ⭐⭐⭐⭐ |
+| 10 | Serialization & Deserialization | ⭐⭐⭐ |
+| 11 | Segment Tree | ⭐⭐⭐ |
+| 12 | Trie (Prefix Tree) | ⭐⭐⭐ |
+| 13 | Binary Lifting / Euler Tour (Advanced LCA) | ⭐⭐ |
+| 14 | Morris Traversal (O(1) Space Traversal) | ⭐⭐ |
+
+-------------------------------------------------------------------------------------------------------------------------
+
+> ✅ **Suggested Order:** Follow the table top-to-bottom — patterns build on each other.
+> 
+
+# 🎯 Major Tree Topics to Focus On
+
+## 🔴 Tier 1 — Must Master (Interview Core)
+
+These appear in **90% of interviews** (FAANG, product companies, startups):
+
+**1. DFS on Trees (Tree DP / Recursive Thinking)**
+This is the backbone of almost every tree problem. If you master recursive thinking on trees, half the battle is won.
+**2. BFS / Level Order Variations**
+Queue-based traversal unlocks an entire class of problems — right side view, zigzag, level averages, etc.
+**3. Binary Search Tree Operations**
+Search, insert, delete, validate, kth smallest — BST logic is tested constantly.
+**4. Path Problems**
+Root-to-leaf sum, max path sum, path equals target — these are disguised DFS problems and very frequently asked.
+**5. Lowest Common Ancestor (LCA)**
+Asked directly or as a subtool inside harder problems. Very high frequency.
+
+---
+
+## 🟡 Tier 2 — High Value (Rounds 2+)
+
+**6. Tree Construction** — Build tree from inorder + preorder/postorder
+**7. Diameter / Height / Balance** — Classic Tree DP problems
+**8. Tree Views** — Left view, right view, top view (common in product companies)
+
+---
+
+## 🟢 Tier 3 — Specialized (Senior / Competitive)
+
+**9. Trie** — For string-heavy problems (autocomplete, word search)
+**10. Segment Tree** — For range query problems
+**11. Serialization / Deserialization** — Asked at FAANG occasionally
+
+---
+
+## 💡 The Honest Truth
+
+> If you nail **DFS + BFS + BST + LCA + Paths**, you can solve **80%+ of tree interview problems**. Start there, then expand outward.
+
+---

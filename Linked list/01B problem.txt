@@ -1,13 +1,14 @@
-# All Solutions in Java
+# Two Pointers / Fast & Slow — Both Iterative & Recursive Solutions
 
------------------------------------------------------------------------------------------
+---
 
 ## 🟢 Easy
 
-### 1. Middle of the Linked List — LC 876
+### 1. Middle of Linked List — LC 876
 
-**Intuition:** When fast reaches end, slow is at middle.
+**Intuition:** Fast moves 2 steps, slow moves 1 step. When fast reaches end, slow is at middle.
 
+#### Iterative
 ```java
 public ListNode middleNode(ListNode head) {
     ListNode slow = head;
@@ -18,27 +19,48 @@ public ListNode middleNode(ListNode head) {
         fast = fast.next.next;
     }
 
-    return slow; // slow is at middle
+    return slow;
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+public ListNode middleNode(ListNode head) {
+    // count total length first
+    int length = getLength(head);
+    // then find middle position
+    return getMiddle(head, length / 2);
+}
+
+private int getLength(ListNode head) {
+    if (head == null) return 0;
+    return 1 + getLength(head.next);
+}
+
+private ListNode getMiddle(ListNode head, int steps) {
+    if (steps == 0) return head;
+    return getMiddle(head.next, steps - 1);
+}
+```
+
+**Dry Run (Iterative):**
 ```
 List: 1 → 2 → 3 → 4 → 5
 
 Step 1: slow=2, fast=3
 Step 2: slow=3, fast=5
-fast.next == null → stop
+fast.next=null → stop
 
 return slow = 3 ✅
 ```
 
---------------------------------------------------------------------------------------------
+---
 
 ### 2. Linked List Cycle — LC 141
 
-**Intuition:** If cycle exists, fast will lap slow and they'll meet. If no cycle, fast hits null.
+**Intuition:** If cycle exists fast will lap slow and they meet. If no cycle fast hits null.
 
+#### Iterative
 ```java
 public boolean hasCycle(ListNode head) {
     ListNode slow = head;
@@ -48,28 +70,49 @@ public boolean hasCycle(ListNode head) {
         slow = slow.next;
         fast = fast.next.next;
 
-        if (slow == fast) return true; // they met → cycle exists
+        if (slow == fast) return true;
     }
 
-    return false; // fast hit null → no cycle
+    return false;
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+// Note: pure recursion for cycle detection is not natural
+// because recursion itself will run forever inside a cycle.
+// So we use a helper with a visited Set to simulate recursion safely.
+
+public boolean hasCycle(ListNode head) {
+    return detectCycle(head, new HashSet<>());
+}
+
+private boolean detectCycle(ListNode node, Set<ListNode> visited) {
+    if (node == null) return false;           // no cycle, reached end
+    if (visited.contains(node)) return true;  // visited again → cycle!
+    visited.add(node);
+    return detectCycle(node.next, visited);
+}
+```
+
+**Dry Run (Iterative):**
 ```
 List: 1 → 2 → 3 → 4 → back to 2
 
 Step 1: slow=2, fast=3
-Step 2: slow=3, fast=2  (cycle wraps)
-Step 3: slow=4, fast=4  → slow == fast ✅ return true
+Step 2: slow=3, fast=2 (wraps around)
+Step 3: slow=4, fast=4 → slow==fast ✅
+
+return true ✅
 ```
 
---------------------------------------------------------------------------------------------
+---
 
 ### 3. Remove Nth Node From End — LC 19
 
-**Intuition:** Move fast N steps ahead. Then move both. When fast hits null, slow is just before the node to delete.
+**Intuition:** Move fast N+1 steps ahead so slow stops just BEFORE the target node. Then delete target.
 
+#### Iterative
 ```java
 public ListNode removeNthFromEnd(ListNode head, int n) {
     ListNode dummy = new ListNode(0);
@@ -78,7 +121,7 @@ public ListNode removeNthFromEnd(ListNode head, int n) {
     ListNode slow = dummy;
     ListNode fast = dummy;
 
-    // move fast n+1 steps ahead (so slow stops BEFORE the target node)
+    // move fast n+1 steps ahead
     for (int i = 0; i <= n; i++) {
         fast = fast.next;
     }
@@ -89,56 +132,68 @@ public ListNode removeNthFromEnd(ListNode head, int n) {
         fast = fast.next;
     }
 
-    // slow is just before the node to delete
+    // delete target node
     slow.next = slow.next.next;
 
     return dummy.next;
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+public ListNode removeNthFromEnd(ListNode head, int n) {
+    int[] count = {0}; // use array to pass by reference
+    return removeHelper(head, n, count);
+}
+
+private ListNode removeHelper(ListNode node, int n, int[] count) {
+    if (node == null) return null;
+
+    // recurse to end first
+    node.next = removeHelper(node.next, n, count);
+
+    // on way back, increment count
+    count[0]++;
+
+    // if this is the nth node from end, skip it
+    if (count[0] == n) return node.next;
+
+    return node;
+}
 ```
-List: 1 → 2 → 3 → 4 → 5,  n = 2
 
-dummy → 1 → 2 → 3 → 4 → 5
+**Dry Run (Iterative):**
+```
+List: 1 → 2 → 3 → 4 → 5, n=2
 
-Move fast 3 steps (n+1): fast = 3
-slow = dummy
+Move fast n+1=3 steps: fast=3
+slow=dummy
 
 Move both:
   slow=1, fast=4
   slow=2, fast=5
   slow=3, fast=null → stop
 
-slow.next = slow.next.next
-→ 3.next = 5  (skip 4)
+3.next = 5 (skip 4)
 
 Result: 1 → 2 → 3 → 5 ✅
 ```
 
-**Why dummy node?** Handles edge case where you delete the head node cleanly.
-
---------------------------------------------------------------------------------------------
+---
 
 ## 🟡 Medium
 
-### 1. Linked List Cycle II — LC 142
+### 4. Linked List Cycle II — LC 142
 
-**Intuition (The Math Behind It):**
-- Let `F` = distance from head to cycle start
-- Let `C` = cycle length
-- When slow and fast meet inside cycle:
-  - slow travelled = `F + a`
-  - fast travelled = `F + a + C`
-  - fast = 2 × slow → `F = C - a`
-- So if you reset one pointer to head and move both 1 step, they meet at cycle start!
+**Intuition:** After slow and fast meet inside cycle, reset one pointer to head. Move both 1 step at a time — they meet at cycle start.
 
+#### Iterative
 ```java
 public ListNode detectCycle(ListNode head) {
     ListNode slow = head;
     ListNode fast = head;
 
-    // Step 1: detect if cycle exists and find meeting point
+    // Step 1: find meeting point
     while (fast != null && fast.next != null) {
         slow = slow.next;
         fast = fast.next.next;
@@ -149,7 +204,7 @@ public ListNode detectCycle(ListNode head) {
 
             while (pointer != slow) {
                 pointer = pointer.next;
-                slow = slow.next;
+                slow    = slow.next;
             }
 
             return slow; // cycle start
@@ -160,28 +215,44 @@ public ListNode detectCycle(ListNode head) {
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+// Pure recursion will loop forever inside cycle.
+// Use visited Set approach safely.
+
+public ListNode detectCycle(ListNode head) {
+    return findCycleStart(head, new HashSet<>());
+}
+
+private ListNode findCycleStart(ListNode node, Set<ListNode> visited) {
+    if (node == null) return null;           // no cycle
+    if (visited.contains(node)) return node; // first repeated node = cycle start
+    visited.add(node);
+    return findCycleStart(node.next, visited);
+}
+```
+
+**Dry Run (Iterative):**
 ```
 List: 1 → 2 → 3 → 4 → 5 → back to 3
-Cycle start = node 3
 
-Step 1 - they meet at node 4 (inside cycle)
+Step 1: slow & fast meet at node 4
 
-Step 2 - reset pointer to head (1)
+Step 2: reset pointer to head(1)
   pointer=1, slow=4
   pointer=2, slow=5
-  pointer=3, slow=3  → they meet at 3 ✅ (cycle start)
+  pointer=3, slow=3 → they meet ✅
+
+Cycle start = node 3 ✅
 ```
 
---------------------------------------------------------------------------------------------
+---
 
-### 2. Palindrome Linked List — LC 234
+### 5. Palindrome Linked List — LC 234
 
-**Intuition:** 3 steps:
-1. Find middle using fast & slow
-2. Reverse second half
-3. Compare first half and reversed second half
+**Intuition:** Find middle → reverse second half → compare both halves node by node.
 
+#### Iterative
 ```java
 public boolean isPalindrome(ListNode head) {
     // Step 1: find middle
@@ -196,17 +267,25 @@ public boolean isPalindrome(ListNode head) {
     // Step 2: reverse second half
     ListNode secondHalf = reverse(slow);
 
-    // Step 3: compare both halves
-    ListNode left = head;
+    // Step 3: compare
+    ListNode left  = head;
     ListNode right = secondHalf;
 
+    boolean result = true;
+
     while (right != null) {
-        if (left.val != right.val) return false;
-        left = left.next;
+        if (left.val != right.val) {
+            result = false;
+            break;
+        }
+        left  = left.next;
         right = right.next;
     }
 
-    return true;
+    // Step 4: restore list
+    reverse(secondHalf);
+
+    return result;
 }
 
 private ListNode reverse(ListNode head) {
@@ -224,32 +303,71 @@ private ListNode reverse(ListNode head) {
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+// Use a global left pointer that starts at head
+// Right pointer goes to end via recursion
+// On way back, compare left and right, move left forward
+
+private ListNode left;
+
+public boolean isPalindrome(ListNode head) {
+    left = head;
+    return checkPalindrome(head);
+}
+
+private boolean checkPalindrome(ListNode right) {
+    if (right == null) return true; // reached end, start comparing
+
+    // recurse to end first
+    boolean result = checkPalindrome(right.next);
+
+    // on way back compare left and right
+    result = result && (left.val == right.val);
+
+    // move left forward
+    left = left.next;
+
+    return result;
+}
+```
+
+**Dry Run (Iterative):**
 ```
 List: 1 → 2 → 3 → 2 → 1
 
-Step 1 - middle = node 3
-
-Step 2 - reverse from node 3:
-  second half: 1 → 2 → 3
-
-Step 3 - compare:
-  1==1 ✅
-  2==2 ✅
-  3==3 ✅
+Step 1: middle = node 3
+Step 2: reverse from 3 → second half: 1 → 2 → 3
+Step 3: compare
+  1==1 ✅  2==2 ✅  3==3 ✅
 
 return true ✅
 ```
 
---------------------------------------------------------------------------------------------
+**Dry Run (Recursive):**
+```
+List: 1 → 2 → 3 → 2 → 1
+left starts at 1
 
-### 3. Reorder List — LC 143
+Recurse to end:
+  check(1) → check(2) → check(3) → check(2) → check(1) → check(null)
 
-**Intuition:** 3 steps:
-1. Find middle
-2. Reverse second half
-3. Merge both halves alternately
+On way back:
+  right=1: left(1)==right(1) ✅ left moves to 2
+  right=2: left(2)==right(2) ✅ left moves to 3
+  right=3: left(3)==right(3) ✅ left moves to 2
+  ...
 
+return true ✅
+```
+
+---
+
+### 6. Reorder List — LC 143
+
+**Intuition:** Find middle → reverse second half → interleave both halves alternately.
+
+#### Iterative
 ```java
 public void reorderList(ListNode head) {
     if (head == null || head.next == null) return;
@@ -258,27 +376,27 @@ public void reorderList(ListNode head) {
     ListNode slow = head;
     ListNode fast = head;
 
-    while (fast != null && fast.next != null) {
+    while (fast.next != null && fast.next.next != null) {
         slow = slow.next;
         fast = fast.next.next;
     }
 
     // Step 2: reverse second half
     ListNode secondHalf = reverse(slow.next);
-    slow.next = null; // cut the list into two halves
+    slow.next = null;
 
-    // Step 3: merge alternately
-    ListNode first = head;
+    // Step 3: interleave
+    ListNode first  = head;
     ListNode second = secondHalf;
 
     while (second != null) {
         ListNode tmp1 = first.next;
         ListNode tmp2 = second.next;
 
-        first.next = second;
+        first.next  = second;
         second.next = tmp1;
 
-        first = tmp1;
+        first  = tmp1;
         second = tmp2;
     }
 }
@@ -298,37 +416,87 @@ private ListNode reverse(ListNode head) {
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+public void reorderList(ListNode head) {
+    if (head == null || head.next == null) return;
+
+    // Step 1: find middle recursively
+    ListNode mid = findMiddle(head);
+
+    // Step 2: reverse second half recursively
+    ListNode secondHalf = reverseRecursive(mid.next);
+    mid.next = null;
+
+    // Step 3: interleave recursively
+    mergeAlternate(head, secondHalf);
+}
+
+private ListNode findMiddle(ListNode head) {
+    ListNode slow = head;
+    ListNode fast = head;
+
+    while (fast.next != null && fast.next.next != null) {
+        slow = slow.next;
+        fast = fast.next.next;
+    }
+
+    return slow;
+}
+
+private ListNode reverseRecursive(ListNode head) {
+    if (head == null || head.next == null) return head;
+
+    ListNode newHead = reverseRecursive(head.next);
+    head.next.next = head;
+    head.next = null;
+
+    return newHead;
+}
+
+private void mergeAlternate(ListNode first, ListNode second) {
+    if (first == null || second == null) return;
+
+    ListNode tmp1 = first.next;
+    ListNode tmp2 = second.next;
+
+    first.next  = second;
+    second.next = tmp1;
+
+    mergeAlternate(tmp1, tmp2); // recurse on rest
+}
+```
+
+**Dry Run (Iterative):**
 ```
 List: 1 → 2 → 3 → 4 → 5
 
-Step 1 - middle = 3
-  First half:  1 → 2 → 3
-  Second half: 4 → 5
+Step 1: middle = 3
+  first:  1 → 2 → 3 → null
+  second: 4 → 5
 
-Step 2 - reverse second half: 5 → 4
+Step 2: reverse second: 5 → 4
 
-Step 3 - merge:
-  1 → 5 → 2 → 4 → 3 ✅
+Step 3: interleave
+  Iter 1: tmp1=2, tmp2=4
+    1→5→2...   first=2, second=4
+  Iter 2: tmp1=3, tmp2=null
+    2→4→3...   second=null → stop
+
+Result: 1 → 5 → 2 → 4 → 3 ✅
 ```
 
---------------------------------------------------------------------------------------------
+---
 
 ## 🔴 Hard
 
-### 1. Find the Duplicate Number — LC 287
+### 7. Find the Duplicate Number — LC 287
 
-**Intuition (Brilliant trick!):**
-- Treat the array as a linked list where `index → nums[index]`
-- e.g. `nums = [1,3,4,2,2]` → `0→1→3→2→4→2→4...` (cycle!)
-- The duplicate number is the **entry point of the cycle**
-- Apply **Cycle Detection II** (same as LC 142)!
+**Intuition:** Treat array as linked list. `index → nums[index]`. Duplicate = cycle start. Apply Floyd's cycle detection.
 
+#### Iterative
 ```java
 public int findDuplicate(int[] nums) {
-    // treat array as linked list
-    // index is node, nums[index] is next pointer
-
     int slow = nums[0];
     int fast = nums[0];
 
@@ -338,38 +506,61 @@ public int findDuplicate(int[] nums) {
         fast = nums[nums[fast]];
     } while (slow != fast);
 
-    // Step 2: find cycle start (duplicate number)
+    // Step 2: find cycle start (duplicate)
     int pointer = nums[0];
 
     while (pointer != slow) {
         pointer = nums[pointer];
-        slow = nums[slow];
+        slow    = nums[slow];
     }
 
-    return slow; // this is the duplicate
+    return slow;
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+public int findDuplicate(int[] nums) {
+    // Step 1: find meeting point recursively
+    int[] meetPoint = {-1};
+    findMeetingPoint(nums, nums[0], nums[nums[0]], meetPoint);
+
+    // Step 2: find cycle start recursively
+    return findCycleStart(nums, nums[0], meetPoint[0]);
+}
+
+private void findMeetingPoint(int[] nums, int slow, int fast, int[] meet) {
+    if (slow == fast) {
+        meet[0] = slow;
+        return;
+    }
+    findMeetingPoint(nums, nums[slow], nums[nums[fast]], meet);
+}
+
+private int findCycleStart(int[] nums, int pointer, int slow) {
+    if (pointer == slow) return slow;
+    return findCycleStart(nums, nums[pointer], nums[slow]);
+}
+```
+
+**Dry Run (Iterative):**
 ```
 nums = [1, 3, 4, 2, 2]
 
-Treat as linked list:
-  0 → nums[0]=1
-  1 → nums[1]=3
-  3 → nums[3]=2
-  2 → nums[2]=4
-  4 → nums[4]=2  ← cycle back to 2!
+Array as linked list:
+  0→1→3→2→4→2→4... (cycle at 2)
 
-So: 0 → 1 → 3 → 2 → 4 → 2 → 4...
-Cycle starts at 2
+Step 1: slow=nums[0]=1, fast=nums[0]=1
+  do-while:
+    slow=nums[1]=3, fast=nums[nums[1]]=nums[3]=2
+    slow=nums[3]=2, fast=nums[nums[2]]=nums[4]=2
+    slow==fast==2 → stop
 
-Step 1 - slow & fast meet at 4
-
-Step 2 - reset pointer to nums[0]=1
-  pointer=1, slow=4
-  pointer=3, slow=2
-  pointer=2, slow=2  → they meet at 2 ✅
+Step 2: pointer=nums[0]=1
+  pointer=1, slow=2 → not equal
+  pointer=nums[1]=3, slow=nums[2]=4
+  pointer=nums[3]=2, slow=nums[4]=2
+  pointer==slow==2 ✅
 
 Duplicate = 2 ✅
 ```
@@ -378,14 +569,16 @@ Duplicate = 2 ✅
 
 ## Summary Table
 
-| Problem | Pattern Used | Key Trick |
-|---|---|---|
-| Middle of List | Fast & Slow | fast reaches end → slow at middle |
-| Detect Cycle | Fast & Slow | they meet inside cycle |
-| Remove Nth from End | Two pointer gap | gap of N between pointers |
-| Cycle Start | Fast & Slow + math | reset one pointer to head after meeting |
-| Palindrome | Fast & Slow + reverse | find middle, reverse second half |
-| Reorder List | Fast & Slow + reverse + merge | split, reverse, interleave |
-| Find Duplicate | Fast & Slow on array | array = linked list, duplicate = cycle start |
+| Problem | Iterative Approach | Recursive Approach | Trick |
+|---|---|---|---|
+| Middle of List | Fast & slow pointers | Count length → go to length/2 | fast==null → slow at middle |
+| Detect Cycle | Fast & slow meet check | HashSet to track visited nodes | Recursion loops forever in cycle — use Set |
+| Remove Nth From End | Dummy + N+1 gap | Recurse to end, count back | count[0]==n → skip that node |
+| Cycle Start | Meet point + reset pointer | HashSet — first repeated node | Math: reset one pointer to head after meeting |
+| Palindrome | Find mid + reverse + compare | Left pointer moves forward on way back | Recursive right pointer goes to end naturally |
+| Reorder List | Find mid + reverse + interleave | All 3 steps done recursively | Save tmp1 & tmp2 before rewiring |
+| Find Duplicate | Floyd's on array | Recursive Floyd's with array[] trick | Array treated as linked list — duplicate = cycle start |
 
 ---
+
+> **Note:** For cycle problems (LC 141, LC 142), pure fast & slow recursion is not possible because recursion will loop forever inside the cycle. HashSet approach is used instead as the recursive alternative. 💡

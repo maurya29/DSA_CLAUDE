@@ -1,4 +1,4 @@
-# All Reversal Solutions in Java
+# Reversal Pattern — Both Iterative & Recursive Solutions
 
 ---
 
@@ -6,8 +6,9 @@
 
 ### 1. Reverse Linked List — LC 206
 
-**Intuition:** Classic 3-pointer technique. Reverse every pointer one by one.
+**Intuition:** Iteratively reverse each pointer one by one using 3 pointers. Recursively go to end and reverse pointers on way back.
 
+#### Iterative
 ```java
 public ListNode reverseList(ListNode head) {
     ListNode prev = null;
@@ -24,29 +25,66 @@ public ListNode reverseList(ListNode head) {
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+public ListNode reverseList(ListNode head) {
+    // base case: empty or single node
+    if (head == null || head.next == null) return head;
+
+    // recurse to end
+    ListNode newHead = reverseList(head.next);
+
+    // on way back reverse the pointer
+    head.next.next = head; // next node points back to current
+    head.next = null;      // current points to null
+
+    return newHead; // new head is always the last node
+}
+```
+
+**Dry Run (Iterative):**
 ```
 List: 1 → 2 → 3 → 4 → 5
 
-Step 1: prev=null, curr=1  →  null ← 1   2 → 3 → 4 → 5
-Step 2: prev=1,    curr=2  →  null ← 1 ← 2   3 → 4 → 5
-Step 3: prev=2,    curr=3  →  null ← 1 ← 2 ← 3   4 → 5
-Step 4: prev=3,    curr=4  →  null ← 1 ← 2 ← 3 ← 4   5
-Step 5: prev=4,    curr=5  →  null ← 1 ← 2 ← 3 ← 4 ← 5
+Step 1: prev=null, curr=1 → null ← 1   2→3→4→5
+Step 2: prev=1,    curr=2 → null ← 1←2   3→4→5
+Step 3: prev=2,    curr=3 → null ← 1←2←3   4→5
+Step 4: prev=3,    curr=4 → null ← 1←2←3←4   5
+Step 5: prev=4,    curr=5 → null ← 1←2←3←4←5
 
-curr = null → stop
+curr=null → stop
 return prev = 5 (new head) ✅
+```
+
+**Dry Run (Recursive):**
+```
+List: 1 → 2 → 3
+
+reverseList(1)
+  reverseList(2)
+    reverseList(3)
+      3.next==null → return 3 (newHead)
+    3.next = 2  (2.next.next = 2)
+    2.next = null
+    return 3
+  3→2→null
+  2.next = 1  (1.next.next = 1)
+  1.next = null
+  return 3
+
+Result: 3 → 2 → 1 ✅
 ```
 
 ---
 
 ### 2. Palindrome Linked List — LC 234
 
-**Intuition:** 3 steps — find middle → reverse second half → compare both halves.
+**Intuition:** Find middle → reverse second half → compare both halves. Recursively use a global left pointer moving forward while right pointer unwinds from end.
 
+#### Iterative
 ```java
 public boolean isPalindrome(ListNode head) {
-    // Step 1: find middle using fast & slow
+    // Step 1: find middle
     ListNode slow = head;
     ListNode fast = head;
 
@@ -58,17 +96,24 @@ public boolean isPalindrome(ListNode head) {
     // Step 2: reverse second half
     ListNode secondHalf = reverse(slow);
 
-    // Step 3: compare first and second half
-    ListNode left = head;
+    // Step 3: compare
+    ListNode left  = head;
     ListNode right = secondHalf;
+    boolean result = true;
 
     while (right != null) {
-        if (left.val != right.val) return false;
-        left = left.next;
+        if (left.val != right.val) {
+            result = false;
+            break;
+        }
+        left  = left.next;
         right = right.next;
     }
 
-    return true;
+    // Step 4: restore list
+    reverse(secondHalf);
+
+    return result;
 }
 
 private ListNode reverse(ListNode head) {
@@ -86,23 +131,59 @@ private ListNode reverse(ListNode head) {
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+// left pointer starts at head
+// right pointer naturally reaches end via recursion
+// on way back, compare left and right, move left forward
+
+private ListNode left;
+
+public boolean isPalindrome(ListNode head) {
+    left = head;
+    return check(head);
+}
+
+private boolean check(ListNode right) {
+    if (right == null) return true; // reached end
+
+    // recurse to end first
+    boolean result = check(right.next);
+
+    // on way back compare left and right
+    result = result && (left.val == right.val);
+
+    // move left forward
+    left = left.next;
+
+    return result;
+}
+```
+
+**Dry Run (Iterative):**
 ```
 List: 1 → 2 → 3 → 2 → 1
 
 Step 1: middle = node 3
-  slow stops at 3
-
-Step 2: reverse from node 3
-  second half: 1 → 2 → 3
-
+Step 2: reverse from 3 → 1 → 2 → 3
 Step 3: compare
-  left:  1 → 2 → 3 → 2 → 1
-  right: 1 → 2 → 3
+  1==1 ✅  2==2 ✅  3==3 ✅
 
-  1==1 ✅
-  2==2 ✅
-  3==3 ✅
+return true ✅
+```
+
+**Dry Run (Recursive):**
+```
+List: 1 → 2 → 3 → 2 → 1
+left = node 1
+
+check(1)→check(2)→check(3)→check(2)→check(1)→check(null)
+
+On way back:
+  right=1: left(1)==right(1) ✅ left→2
+  right=2: left(2)==right(2) ✅ left→3
+  right=3: left(3)==right(3) ✅ left→2
+  (rest doesn't matter, already confirmed)
 
 return true ✅
 ```
@@ -113,8 +194,9 @@ return true ✅
 
 ### 3. Reverse Linked List II — LC 92
 
-**Intuition:** Navigate to node just before `left`. Then pull nodes one by one to front of sublist.
+**Intuition:** Navigate to just before `left`. Pull nodes one by one to front of sublist iteratively. Recursively skip to left position then reverse right-left times.
 
+#### Iterative
 ```java
 public ListNode reverseBetween(ListNode head, int left, int right) {
     ListNode dummy = new ListNode(0);
@@ -126,49 +208,93 @@ public ListNode reverseBetween(ListNode head, int left, int right) {
         prev = prev.next;
     }
 
-    // Step 2: curr is the first node to be reversed
+    // Step 2: curr is first node to reverse
     ListNode curr = prev.next;
 
     // Step 3: reverse right-left times
     for (int i = 0; i < right - left; i++) {
         ListNode next = curr.next;
-        curr.next = next.next;
-        next.next = prev.next;
-        prev.next = next;
+        curr.next  = next.next;
+        next.next  = prev.next;
+        prev.next  = next;
     }
 
     return dummy.next;
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+public ListNode reverseBetween(ListNode head, int left, int right) {
+    // base case: left==1 means reverse from head
+    if (left == 1) {
+        return reverseN(head, right);
+    }
+
+    // recurse until we reach left position
+    head.next = reverseBetween(head.next, left - 1, right - 1);
+    return head;
+}
+
+// successor saves the node after the reversed portion
+private ListNode successor = null;
+
+private ListNode reverseN(ListNode head, int n) {
+    if (n == 1) {
+        successor = head.next; // save node after reversed portion
+        return head;
+    }
+
+    ListNode newHead = reverseN(head.next, n - 1);
+
+    head.next.next = head;
+    head.next = successor; // connect to rest of list
+
+    return newHead;
+}
+```
+
+**Dry Run (Iterative):**
 ```
 List: 1 → 2 → 3 → 4 → 5, left=2, right=4
 
-prev = node 1
-curr = node 2
+prev = node 1, curr = node 2
 
 Iteration 1:
-  next = 3
-  2.next = 4       (curr skips over next)
-  3.next = 2       (next points to curr)
-  1.next = 3       (prev points to next)
+  next=3, 2.next=4, 3.next=2, 1.next=3
   List: 1 → 3 → 2 → 4 → 5
 
 Iteration 2:
-  next = 4
-  2.next = 5
-  4.next = 3
-  1.next = 4
+  next=4, 2.next=5, 4.next=3, 1.next=4
   List: 1 → 4 → 3 → 2 → 5 ✅
+```
+
+**Dry Run (Recursive):**
+```
+List: 1 → 2 → 3 → 4 → 5, left=2, right=4
+
+reverseBetween(1, 2, 4)
+  left≠1 → recurse
+  1.next = reverseBetween(2, 1, 3)
+    left==1 → reverseN(2, 3)
+      reverseN(2,3)→reverseN(3,2)→reverseN(4,1)
+        n==1: successor=5, return 4
+      3.next.next=3(4→3), 3.next=5 → 4→3→5
+      return 4
+    2.next.next=2(3→2), 2.next=5 → 4→3→2→5
+    return 4
+  1.next = 4
+
+Result: 1 → 4 → 3 → 2 → 5 ✅
 ```
 
 ---
 
 ### 4. Swap Nodes in Pairs — LC 24
 
-**Intuition:** Reverse every 2 nodes. Use dummy node to handle head swaps cleanly.
+**Intuition:** Iteratively use dummy node as anchor, swap each pair by relinking 3 pointers. Recursively swap first two nodes then recurse on rest.
 
+#### Iterative
 ```java
 public ListNode swapPairs(ListNode head) {
     ListNode dummy = new ListNode(0);
@@ -177,13 +303,13 @@ public ListNode swapPairs(ListNode head) {
     ListNode prev = dummy;
 
     while (prev.next != null && prev.next.next != null) {
-        ListNode first = prev.next;        // first node of pair
-        ListNode second = prev.next.next;  // second node of pair
+        ListNode first  = prev.next;
+        ListNode second = prev.next.next;
 
         // swap
-        first.next = second.next;
+        first.next  = second.next;
         second.next = first;
-        prev.next = second;
+        prev.next   = second;
 
         // move prev to end of swapped pair
         prev = first;
@@ -193,30 +319,55 @@ public ListNode swapPairs(ListNode head) {
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+public ListNode swapPairs(ListNode head) {
+    // base case: 0 or 1 node left
+    if (head == null || head.next == null) return head;
+
+    ListNode first  = head;
+    ListNode second = head.next;
+
+    // swap first and second
+    first.next  = swapPairs(second.next); // first points to rest (recursed)
+    second.next = first;                   // second points to first
+
+    return second; // second is new head of this pair
+}
+```
+
+**Dry Run (Iterative):**
+```
+List: 1 → 2 → 3 → 4
+dummy → 1 → 2 → 3 → 4, prev=dummy
+
+Iteration 1:
+  first=1, second=2
+  1.next=3, 2.next=1, dummy.next=2
+  List: dummy→2→1→3→4, prev=1
+
+Iteration 2:
+  first=3, second=4
+  3.next=null, 4.next=3, 1.next=4
+  List: dummy→2→1→4→3, prev=3
+
+Result: 2 → 1 → 4 → 3 ✅
+```
+
+**Dry Run (Recursive):**
 ```
 List: 1 → 2 → 3 → 4
 
-dummy → 1 → 2 → 3 → 4
-prev = dummy
-
-Iteration 1:
-  first = 1, second = 2
-  1.next = 3
+swapPairs(1):
+  first=1, second=2
+  1.next = swapPairs(3)
+    first=3, second=4
+    3.next = swapPairs(null) = null
+    4.next = 3
+    return 4 → (4→3→null)
+  1.next = 4 → (1→4→3)
   2.next = 1
-  dummy.next = 2
-  List: dummy → 2 → 1 → 3 → 4
-  prev = 1
-
-Iteration 2:
-  first = 3, second = 4
-  3.next = null
-  4.next = 3
-  1.next = 4
-  List: dummy → 2 → 1 → 4 → 3
-  prev = 3
-
-prev.next = null → stop
+  return 2 → (2→1→4→3)
 
 Result: 2 → 1 → 4 → 3 ✅
 ```
@@ -225,8 +376,9 @@ Result: 2 → 1 → 4 → 3 ✅
 
 ### 5. Rotate List — LC 61
 
-**Intuition:** Rotating by k is same as breaking the list at position `(n - k % n)` and connecting tail to head.
+**Intuition:** Find length and tail → make circular → find new tail at `(n - k%n - 1)` → break circle. Recursion is not natural here — we use length calculation approach for both.
 
+#### Iterative
 ```java
 public ListNode rotateRight(ListNode head, int k) {
     if (head == null || head.next == null || k == 0) return head;
@@ -240,10 +392,10 @@ public ListNode rotateRight(ListNode head, int k) {
         length++;
     }
 
-    // Step 2: make it a circular list
+    // Step 2: make circular
     tail.next = head;
 
-    // Step 3: find new tail at position (length - k % length - 1)
+    // Step 3: find new tail
     int stepsToNewTail = length - k % length - 1;
     ListNode newTail = head;
 
@@ -251,7 +403,7 @@ public ListNode rotateRight(ListNode head, int k) {
         newTail = newTail.next;
     }
 
-    // Step 4: break the circle
+    // Step 4: break circle
     ListNode newHead = newTail.next;
     newTail.next = null;
 
@@ -259,21 +411,51 @@ public ListNode rotateRight(ListNode head, int k) {
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+public ListNode rotateRight(ListNode head, int k) {
+    if (head == null || head.next == null || k == 0) return head;
+
+    // Step 1: get length recursively
+    int length = getLength(head);
+    int steps  = length - k % length;
+
+    if (steps == length) return head; // no rotation needed
+
+    // Step 2: find new tail recursively
+    ListNode newTail = getNode(head, steps - 1);
+
+    // Step 3: break and reattach
+    ListNode newHead = newTail.next;
+    newTail.next = null;
+
+    // Step 4: find old tail and connect to old head
+    ListNode oldTail = getNode(newHead, length - steps - 1);
+    oldTail.next = head;
+
+    return newHead;
+}
+
+private int getLength(ListNode head) {
+    if (head == null) return 0;
+    return 1 + getLength(head.next);
+}
+
+private ListNode getNode(ListNode head, int steps) {
+    if (steps == 0) return head;
+    return getNode(head.next, steps - 1);
+}
+```
+
+**Dry Run (Iterative):**
 ```
 List: 1 → 2 → 3 → 4 → 5, k=2
 
 Step 1: length=5, tail=5
-
-Step 2: make circular
-  5.next = 1
-  1 → 2 → 3 → 4 → 5 → 1 → 2...
-
-Step 3: stepsToNewTail = 5 - 2%5 - 1 = 5 - 2 - 1 = 2
+Step 2: 5.next=1 (circular)
+Step 3: stepsToNewTail = 5-2%5-1 = 2
   newTail = node 3
-
-Step 4: newHead = 4
-  3.next = null
+Step 4: newHead=4, 3.next=null
 
 Result: 4 → 5 → 1 → 2 → 3 ✅
 ```
@@ -284,11 +466,66 @@ Result: 4 → 5 → 1 → 2 → 3 ✅
 
 ### 6. Reverse Nodes in K-Group — LC 25
 
-**Intuition:** Check if k nodes exist → reverse them → recurse on the rest → connect.
+**Intuition:** Check k nodes exist → reverse k nodes → connect to result of next group. Recursively reverse k nodes and connect to recursive call on rest.
 
+#### Iterative
 ```java
 public ListNode reverseKGroup(ListNode head, int k) {
-    // check if at least k nodes remain
+    ListNode dummy = new ListNode(0);
+    dummy.next = head;
+    ListNode prevGroupTail = dummy;
+
+    while (true) {
+        // check if k nodes exist
+        ListNode kthNode = getKthNode(prevGroupTail, k);
+        if (kthNode == null) break; // less than k nodes left
+
+        ListNode groupStart = prevGroupTail.next;
+        ListNode nextGroup  = kthNode.next;
+
+        // disconnect group
+        kthNode.next = null;
+
+        // reverse the group
+        prevGroupTail.next = reverse(groupStart);
+
+        // connect to next group
+        groupStart.next = nextGroup;
+
+        // move prevGroupTail to end of reversed group
+        prevGroupTail = groupStart;
+    }
+
+    return dummy.next;
+}
+
+private ListNode getKthNode(ListNode curr, int k) {
+    while (curr != null && k > 0) {
+        curr = curr.next;
+        k--;
+    }
+    return curr;
+}
+
+private ListNode reverse(ListNode head) {
+    ListNode prev = null;
+    ListNode curr = head;
+
+    while (curr != null) {
+        ListNode next = curr.next;
+        curr.next = prev;
+        prev = curr;
+        curr = next;
+    }
+
+    return prev;
+}
+```
+
+#### Recursive
+```java
+public ListNode reverseKGroup(ListNode head, int k) {
+    // check if k nodes exist
     ListNode check = head;
     int count = 0;
 
@@ -297,7 +534,7 @@ public ListNode reverseKGroup(ListNode head, int k) {
         count++;
     }
 
-    // less than k nodes remain → don't reverse
+    // less than k nodes → return as is
     if (count < k) return head;
 
     // reverse k nodes
@@ -312,50 +549,70 @@ public ListNode reverseKGroup(ListNode head, int k) {
     }
 
     // head is now tail of reversed group
-    // connect tail to result of next group
+    // connect to recursively reversed next group
     head.next = reverseKGroup(curr, k);
 
     return prev; // new head of this group
 }
 ```
 
-**Dry Run:**
+**Dry Run (Iterative):**
 ```
-List: 1 → 2 → 3 → 4 → 5, k=2
+List: 1→2→3→4→5, k=2
 
-Call 1 (head=1):
-  k nodes exist? Yes (1,2)
-  Reverse 1,2 → prev=2, curr=3
-  1.next = reverseKGroup(3, 2)
+prevGroupTail=dummy
 
-  Call 2 (head=3):
-    k nodes exist? Yes (3,4)
-    Reverse 3,4 → prev=4, curr=5
-    3.next = reverseKGroup(5, 2)
+Round 1:
+  kthNode=2, groupStart=1, nextGroup=3
+  disconnect: 2.next=null
+  reverse(1→2) → 2→1
+  dummy.next=2, 1.next=3
+  prevGroupTail=1
+  List: dummy→2→1→3→4→5
 
-    Call 3 (head=5):
-      k nodes exist? No (only 1)
-      return 5
+Round 2:
+  kthNode=4, groupStart=3, nextGroup=5
+  reverse(3→4) → 4→3
+  1.next=4, 3.next=5
+  prevGroupTail=3
+  List: dummy→2→1→4→3→5
 
-    3.next = 5
-    return 4
+Round 3:
+  kthNode=null (only 1 node left) → break
 
-  1.next = 4 → 3 → 5
-  return 2
+Result: 2→1→4→3→5 ✅
+```
 
-Final: 2 → 1 → 4 → 3 → 5 ✅
+**Dry Run (Recursive):**
+```
+List: 1→2→3→4→5, k=2
+
+reverseKGroup(1,2):
+  k nodes exist ✅
+  reverse 1,2 → prev=2, curr=3
+  1.next = reverseKGroup(3,2)
+    reverse 3,4 → prev=4, curr=5
+    3.next = reverseKGroup(5,2)
+      only 1 node < k → return 5
+    3.next=5
+    return 4 → (4→3→5)
+  1.next=4
+  return 2 → (2→1→4→3→5)
+
+Result: 2→1→4→3→5 ✅
 ```
 
 ---
 
 ### 7. Reverse Nodes in Even Length Groups — LC 2074
 
-**Intuition:** Groups have sizes 1, 2, 3, 4... Reverse a group only if its **actual size is even**. Last group may be smaller than its group number.
+**Intuition:** Groups have sizes 1,2,3,4... Reverse a group only if its actual size is even. Last group may be smaller. Iteratively walk group by group. Recursion simulates same logic group by group.
 
+#### Iterative
 ```java
 public ListNode reverseEvenLengthGroups(ListNode head) {
-    ListNode prev = head; // prev always points to last node of previous group
-    int groupSize = 2;    // start from group 2 (group 1 always has 1 node, odd)
+    ListNode prev = head;
+    int groupSize = 2;
 
     while (prev.next != null) {
         // count actual nodes in this group
@@ -369,17 +626,14 @@ public ListNode reverseEvenLengthGroups(ListNode head) {
 
         // reverse only if actual size is even
         if (actualSize % 2 == 0) {
-            // reverse actualSize nodes starting from prev.next
-            ListNode curr = prev.next;
+            ListNode curr         = prev.next;
             ListNode nextGroupHead = node.next;
 
-            // disconnect group from rest
+            // disconnect group
             node.next = null;
 
-            // reverse the group
+            // reverse and reconnect
             prev.next = reverse(curr);
-
-            // curr is now the tail, connect to next group
             curr.next = nextGroupHead;
         }
 
@@ -409,33 +663,84 @@ private ListNode reverse(ListNode head) {
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+public ListNode reverseEvenLengthGroups(ListNode head) {
+    reverseGroups(head, 2);
+    return head;
+}
+
+private void reverseGroups(ListNode prev, int groupSize) {
+    if (prev == null || prev.next == null) return;
+
+    // count actual size of this group
+    ListNode node = prev;
+    int actualSize = 0;
+
+    for (int i = 0; i < groupSize && node.next != null; i++) {
+        node = node.next;
+        actualSize++;
+    }
+
+    // reverse if even
+    if (actualSize % 2 == 0) {
+        ListNode curr          = prev.next;
+        ListNode nextGroupHead = node.next;
+
+        node.next = null;
+        prev.next = reverse(curr);
+        curr.next = nextGroupHead;
+    }
+
+    // find tail of current group
+    ListNode groupTail = prev;
+    for (int i = 0; i < actualSize; i++) {
+        groupTail = groupTail.next;
+    }
+
+    // recurse on next group
+    reverseGroups(groupTail, groupSize + 1);
+}
+
+private ListNode reverse(ListNode head) {
+    if (head == null || head.next == null) return head;
+
+    ListNode newHead = reverse(head.next);
+    head.next.next = head;
+    head.next = null;
+
+    return newHead;
+}
 ```
-List: 5 → 2 → 6 → 3 → 9 → 1 → 7 → 3 → 8 → 4
 
-Groups:
-  Group 1 (size 1): [5]        → odd, skip
-  Group 2 (size 2): [2, 6]     → even, reverse → [6, 2]
-  Group 3 (size 3): [3, 9, 1]  → odd, skip
-  Group 4 (size 4): [7, 3, 8, 4] → even, reverse → [4, 8, 3, 7]
+**Dry Run (Iterative):**
+```
+List: 5→2→6→3→9→1→7→3→8→4
 
-Result: 5 → 6 → 2 → 3 → 9 → 1 → 4 → 8 → 3 → 7 ✅
+Group 1 (size 1): [5]        → odd  → skip
+Group 2 (size 2): [2,6]      → even → reverse → [6,2]
+Group 3 (size 3): [3,9,1]    → odd  → skip
+Group 4 (size 4): [7,3,8,4]  → even → reverse → [4,8,3,7]
+
+Result: 5→6→2→3→9→1→4→8→3→7 ✅
 ```
 
 ---
 
 ## Summary Table
 
-| Problem | Key Technique | Trick |
-|---|---|---|
-| Reverse List | 3 pointers (prev, curr, next) | Follow the 4-step order |
-| Palindrome | Reverse second half | Find middle first |
-| Reverse Sublist | Dummy node + pull nodes to front | Count right-left iterations |
-| Swap Pairs | Dummy node + swap 2 at a time | prev tracks behind each pair |
-| Rotate List | Make circular + break at new point | k % length handles large k |
-| Reverse K-Group | Reverse k + recurse | Check k nodes exist first |
-| Even Length Groups | Count actual size + reverse if even | Last group may be partial |
+| Problem | Iterative Approach | Recursive Approach | Trick |
+|---|---|---|---|
+| Reverse List | 3 pointers prev/curr/next | Go to end, reverse on way back | `head.next.next = head` on way back |
+| Palindrome List | Find mid + reverse + compare | Global left pointer moves forward as right unwinds | Right reaches end naturally via recursion |
+| Reverse Sublist | Dummy + pull nodes to front | Skip to left position, reverseN from there | Save successor node before reversing |
+| Swap Pairs | Dummy + rewire 3 pointers per pair | Swap 2 + recurse on rest | `first.next = swapPairs(second.next)` |
+| Rotate List | Make circular + break at new point | getLength + getNode helpers | k % length handles large k |
+| Reverse K-Group | getKthNode + reverse + connect | Check k exist + reverse + recurse | head becomes tail after reverse |
+| Even Length Groups | Walk group by group + reverse if even | Recursive group walk + recursive reverse | Last group may be smaller than group number |
 
 ---
 
-The **reverse() helper** is used in almost every problem
+> **Note:** Rotate List (LC 61) does not have a naturally elegant pure recursive solution. The recursive version uses helper functions `getLength` and `getNode` which are themselves recursive — giving the same O(n) complexity with cleaner code. 💡
+
+Ready for the next set! 🚀

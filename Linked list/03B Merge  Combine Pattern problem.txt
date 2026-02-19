@@ -1,4 +1,4 @@
-# All Merge / Combine Solutions in Java
+# Merge / Combine Pattern — Both Iterative & Recursive Solutions
 
 ---
 
@@ -6,12 +6,13 @@
 
 ### 1. Merge Two Sorted Lists — LC 21
 
-**Intuition:** Use a dummy node. Compare heads of both lists, pick smaller one, move that pointer forward.
+**Intuition:** Compare heads of both lists, pick smaller one, move that pointer forward. Recursively pick smaller head and recurse on rest.
 
+#### Iterative
 ```java
 public ListNode mergeTwoLists(ListNode l1, ListNode l2) {
     ListNode dummy = new ListNode(0);
-    ListNode curr = dummy;
+    ListNode curr  = dummy;
 
     while (l1 != null && l2 != null) {
         if (l1.val <= l2.val) {
@@ -24,39 +25,70 @@ public ListNode mergeTwoLists(ListNode l1, ListNode l2) {
         curr = curr.next;
     }
 
-    // attach whichever list still has nodes
+    // attach remaining list
     curr.next = (l1 != null) ? l1 : l2;
 
     return dummy.next;
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+public ListNode mergeTwoLists(ListNode l1, ListNode l2) {
+    // base cases
+    if (l1 == null) return l2;
+    if (l2 == null) return l1;
+
+    if (l1.val <= l2.val) {
+        l1.next = mergeTwoLists(l1.next, l2); // l1 is smaller, recurse on l1.next
+        return l1;
+    } else {
+        l2.next = mergeTwoLists(l1, l2.next); // l2 is smaller, recurse on l2.next
+        return l2;
+    }
+}
+```
+
+**Dry Run (Iterative):**
 ```
 l1: 1 → 3 → 5
 l2: 2 → 4 → 6
 
-Step 1: 1 <= 2 → pick 1, l1 moves to 3   → dummy → 1
-Step 2: 3 >  2 → pick 2, l2 moves to 4   → dummy → 1 → 2
-Step 3: 3 <= 4 → pick 3, l1 moves to 5   → dummy → 1 → 2 → 3
-Step 4: 5 >  4 → pick 4, l2 moves to 6   → dummy → 1 → 2 → 3 → 4
-Step 5: 5 <= 6 → pick 5, l1 moves to null→ dummy → 1 → 2 → 3 → 4 → 5
+Step 1: 1<=2 → pick 1, l1→3   dummy→1
+Step 2: 3>2  → pick 2, l2→4   dummy→1→2
+Step 3: 3<=4 → pick 3, l1→5   dummy→1→2→3
+Step 4: 5>4  → pick 4, l2→6   dummy→1→2→3→4
+Step 5: 5<=6 → pick 5, l1→null dummy→1→2→3→4→5
 
-l1 = null → attach l2
-Result: 1 → 2 → 3 → 4 → 5 → 6 ✅
+l1=null → attach l2
+Result: 1→2→3→4→5→6 ✅
+```
+
+**Dry Run (Recursive):**
+```
+l1: 1→3, l2: 2→4
+
+merge(1,2): 1<=2 → 1.next = merge(3,2)
+  merge(3,2): 3>2  → 2.next = merge(3,4)
+    merge(3,4): 3<=4 → 3.next = merge(null,4)
+      merge(null,4): l1=null → return 4
+    3.next=4, return 3 → 3→4
+  2.next=3, return 2  → 2→3→4
+1.next=2, return 1    → 1→2→3→4 ✅
 ```
 
 ---
 
 ### 2. Merge Sorted Array — LC 88
 
-**Intuition:** Merge from the **end** to avoid overwriting elements. Use three pointers — one for each array end and one for the merge position.
+**Intuition:** Merge from end to avoid overwriting. Three pointers — end of each array and end of merge position. Recursively pick larger element from end and place it.
 
+#### Iterative
 ```java
 public void merge(int[] nums1, int m, int[] nums2, int n) {
-    int p1 = m - 1;       // pointer for nums1
-    int p2 = n - 1;       // pointer for nums2
-    int p = m + n - 1;    // pointer for merge position (end of nums1)
+    int p1 = m - 1;     // pointer for nums1
+    int p2 = n - 1;     // pointer for nums2
+    int p  = m + n - 1; // merge position (end of nums1)
 
     while (p1 >= 0 && p2 >= 0) {
         if (nums1[p1] >= nums2[p2]) {
@@ -69,7 +101,7 @@ public void merge(int[] nums1, int m, int[] nums2, int n) {
         p--;
     }
 
-    // if nums2 still has elements, copy them
+    // copy remaining nums2 elements if any
     while (p2 >= 0) {
         nums1[p] = nums2[p2];
         p2--;
@@ -78,19 +110,46 @@ public void merge(int[] nums1, int m, int[] nums2, int n) {
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+public void merge(int[] nums1, int m, int[] nums2, int n) {
+    mergeHelper(nums1, m - 1, nums2, n - 1, m + n - 1);
+}
+
+private void mergeHelper(int[] nums1, int p1, int[] nums2, int p2, int p) {
+    // base case: no more nums2 elements to place
+    if (p2 < 0) return;
+
+    // base case: no more nums1 elements, copy nums2
+    if (p1 < 0) {
+        nums1[p] = nums2[p2];
+        mergeHelper(nums1, p1, nums2, p2 - 1, p - 1);
+        return;
+    }
+
+    if (nums1[p1] >= nums2[p2]) {
+        nums1[p] = nums1[p1];
+        mergeHelper(nums1, p1 - 1, nums2, p2, p - 1);
+    } else {
+        nums1[p] = nums2[p2];
+        mergeHelper(nums1, p1, nums2, p2 - 1, p - 1);
+    }
+}
 ```
-nums1 = [1, 3, 5, 0, 0, 0], m=3
-nums2 = [2, 4, 6],          n=3
+
+**Dry Run (Iterative):**
+```
+nums1=[1,3,5,0,0,0] m=3
+nums2=[2,4,6]       n=3
 
 p1=2(5), p2=2(6), p=5
-Step 1: 5 < 6  → nums1[5]=6, p2=1, p=4 → [1,3,5,0,0,6]
-Step 2: 5 > 4  → nums1[4]=5, p1=1, p=3 → [1,3,5,0,5,6]
-Step 3: 3 < 4  → nums1[3]=4, p2=0, p=2 → [1,3,5,4,5,6]
-Step 4: 3 > 2  → nums1[2]=3, p1=0, p=1 → [1,3,3,4,5,6]
-Step 5: 1 < 2  → nums1[1]=2, p2=-1, p=0→ [1,2,3,4,5,6]
+Step 1: 5<6  → nums1[5]=6, p2=1, p=4 → [1,3,5,0,0,6]
+Step 2: 5>4  → nums1[4]=5, p1=1, p=3 → [1,3,5,0,5,6]
+Step 3: 3<4  → nums1[3]=4, p2=0, p=2 → [1,3,5,4,5,6]
+Step 4: 3>2  → nums1[2]=3, p1=0, p=1 → [1,3,3,4,5,6]
+Step 5: 1<2  → nums1[1]=2, p2=-1      → [1,2,3,4,5,6]
 
-p2 < 0 → stop
+p2<0 → stop
 Result: [1,2,3,4,5,6] ✅
 ```
 
@@ -100,24 +159,96 @@ Result: [1,2,3,4,5,6] ✅
 
 ### 3. Sort List — LC 148
 
-**Intuition:** Merge Sort on linked list.
-1. Find middle using fast & slow pointers
-2. Split into two halves
-3. Recursively sort each half
-4. Merge both sorted halves
+**Intuition:** Find middle → split into two halves → sort each half → merge. This is merge sort on linked list. Iterative bottom-up merge sort avoids recursion stack.
 
+#### Iterative (Bottom-Up Merge Sort)
 ```java
 public ListNode sortList(ListNode head) {
-    // base case: 0 or 1 node
+    if (head == null || head.next == null) return head;
+
+    // Step 1: get length
+    int length = 0;
+    ListNode node = head;
+    while (node != null) {
+        length++;
+        node = node.next;
+    }
+
+    ListNode dummy = new ListNode(0);
+    dummy.next = head;
+
+    // Step 2: bottom-up merge — size 1, 2, 4, 8...
+    for (int size = 1; size < length; size *= 2) {
+        ListNode curr = dummy.next;
+        ListNode tail = dummy;
+
+        while (curr != null) {
+            // split two halves of current size
+            ListNode left  = curr;
+            ListNode right = split(left, size);
+            curr           = split(right, size);
+
+            // merge and attach to tail
+            ListNode[] merged = mergeWithTail(left, right);
+            tail.next = merged[0]; // head of merged
+            tail      = merged[1]; // tail of merged
+        }
+    }
+
+    return dummy.next;
+}
+
+// splits list after 'size' nodes, returns head of second part
+private ListNode split(ListNode head, int size) {
+    for (int i = 1; i < size && head != null; i++) {
+        head = head.next;
+    }
+
+    if (head == null) return null;
+
+    ListNode second = head.next;
+    head.next = null; // cut
+    return second;
+}
+
+// merges two lists, returns [head, tail] of merged list
+private ListNode[] mergeWithTail(ListNode l1, ListNode l2) {
+    ListNode dummy = new ListNode(0);
+    ListNode curr  = dummy;
+
+    while (l1 != null && l2 != null) {
+        if (l1.val <= l2.val) {
+            curr.next = l1;
+            l1 = l1.next;
+        } else {
+            curr.next = l2;
+            l2 = l2.next;
+        }
+        curr = curr.next;
+    }
+
+    curr.next = (l1 != null) ? l1 : l2;
+
+    // find tail
+    while (curr.next != null) curr = curr.next;
+
+    return new ListNode[]{dummy.next, curr};
+}
+```
+
+#### Recursive (Top-Down Merge Sort)
+```java
+public ListNode sortList(ListNode head) {
+    // base case
     if (head == null || head.next == null) return head;
 
     // Step 1: find middle and split
-    ListNode mid = getMiddle(head);
+    ListNode mid       = getMiddle(head);
     ListNode rightHalf = mid.next;
-    mid.next = null; // cut into two halves
+    mid.next = null;
 
     // Step 2: recursively sort both halves
-    ListNode left = sortList(head);
+    ListNode left  = sortList(head);
     ListNode right = sortList(rightHalf);
 
     // Step 3: merge sorted halves
@@ -133,60 +264,60 @@ private ListNode getMiddle(ListNode head) {
         fast = fast.next.next;
     }
 
-    return slow; // slow is at middle
+    return slow;
 }
 
 private ListNode merge(ListNode l1, ListNode l2) {
-    ListNode dummy = new ListNode(0);
-    ListNode curr = dummy;
+    if (l1 == null) return l2;
+    if (l2 == null) return l1;
 
-    while (l1 != null && l2 != null) {
-        if (l1.val <= l2.val) {
-            curr.next = l1;
-            l1 = l1.next;
-        } else {
-            curr.next = l2;
-            l2 = l2.next;
-        }
-        curr = curr.next;
+    if (l1.val <= l2.val) {
+        l1.next = merge(l1.next, l2);
+        return l1;
+    } else {
+        l2.next = merge(l1, l2.next);
+        return l2;
     }
-
-    curr.next = (l1 != null) ? l1 : l2;
-    return dummy.next;
 }
 ```
 
-**Dry Run:**
+**Dry Run (Recursive):**
 ```
 List: 4 → 2 → 1 → 3
 
-Step 1: middle = 2, split
-  left:  4 → 2
-  right: 1 → 3
+sortList(4→2→1→3)
+  mid=2, left=4→2, right=1→3
 
-Step 2: sort left [4,2]
-  middle = 4, split → [4] and [2]
-  merge(4, 2) → 2 → 4
+  sortList(4→2)
+    mid=4, left=4, right=2
+    sortList(4) → 4
+    sortList(2) → 2
+    merge(4,2)  → 2→4
 
-Step 3: sort right [1,3]
-  middle = 1, split → [1] and [3]
-  merge(1, 3) → 1 → 3
+  sortList(1→3)
+    mid=1, left=1, right=3
+    sortList(1) → 1
+    sortList(3) → 3
+    merge(1,3)  → 1→3
 
-Step 4: merge(2→4,  1→3)
-  1 < 2 → pick 1
-  2 < 3 → pick 2
-  3 < 4 → pick 3
-  pick 4
+  merge(2→4, 1→3)
+    1<2 → 1.next=merge(2→4,3)
+      2<3 → 2.next=merge(4,3)
+        3<4 → 3.next=merge(4,null)=4
+        return 3→4
+      return 2→3→4
+    return 1→2→3→4
 
-Result: 1 → 2 → 3 → 4 ✅
+Result: 1→2→3→4 ✅
 ```
 
 ---
 
 ### 4. Merge In Between Linked Lists — LC 1669
 
-**Intuition:** Find node just before position `a` and node just after position `b`. Connect them to the head and tail of list2.
+**Intuition:** Find node just before `a` and node just after `b`. Connect them to head and tail of list2. Recursively navigate to boundary positions.
 
+#### Iterative
 ```java
 public ListNode mergeInBetween(ListNode list1, int a, int b, ListNode list2) {
     ListNode curr = list1;
@@ -210,60 +341,96 @@ public ListNode mergeInBetween(ListNode list1, int a, int b, ListNode list2) {
     }
 
     // Step 4: connect
-    nodeBeforeA.next = list2;  // connect before-a to start of list2
-    tail2.next = nodeAfterB;   // connect tail of list2 to after-b
+    nodeBeforeA.next = list2;
+    tail2.next       = nodeAfterB;
 
     return list1;
 }
 ```
 
-**Dry Run:**
-```
-list1: 0 → 1 → 2 → 3 → 4 → 5,  a=2, b=3
-list2: 100 → 200
+#### Recursive
+```java
+public ListNode mergeInBetween(ListNode list1, int a, int b, ListNode list2) {
+    // find tail of list2 first
+    ListNode tail2 = getTail(list2);
+    return mergeHelper(list1, a, b, list2, tail2, 0);
+}
 
-Step 1: nodeBeforeA = node 1 (index a-1 = 1)
-Step 2: nodeAfterB  = node 4 (index b+1 = 4)
+private ListNode mergeHelper(ListNode node, int a, int b,
+                              ListNode list2, ListNode tail2, int index) {
+    if (node == null) return null;
+
+    if (index == a - 1) {
+        // connect before-a to list2
+        // connect tail2 to node after b
+        tail2.next = getNodeAfterB(node, b - a + 2);
+        node.next  = list2;
+        return node;
+    }
+
+    node.next = mergeHelper(node.next, a, b, list2, tail2, index + 1);
+    return node;
+}
+
+private ListNode getNodeAfterB(ListNode node, int steps) {
+    if (steps == 0) return node;
+    return getNodeAfterB(node.next, steps - 1);
+}
+
+private ListNode getTail(ListNode node) {
+    if (node.next == null) return node;
+    return getTail(node.next);
+}
+```
+
+**Dry Run (Iterative):**
+```
+list1: 0→1→2→3→4→5, a=2, b=3
+list2: 100→200
+
+Step 1: nodeBeforeA = node 1 (index a-1=1)
+Step 2: nodeAfterB  = node 4 (index b+1=4)
 Step 3: tail2 = node 200
 
 Step 4:
-  1.next = 100         → 0 → 1 → 100 → 200
-  200.next = 4         → 0 → 1 → 100 → 200 → 4 → 5
+  1.next   = 100
+  200.next = 4
 
-Result: 0 → 1 → 100 → 200 → 4 → 5 ✅
+Result: 0→1→100→200→4→5 ✅
 ```
 
 ---
 
 ### 5. Flatten a Multilevel Doubly Linked List — LC 430
 
-**Intuition:** Whenever you hit a node with a child, flatten the child list first and insert it between current node and current.next. Think of it as merging the child list in between.
+**Intuition:** When a node has a child, insert the flattened child list between current node and current.next. Iteratively use a stack to handle multiple levels. Recursively flatten child first then insert it.
 
+#### Iterative (Using Stack)
 ```java
 public Node flatten(Node head) {
+    if (head == null) return null;
+
+    Stack<Node> stack = new Stack<>();
     Node curr = head;
 
     while (curr != null) {
         if (curr.child != null) {
-            Node child = curr.child;
-            Node next = curr.next;
-
-            // Step 1: connect curr to child
-            curr.next = child;
-            child.prev = curr;
-            curr.child = null;
-
-            // Step 2: find tail of child list
-            Node childTail = child;
-            while (childTail.next != null) {
-                childTail = childTail.next;
+            // push next to stack if exists
+            if (curr.next != null) {
+                stack.push(curr.next);
             }
 
-            // Step 3: connect child tail to next
-            childTail.next = next;
-            if (next != null) {
-                next.prev = childTail;
-            }
+            // connect curr to child
+            curr.next       = curr.child;
+            curr.child.prev = curr;
+            curr.child      = null;
+        }
+
+        // if no next but stack has saved nodes
+        if (curr.next == null && !stack.isEmpty()) {
+            Node saved = stack.pop();
+            curr.next  = saved;
+            saved.prev = curr;
         }
 
         curr = curr.next;
@@ -273,30 +440,70 @@ public Node flatten(Node head) {
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+public Node flatten(Node head) {
+    if (head == null) return null;
+    flattenHelper(head);
+    return head;
+}
+
+// returns the tail of the flattened list starting at head
+private Node flattenHelper(Node head) {
+    Node curr = head;
+    Node tail = null;
+
+    while (curr != null) {
+        if (curr.child != null) {
+            Node child    = curr.child;
+            Node next     = curr.next;
+
+            // connect curr to child
+            curr.next  = child;
+            child.prev = curr;
+            curr.child = null;
+
+            // recursively flatten child and get its tail
+            Node childTail = flattenHelper(child);
+
+            // connect child tail to next
+            childTail.next = next;
+            if (next != null) next.prev = childTail;
+
+            tail = childTail;
+            curr = next;
+        } else {
+            tail = curr;
+            curr = curr.next;
+        }
+    }
+
+    return tail;
+}
 ```
-List: 1 ↔ 2 ↔ 3 ↔ 4
-              ↓
-              7 ↔ 8
 
-curr = 1: no child, move on
-curr = 2: no child, move on
-curr = 3: has child (7)!
+**Dry Run (Iterative):**
+```
+List: 1↔2↔3↔4
+          ↓
+          7↔8
 
-  child = 7 ↔ 8
-  next  = 4
+curr=1: no child → move
+curr=2: no child → move
+curr=3: has child(7)!
+  push next(4) to stack
+  3.next=7, 7.prev=3, 3.child=null
+  List: 1↔2↔3↔7↔8
 
-  3.next = 7,  7.prev = 3
-  childTail = 8
-  8.next = 4,  4.prev = 8
+curr=7: no child → move
+curr=8: no child, stack=[4]
+  pop 4, 8.next=4, 4.prev=8
+  List: 1↔2↔3↔7↔8↔4
 
-  List: 1 ↔ 2 ↔ 3 ↔ 7 ↔ 8 ↔ 4
+curr=4: no child → move
+curr=null → stop
 
-curr = 7: no child
-curr = 8: no child
-curr = 4: no child
-
-Result: 1 ↔ 2 ↔ 3 ↔ 7 ↔ 8 ↔ 4 ✅
+Result: 1↔2↔3↔7↔8↔4 ✅
 ```
 
 ---
@@ -305,32 +512,28 @@ Result: 1 ↔ 2 ↔ 3 ↔ 7 ↔ 8 ↔ 4 ✅
 
 ### 6. Merge K Sorted Lists — LC 23
 
-**Approach 1 — Min Heap (PriorityQueue):**
+**Intuition:** Use MinHeap to always pick smallest node among all K list heads. Divide & Conquer pairs up lists and merges recursively like merge sort.
 
-**Intuition:** Always pick the smallest node among all K list heads. Use a min heap to efficiently get the smallest.
-
+#### Iterative (Min Heap)
 ```java
 public ListNode mergeKLists(ListNode[] lists) {
-    // min heap ordered by node value
     PriorityQueue<ListNode> minHeap = new PriorityQueue<>(
         (a, b) -> a.val - b.val
     );
 
-    // Step 1: add head of every list to heap
+    // Step 1: add all heads to heap
     for (ListNode list : lists) {
-        if (list != null) {
-            minHeap.offer(list);
-        }
+        if (list != null) minHeap.offer(list);
     }
 
     ListNode dummy = new ListNode(0);
-    ListNode curr = dummy;
+    ListNode curr  = dummy;
 
     // Step 2: always poll smallest, push its next
     while (!minHeap.isEmpty()) {
         ListNode smallest = minHeap.poll();
         curr.next = smallest;
-        curr = curr.next;
+        curr      = curr.next;
 
         if (smallest.next != null) {
             minHeap.offer(smallest.next);
@@ -341,38 +544,15 @@ public ListNode mergeKLists(ListNode[] lists) {
 }
 ```
 
-**Dry Run:**
-```
-Lists: [1→4→7], [2→5→8], [3→6→9]
-
-Heap initially: [1, 2, 3]
-
-Step 1: poll 1, push 4  → result: 1       heap: [2,3,4]
-Step 2: poll 2, push 5  → result: 1→2     heap: [3,4,5]
-Step 3: poll 3, push 6  → result: 1→2→3   heap: [4,5,6]
-Step 4: poll 4, push 7  → result: 1→2→3→4 heap: [5,6,7]
-...continues...
-
-Result: 1→2→3→4→5→6→7→8→9 ✅
-
-Time:  O(N log K)  — N total nodes, K lists in heap
-Space: O(K)        — heap holds at most K nodes
-```
-
----
-
-**Approach 2 — Divide & Conquer:**
-
-**Intuition:** Pair up lists and merge pairs. Repeat until one list remains. Like merge sort on lists.
-
+#### Recursive (Divide & Conquer)
 ```java
 public ListNode mergeKLists(ListNode[] lists) {
     if (lists == null || lists.length == 0) return null;
-
     return divideAndConquer(lists, 0, lists.length - 1);
 }
 
 private ListNode divideAndConquer(ListNode[] lists, int left, int right) {
+    // base case: single list
     if (left == right) return lists[left];
 
     int mid = left + (right - left) / 2;
@@ -384,66 +564,85 @@ private ListNode divideAndConquer(ListNode[] lists, int left, int right) {
 }
 
 private ListNode merge(ListNode l1, ListNode l2) {
-    ListNode dummy = new ListNode(0);
-    ListNode curr = dummy;
+    // base cases
+    if (l1 == null) return l2;
+    if (l2 == null) return l1;
 
-    while (l1 != null && l2 != null) {
-        if (l1.val <= l2.val) {
-            curr.next = l1;
-            l1 = l1.next;
-        } else {
-            curr.next = l2;
-            l2 = l2.next;
-        }
-        curr = curr.next;
+    if (l1.val <= l2.val) {
+        l1.next = merge(l1.next, l2);
+        return l1;
+    } else {
+        l2.next = merge(l1, l2.next);
+        return l2;
     }
-
-    curr.next = (l1 != null) ? l1 : l2;
-    return dummy.next;
 }
 ```
 
-**Dry Run:**
+**Dry Run (Iterative - Min Heap):**
+```
+Lists: [1→4→7], [2→5→8], [3→6→9]
+
+Heap: [1,2,3]
+
+Step 1: poll 1, push 4 → result:1       heap:[2,3,4]
+Step 2: poll 2, push 5 → result:1→2     heap:[3,4,5]
+Step 3: poll 3, push 6 → result:1→2→3   heap:[4,5,6]
+Step 4: poll 4, push 7 → result:1→2→3→4 heap:[5,6,7]
+Step 5: poll 5, push 8 → result:...→5   heap:[6,7,8]
+Step 6: poll 6, push 9 → result:...→6   heap:[7,8,9]
+Step 7: poll 7, no next→ result:...→7   heap:[8,9]
+Step 8: poll 8          → result:...→8   heap:[9]
+Step 9: poll 9          → result:...→9   heap:[]
+
+Result: 1→2→3→4→5→6→7→8→9 ✅
+```
+
+**Dry Run (Recursive - Divide & Conquer):**
 ```
 Lists: [L1, L2, L3, L4]
 
-Round 1 (pair up):
-  merge(L1, L2) → L12
-  merge(L3, L4) → L34
+divideAndConquer(0,3)
+  mid=1
+  left  = divideAndConquer(0,1)
+    mid=0
+    left  = L1
+    right = L2
+    return merge(L1,L2) = L12
 
-Round 2 (pair up again):
-  merge(L12, L34) → L1234
+  right = divideAndConquer(2,3)
+    mid=2
+    left  = L3
+    right = L4
+    return merge(L3,L4) = L34
 
-Result: fully merged sorted list ✅
+  return merge(L12,L34) = L1234 ✅
 
 Time:  O(N log K)
-Space: O(log K)  — recursion stack (better than heap approach)
+Space: O(log K) recursion stack
 ```
 
 ---
 
 ## Summary Table
 
-| Problem | Key Technique | Trick |
-|---|---|---|
-| Merge Two Sorted Lists | Dummy node + compare heads | Attach remaining list at end |
-| Merge Sorted Array | Three pointers from the end | Merge backwards to avoid overwrite |
-| Sort List | Merge Sort | Find middle + split + merge |
-| Merge In Between | Find boundary nodes | Connect list2 head and tail |
-| Flatten Multilevel | Insert child list in place | Find child tail + reconnect next |
-| Merge K Lists (Heap) | PriorityQueue | Always poll smallest, push next |
-| Merge K Lists (D&C) | Divide & Conquer | Pair up and merge like merge sort |
+| Problem | Iterative Approach | Recursive Approach | Trick |
+|---|---|---|---|
+| Merge Two Sorted Lists | Dummy node + compare heads | Pick smaller head + recurse on rest | Attach remaining list at end |
+| Merge Sorted Array | 3 pointers from the end | Pick larger from end + recurse | Merge backwards prevents overwrite |
+| Sort List | Bottom-up merge sort (size 1,2,4...) | Top-down merge sort (find mid + recurse) | Iterative avoids O(log n) stack space |
+| Merge In Between | Find boundary nodes + connect | Recurse to index a-1, connect list2 | Find tail2 before connecting |
+| Flatten Multilevel | Stack saves next when child found | Flatten child recursively, get its tail | Stack handles multiple levels cleanly |
+| Merge K Lists | Min Heap — always poll smallest | Divide & Conquer — pair up and merge | Heap: O(N log K) time, O(K) space |
 
 ---
 
-## Which approach to use for Merge K Lists?
+## Iterative vs Recursive Comparison
 
-| | Min Heap | Divide & Conquer |
+| | Iterative | Recursive |
 |---|---|---|
-| Time | O(N log K) | O(N log K) |
-| Space | O(K) | O(log K) |
-| When to use | Simpler to code in interview | Better space efficiency |
+| Sort List | Bottom-up, O(1) space | Top-down, O(log n) stack |
+| Merge Two Lists | Dummy node loop | Clean 3-line base case |
+| Merge K Lists | Min Heap | Divide & Conquer |
+| Flatten Multilevel | Stack based | Returns tail of each level |
 
----
-
-The **merge() helper** is the heart of this pattern — same as reversal had its **reverse() helper**. Make sure you can write it blindfolded! Tell me when you're ready for the next pattern 💪
+> **Key Insight:** For merge problems, recursive solutions are often **cleaner and shorter** but use extra stack space. Iterative solutions are more **space efficient** but require more careful pointer management. 💡

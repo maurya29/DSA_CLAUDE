@@ -1,0 +1,862 @@
+# 🌳 Tree Traversals — All Solutions
+
+---
+
+# 🟢 LC 144 — Binary Tree Preorder Traversal
+
+## Intuition
+Visit root first, then recursively visit left and right subtrees. Iteratively, use a stack and push right child before left (LIFO ensures left is processed first).
+
+### Tree used:
+```
+        1
+       / \
+      2   3
+     / \
+    4   5
+```
+
+---
+
+### ✅ Recursive Solution
+```java
+class Solution {
+    public List<Integer> preorderTraversal(TreeNode root) {
+        List<Integer> result = new ArrayList<>();
+        solve(root, result);
+        return result;
+    }
+
+    private void solve(TreeNode root, List<Integer> result) {
+        if (root == null) return;        // base case
+        result.add(root.val);            // 1. Visit Root
+        solve(root.left, result);        // 2. Go Left
+        solve(root.right, result);       // 3. Go Right
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+solve(1) → add 1
+  solve(2) → add 2
+    solve(4) → add 4
+      solve(null) → return
+      solve(null) → return
+    solve(5) → add 5
+      solve(null) → return
+      solve(null) → return
+  solve(3) → add 3
+    solve(null) → return
+    solve(null) → return
+
+Result: [1, 2, 4, 5, 3]
+```
+
+---
+
+### ✅ Iterative Solution
+```java
+class Solution {
+    public List<Integer> preorderTraversal(TreeNode root) {
+        List<Integer> result = new ArrayList<>();
+        if (root == null) return result;
+
+        Stack<TreeNode> stack = new Stack<>();
+        stack.push(root);
+
+        while (!stack.isEmpty()) {
+            TreeNode node = stack.pop();
+            result.add(node.val);                            // Visit root
+
+            if (node.right != null) stack.push(node.right); // Push right FIRST
+            if (node.left != null) stack.push(node.left);   // Push left SECOND
+        }                                                    // (LIFO: left pops first)
+        return result;
+    }
+}
+```
+
+### 🔍 Iterative Dry Run
+```
+Stack: [1]
+Pop 1 → add 1 → push 3, push 2     Stack: [3, 2]
+Pop 2 → add 2 → push 5, push 4     Stack: [3, 5, 4]
+Pop 4 → add 4 → no children        Stack: [3, 5]
+Pop 5 → add 5 → no children        Stack: [3]
+Pop 3 → add 3 → no children        Stack: []
+
+Result: [1, 2, 4, 5, 3] ✅
+```
+
+### ⚡ When to prefer which?
+| | Recursive | Iterative |
+|---|---|---|
+| Code simplicity | ✅ Cleaner | More verbose |
+| Stack overflow risk | On very deep trees | ✅ Safe |
+| Interview | Write first | Write if asked |
+
+---
+---
+
+# 🟢 LC 94 — Binary Tree Inorder Traversal
+
+## Intuition
+Go as far left as possible, process node, then move right. Iteratively simulate the call stack by pushing nodes while going left, pop and process, then shift to right subtree.
+
+---
+
+### ✅ Recursive Solution
+```java
+class Solution {
+    public List<Integer> inorderTraversal(TreeNode root) {
+        List<Integer> result = new ArrayList<>();
+        solve(root, result);
+        return result;
+    }
+
+    private void solve(TreeNode root, List<Integer> result) {
+        if (root == null) return;       // base case
+        solve(root.left, result);       // 1. Go Left
+        result.add(root.val);           // 2. Visit Root
+        solve(root.right, result);      // 3. Go Right
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+solve(1)
+  solve(2)
+    solve(4)
+      solve(null) → return
+      add 4
+      solve(null) → return
+    add 2
+    solve(5)
+      solve(null) → return
+      add 5
+      solve(null) → return
+  add 1
+  solve(3)
+    solve(null) → return
+    add 3
+    solve(null) → return
+
+Result: [4, 2, 5, 1, 3]
+```
+
+---
+
+### ✅ Iterative Solution
+```java
+class Solution {
+    public List<Integer> inorderTraversal(TreeNode root) {
+        List<Integer> result = new ArrayList<>();
+        Stack<TreeNode> stack = new Stack<>();
+        TreeNode curr = root;
+
+        while (curr != null || !stack.isEmpty()) {
+            // Phase 1: Go as left as possible
+            while (curr != null) {
+                stack.push(curr);
+                curr = curr.left;
+            }
+            // Phase 2: Process node
+            curr = stack.pop();
+            result.add(curr.val);
+            // Phase 3: Move to right subtree
+            curr = curr.right;
+        }
+        return result;
+    }
+}
+```
+
+### 🔍 Iterative Dry Run
+```
+curr=1 → push 1, go left
+curr=2 → push 2, go left
+curr=4 → push 4, go left
+curr=null → stop inner loop
+
+Stack: [1, 2, 4]
+Pop 4 → add 4 → curr = 4.right = null
+Pop 2 → add 2 → curr = 2.right = 5
+  push 5, go left → curr=null
+  Pop 5 → add 5 → curr = 5.right = null
+Pop 1 → add 1 → curr = 1.right = 3
+  push 3, go left → curr=null
+  Pop 3 → add 3 → curr = 3.right = null
+
+Result: [4, 2, 5, 1, 3] ✅
+```
+
+---
+---
+
+# 🟢 LC 145 — Binary Tree Postorder Traversal
+
+## Intuition
+Process both children before the parent. Recursively it's natural. Iteratively, use a clever trick: do a modified preorder (Root→Right→Left) and reverse the result to get Left→Right→Root.
+
+---
+
+### ✅ Recursive Solution
+```java
+class Solution {
+    public List<Integer> postorderTraversal(TreeNode root) {
+        List<Integer> result = new ArrayList<>();
+        solve(root, result);
+        return result;
+    }
+
+    private void solve(TreeNode root, List<Integer> result) {
+        if (root == null) return;        // base case
+        solve(root.left, result);        // 1. Go Left
+        solve(root.right, result);       // 2. Go Right
+        result.add(root.val);            // 3. Visit Root
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+solve(1)
+  solve(2)
+    solve(4) → add 4
+    solve(5) → add 5
+    add 2
+  solve(3) → add 3
+  add 1
+
+Result: [4, 5, 2, 3, 1]
+```
+
+---
+
+### ✅ Iterative Solution (Two Stack / Reverse Trick)
+```java
+class Solution {
+    public List<Integer> postorderTraversal(TreeNode root) {
+        List<Integer> result = new ArrayList<>();
+        if (root == null) return result;
+
+        Stack<TreeNode> stack = new Stack<>();
+        stack.push(root);
+
+        while (!stack.isEmpty()) {
+            TreeNode node = stack.pop();
+            result.add(node.val);                           // Add to result
+
+            if (node.left != null) stack.push(node.left);  // Push LEFT first
+            if (node.right != null) stack.push(node.right);// Push RIGHT second
+            // This gives Root→Right→Left order
+        }
+
+        Collections.reverse(result); // Reverse → Left→Right→Root = Postorder
+        return result;
+    }
+}
+```
+
+### 🔍 Iterative Dry Run
+```
+Stack: [1]
+Pop 1 → add 1 → push 2(left), 3(right)   result:[1]   Stack:[2,3]
+Pop 3 → add 3 → no children               result:[1,3] Stack:[2]
+Pop 2 → add 2 → push 4(left), 5(right)   result:[1,3,2] Stack:[4,5]
+Pop 5 → add 5 → no children               result:[1,3,2,5]
+Pop 4 → add 4 → no children               result:[1,3,2,5,4]
+
+Before reverse: [1, 3, 2, 5, 4]
+After reverse:  [4, 5, 2, 3, 1] ✅
+```
+
+---
+---
+
+# 🟡 LC 102 — Binary Tree Level Order Traversal
+
+## Intuition
+Use a queue to process nodes level by level. The KEY trick is to snapshot `queue.size()` at the start of each level so you know exactly how many nodes belong to the current level.
+
+### Tree used:
+```
+        3
+       / \
+      9  20
+         / \
+        15   7
+```
+
+---
+
+### ✅ Iterative Solution (Queue — Natural approach)
+```java
+class Solution {
+    public List<List<Integer>> levelOrder(TreeNode root) {
+        List<List<Integer>> result = new ArrayList<>();
+        if (root == null) return result;
+
+        Queue<TreeNode> queue = new LinkedList<>();
+        queue.offer(root);
+
+        while (!queue.isEmpty()) {
+            int size = queue.size();              // KEY: snapshot level size
+            List<Integer> level = new ArrayList<>();
+
+            for (int i = 0; i < size; i++) {
+                TreeNode node = queue.poll();
+                level.add(node.val);
+
+                if (node.left != null) queue.offer(node.left);
+                if (node.right != null) queue.offer(node.right);
+            }
+            result.add(level);
+        }
+        return result;
+    }
+}
+```
+
+### 🔍 Iterative Dry Run
+```
+Queue: [3]
+
+Level 1: size=1
+  Poll 3 → level=[3] → add 9, 20    Queue:[9,20]
+  result: [[3]]
+
+Level 2: size=2
+  Poll 9  → level=[9]    → no children
+  Poll 20 → level=[9,20] → add 15, 7  Queue:[15,7]
+  result: [[3],[9,20]]
+
+Level 3: size=2
+  Poll 15 → level=[15]   → no children
+  Poll 7  → level=[15,7] → no children
+  result: [[3],[9,20],[15,7]] ✅
+```
+
+---
+
+### ✅ Recursive Solution
+```java
+class Solution {
+    public List<List<Integer>> levelOrder(TreeNode root) {
+        List<List<Integer>> result = new ArrayList<>();
+        solve(root, 0, result);
+        return result;
+    }
+
+    private void solve(TreeNode root, int level, List<List<Integer>> result) {
+        if (root == null) return;
+
+        if (result.size() == level)              // First time visiting this level
+            result.add(new ArrayList<>());
+
+        result.get(level).add(root.val);         // Add to current level
+
+        solve(root.left, level + 1, result);     // Go deeper left
+        solve(root.right, level + 1, result);    // Go deeper right
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+solve(3, level=0) → result=[[3]]
+  solve(9, level=1) → result=[[3],[9]]
+    solve(null) → return
+    solve(null) → return
+  solve(20, level=1) → result=[[3],[9,20]]
+    solve(15, level=2) → result=[[3],[9,20],[15]]
+    solve(7,  level=2) → result=[[3],[9,20],[15,7]]
+
+Result: [[3],[9,20],[15,7]] ✅
+```
+
+---
+---
+
+# 🟡 LC 103 — Binary Tree Zigzag Level Order Traversal
+
+## Intuition
+Same as level order BFS but alternate the direction of insertion each level. Use a flag `leftToRight` — when false, add elements to the front of the current level list using index-based insertion or a deque.
+
+### Tree used:
+```
+        3
+       / \
+      9  20
+         / \
+        15   7
+```
+Expected: `[[3], [20,9], [15,7]]`
+
+---
+
+### ✅ Iterative Solution
+```java
+class Solution {
+    public List<List<Integer>> zigzagLevelOrder(TreeNode root) {
+        List<List<Integer>> result = new ArrayList<>();
+        if (root == null) return result;
+
+        Queue<TreeNode> queue = new LinkedList<>();
+        queue.offer(root);
+        boolean leftToRight = true;               // Direction flag
+
+        while (!queue.isEmpty()) {
+            int size = queue.size();
+            LinkedList<Integer> level = new LinkedList<>(); // LinkedList for addFirst
+
+            for (int i = 0; i < size; i++) {
+                TreeNode node = queue.poll();
+
+                if (leftToRight) {
+                    level.addLast(node.val);       // Normal: add to end
+                } else {
+                    level.addFirst(node.val);      // Zigzag: add to front
+                }
+
+                if (node.left != null) queue.offer(node.left);
+                if (node.right != null) queue.offer(node.right);
+            }
+
+            result.add(level);
+            leftToRight = !leftToRight;            // Flip direction
+        }
+        return result;
+    }
+}
+```
+
+### 🔍 Iterative Dry Run
+```
+Queue:[3]  leftToRight=true
+Level 1: Poll 3 → addLast(3)  level=[3]  → add 9,20
+  result:[[3]]  flip→leftToRight=false
+
+Queue:[9,20]  leftToRight=false
+Level 2: 
+  Poll 9  → addFirst(9)  level=[9]
+  Poll 20 → addFirst(20) level=[20,9]  → add 15,7
+  result:[[3],[20,9]]  flip→leftToRight=true
+
+Queue:[15,7]  leftToRight=true
+Level 3:
+  Poll 15 → addLast(15) level=[15]
+  Poll 7  → addLast(7)  level=[15,7]
+  result:[[3],[20,9],[15,7]] ✅
+```
+
+---
+
+### ✅ Recursive Solution
+```java
+class Solution {
+    public List<List<Integer>> zigzagLevelOrder(TreeNode root) {
+        List<List<Integer>> result = new ArrayList<>();
+        solve(root, 0, result);
+        return result;
+    }
+
+    private void solve(TreeNode node, int level, List<List<Integer>> result) {
+        if (node == null) return;
+
+        if (result.size() == level)
+            result.add(new LinkedList<>());
+
+        LinkedList<Integer> levelList = (LinkedList<Integer>) result.get(level);
+
+        if (level % 2 == 0) {
+            levelList.addLast(node.val);   // Even levels: left to right
+        } else {
+            levelList.addFirst(node.val);  // Odd levels: right to left
+        }
+
+        solve(node.left, level + 1, result);
+        solve(node.right, level + 1, result);
+    }
+}
+```
+
+---
+---
+
+# 🟡 LC 107 — Binary Tree Level Order Traversal II (Bottom-Up)
+
+## Intuition
+Exact same as LC 102 level order — just reverse the final result list at the end. Or use `addFirst` on a LinkedList to build bottom-up directly.
+
+---
+
+### ✅ Iterative Solution
+```java
+class Solution {
+    public List<List<Integer>> levelOrderBottom(TreeNode root) {
+        LinkedList<List<Integer>> result = new LinkedList<>(); // LinkedList for addFirst
+        if (root == null) return result;
+
+        Queue<TreeNode> queue = new LinkedList<>();
+        queue.offer(root);
+
+        while (!queue.isEmpty()) {
+            int size = queue.size();
+            List<Integer> level = new ArrayList<>();
+
+            for (int i = 0; i < size; i++) {
+                TreeNode node = queue.poll();
+                level.add(node.val);
+                if (node.left != null) queue.offer(node.left);
+                if (node.right != null) queue.offer(node.right);
+            }
+
+            result.addFirst(level);   // KEY: add each level to FRONT
+        }
+        return result;
+    }
+}
+```
+
+### 🔍 Dry Run
+```
+Tree:      3
+          / \
+         9  20
+           /  \
+          15   7
+
+Process level [3]   → addFirst → result: [[3]]
+Process level [9,20] → addFirst → result: [[9,20],[3]]
+Process level [15,7] → addFirst → result: [[15,7],[9,20],[3]] ✅
+```
+
+---
+
+### ✅ Recursive Solution
+```java
+class Solution {
+    public List<List<Integer>> levelOrderBottom(TreeNode root) {
+        LinkedList<List<Integer>> result = new LinkedList<>();
+        solve(root, 0, result);
+        return result;
+    }
+
+    private void solve(TreeNode root, int level, LinkedList<List<Integer>> result) {
+        if (root == null) return;
+
+        if (result.size() == level)
+            result.addFirst(new ArrayList<>());     // New level added to front
+
+        // Access from bottom: index = (result.size()-1-level)
+        result.get(result.size() - 1 - level).add(root.val);
+
+        solve(root.left, level + 1, result);
+        solve(root.right, level + 1, result);
+    }
+}
+```
+
+---
+---
+
+# 🔴 LC 987 — Vertical Order Traversal of a Binary Tree
+
+## Intuition
+Assign each node a `(row, col)` coordinate. Root is `(0,0)`, left child is `(row+1, col-1)`, right child is `(row+1, col+1)`. Group nodes by column, sort within same position by row then value, collect results column by column.
+
+### Tree used:
+```
+        3          (row=0, col=0)
+       / \
+      9  20        (row=1, col=-1) (row=1, col=1)
+         / \
+        15   7     (row=2, col=0)  (row=2, col=2)
+```
+
+---
+
+### ✅ Iterative Solution (BFS + TreeMap)
+```java
+class Solution {
+    public List<List<Integer>> verticalTraversal(TreeNode root) {
+        // TreeMap: col → sorted list of (row, val)
+        TreeMap<Integer, List<int[]>> map = new TreeMap<>();
+
+        // BFS Queue: [node, row, col]
+        Queue<int[]> queue = new LinkedList<>();
+        Queue<TreeNode> nodeQueue = new LinkedList<>();
+        nodeQueue.offer(root);
+        queue.offer(new int[]{0, 0}); // row=0, col=0
+
+        while (!nodeQueue.isEmpty()) {
+            TreeNode node = nodeQueue.poll();
+            int[] pos = queue.poll();
+            int row = pos[0], col = pos[1];
+
+            map.computeIfAbsent(col, k -> new ArrayList<>()).add(new int[]{row, node.val});
+
+            if (node.left != null) {
+                nodeQueue.offer(node.left);
+                queue.offer(new int[]{row + 1, col - 1});
+            }
+            if (node.right != null) {
+                nodeQueue.offer(node.right);
+                queue.offer(new int[]{row + 1, col + 1});
+            }
+        }
+
+        List<List<Integer>> result = new ArrayList<>();
+        for (List<int[]> colNodes : map.values()) {
+            // Sort by row, then by value
+            colNodes.sort((a, b) -> a[0] != b[0] ? a[0] - b[0] : a[1] - b[1]);
+            List<Integer> colResult = new ArrayList<>();
+            for (int[] node : colNodes) colResult.add(node[1]);
+            result.add(colResult);
+        }
+        return result;
+    }
+}
+```
+
+### 🔍 Dry Run
+```
+Node 3:  row=0, col=0  → map{0: [(0,3)]}
+Node 9:  row=1, col=-1 → map{-1:[(1,9)], 0:[(0,3)]}
+Node 20: row=1, col=1  → map{-1:[(1,9)], 0:[(0,3)], 1:[(1,20)]}
+Node 15: row=2, col=0  → map{..., 0:[(0,3),(2,15)], ...}
+Node 7:  row=2, col=2  → map{..., 2:[(2,7)]}
+
+Col -1: [(1,9)]  → [9]
+Col  0: [(0,3),(2,15)] sorted by row → [3,15]
+Col  1: [(1,20)] → [20]
+Col  2: [(2,7)]  → [7]
+
+Result: [[9],[3,15],[20],[7]] ✅
+```
+
+---
+
+### ✅ Recursive Solution (DFS)
+```java
+class Solution {
+    TreeMap<Integer, List<int[]>> map = new TreeMap<>();
+
+    public List<List<Integer>> verticalTraversal(TreeNode root) {
+        dfs(root, 0, 0);
+
+        List<List<Integer>> result = new ArrayList<>();
+        for (List<int[]> colNodes : map.values()) {
+            colNodes.sort((a, b) -> a[0] != b[0] ? a[0] - b[0] : a[1] - b[1]);
+            List<Integer> colResult = new ArrayList<>();
+            for (int[] node : colNodes) colResult.add(node[1]);
+            result.add(colResult);
+        }
+        return result;
+    }
+
+    private void dfs(TreeNode node, int row, int col) {
+        if (node == null) return;
+        map.computeIfAbsent(col, k -> new ArrayList<>()).add(new int[]{row, node.val});
+        dfs(node.left, row + 1, col - 1);
+        dfs(node.right, row + 1, col + 1);
+    }
+}
+```
+
+---
+---
+
+# 🔴 LC 297 — Serialize and Deserialize Binary Tree
+
+## Intuition
+Serialization: do a preorder traversal, write node values separated by commas, use `#` for null nodes. Deserialization: read tokens one by one, rebuild tree in same preorder fashion using a queue/index pointer.
+
+### Tree used:
+```
+        1
+       / \
+      2   3
+         / \
+        4   5
+```
+Serialized: `"1,2,#,#,3,4,#,#,5,#,#"`
+
+---
+
+### ✅ Recursive Solution (DFS Preorder)
+```java
+public class Codec {
+
+    // SERIALIZE: Preorder DFS
+    public String serialize(TreeNode root) {
+        StringBuilder sb = new StringBuilder();
+        serializeHelper(root, sb);
+        return sb.toString();
+    }
+
+    private void serializeHelper(TreeNode node, StringBuilder sb) {
+        if (node == null) {
+            sb.append("#").append(",");  // null marker
+            return;
+        }
+        sb.append(node.val).append(","); // Root first (preorder)
+        serializeHelper(node.left, sb);  // then Left
+        serializeHelper(node.right, sb); // then Right
+    }
+
+    // DESERIALIZE: Rebuild using Queue
+    public TreeNode deserialize(String data) {
+        Queue<String> queue = new LinkedList<>(Arrays.asList(data.split(",")));
+        return deserializeHelper(queue);
+    }
+
+    private TreeNode deserializeHelper(Queue<String> queue) {
+        String val = queue.poll();
+        if (val.equals("#")) return null;  // null marker encountered
+
+        TreeNode node = new TreeNode(Integer.parseInt(val));
+        node.left = deserializeHelper(queue);   // Rebuild left
+        node.right = deserializeHelper(queue);  // Rebuild right
+        return node;
+    }
+}
+```
+
+### 🔍 Dry Run — Serialize
+```
+serializeHelper(1) → append "1,"
+  serializeHelper(2) → append "2,"
+    serializeHelper(null) → append "#,"
+    serializeHelper(null) → append "#,"
+  serializeHelper(3) → append "3,"
+    serializeHelper(4) → append "4,"
+      serializeHelper(null) → append "#,"
+      serializeHelper(null) → append "#,"
+    serializeHelper(5) → append "5,"
+      serializeHelper(null) → append "#,"
+      serializeHelper(null) → append "#,"
+
+Serialized: "1,2,#,#,3,4,#,#,5,#,#,"
+```
+
+### 🔍 Dry Run — Deserialize
+```
+Queue: [1, 2, #, #, 3, 4, #, #, 5, #, #]
+
+poll "1" → node(1)
+  poll "2" → node(2)
+    poll "#" → null (left of 2)
+    poll "#" → null (right of 2)
+  node(2).left=null, node(2).right=null
+  poll "3" → node(3)
+    poll "4" → node(4)
+      poll "#" → null
+      poll "#" → null
+    poll "5" → node(5)
+      poll "#" → null
+      poll "#" → null
+
+Tree rebuilt correctly ✅
+```
+
+---
+
+### ✅ Iterative Solution (BFS Level Order)
+```java
+public class Codec {
+
+    // SERIALIZE: BFS Level Order
+    public String serialize(TreeNode root) {
+        if (root == null) return "";
+        StringBuilder sb = new StringBuilder();
+        Queue<TreeNode> queue = new LinkedList<>();
+        queue.offer(root);
+
+        while (!queue.isEmpty()) {
+            TreeNode node = queue.poll();
+            if (node == null) {
+                sb.append("#,");
+            } else {
+                sb.append(node.val).append(",");
+                queue.offer(node.left);   // Add even if null
+                queue.offer(node.right);
+            }
+        }
+        return sb.toString();
+    }
+
+    // DESERIALIZE: BFS rebuild
+    public TreeNode deserialize(String data) {
+        if (data.isEmpty()) return null;
+        String[] tokens = data.split(",");
+        TreeNode root = new TreeNode(Integer.parseInt(tokens[0]));
+        Queue<TreeNode> queue = new LinkedList<>();
+        queue.offer(root);
+        int i = 1;
+
+        while (!queue.isEmpty() && i < tokens.length) {
+            TreeNode node = queue.poll();
+
+            // Left child
+            if (!tokens[i].equals("#")) {
+                node.left = new TreeNode(Integer.parseInt(tokens[i]));
+                queue.offer(node.left);
+            }
+            i++;
+
+            // Right child
+            if (i < tokens.length && !tokens[i].equals("#")) {
+                node.right = new TreeNode(Integer.parseInt(tokens[i]));
+                queue.offer(node.right);
+            }
+            i++;
+        }
+        return root;
+    }
+}
+```
+
+### 🔍 BFS Serialize Dry Run
+```
+Queue:[1]
+Poll 1 → "1," → add 2, 3         Queue:[2,3]
+Poll 2 → "2," → add null, null   Queue:[3,null,null]
+Poll 3 → "3," → add 4, 5         Queue:[null,null,4,5]
+Poll null → "#,"                  Queue:[null,4,5]
+Poll null → "#,"                  Queue:[4,5]
+Poll 4 → "4," → add null, null   Queue:[5,null,null]
+Poll 5 → "5," → add null, null   Queue:[null,null,null,null]
+... all nulls → "#,#,#,#,#,#"
+
+Result: "1,2,3,#,#,4,5,#,#,#,#" ✅
+```
+
+---
+---
+
+# 📊 Final Summary Table
+
+| Problem | Key Technique | Trick |
+|---|---|---|
+| LC 144 — Preorder | Stack (iterative) | Push **right before left** (LIFO) |
+| LC 94 — Inorder | Stack + curr pointer | Two-phase: go left → process → go right |
+| LC 145 — Postorder | Reverse trick | Modified preorder (R→L) + `Collections.reverse()` |
+| LC 102 — Level Order | Queue + size snapshot | `int size = queue.size()` at level start |
+| LC 103 — Zigzag | Queue + LinkedList | `addFirst` vs `addLast` based on level parity |
+| LC 107 — Bottom-Up | Queue + addFirst | `result.addFirst(level)` instead of addLast |
+| LC 987 — Vertical Order | TreeMap + `(row,col)` | Sort by col→row→val using TreeMap |
+| LC 297 — Serialize | Preorder + `#` marker | Queue-based token consumption for deserialize |
+
+---
+
+## 💡 3 Golden Rules for Traversals
+
+> **Rule 1:** DFS order = which line `result.add(root.val)` is on (before/between/after recursive calls)
+>
+> **Rule 2:** Iterative DFS always needs a **Stack**. Iterative BFS always needs a **Queue**
+>
+> **Rule 3:** For level separation in BFS — always snapshot `int size = queue.size()` before the inner loop

@@ -1,4 +1,4 @@
-# All In-Place Manipulation Solutions in Java
+# In-Place Manipulation — Both Iterative & Recursive Solutions
 
 ---
 
@@ -6,11 +6,12 @@
 
 ### 1. Move Zeroes — LC 283
 
-**Intuition:** Two pointers — `slow` tracks where next non-zero should go, `fast` finds non-zero elements. Swap them in place.
+**Intuition:** Two pointers — slow tracks next non-zero position, fast finds non-zero elements. Recursively place non-zero elements at front then fill zeros.
 
+#### Iterative
 ```java
 public void moveZeroes(int[] nums) {
-    int slow = 0; // points to next position for non-zero
+    int slow = 0; // next position for non-zero
 
     // Step 1: move all non-zero to front
     for (int fast = 0; fast < nums.length; fast++) {
@@ -28,28 +29,72 @@ public void moveZeroes(int[] nums) {
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+public void moveZeroes(int[] nums) {
+    moveHelper(nums, 0, 0);
+}
+
+private void moveHelper(int[] nums, int fast, int slow) {
+    // base case: fast reached end
+    if (fast == nums.length) {
+        // fill rest with zeros
+        fillZeros(nums, slow);
+        return;
+    }
+
+    if (nums[fast] != 0) {
+        nums[slow] = nums[fast];
+        moveHelper(nums, fast + 1, slow + 1);
+    } else {
+        moveHelper(nums, fast + 1, slow);
+    }
+}
+
+private void fillZeros(int[] nums, int slow) {
+    if (slow == nums.length) return;
+    nums[slow] = 0;
+    fillZeros(nums, slow + 1);
+}
 ```
-nums = [0, 1, 0, 3, 12]
+
+**Dry Run (Iterative):**
+```
+nums = [0,1,0,3,12]
 
 slow=0, fast=0: nums[0]=0  → skip
-slow=0, fast=1: nums[1]=1  → nums[0]=1, slow=1  → [1,1,0,3,12]
+slow=0, fast=1: nums[1]=1  → nums[0]=1, slow=1 → [1,1,0,3,12]
 slow=1, fast=2: nums[2]=0  → skip
-slow=1, fast=3: nums[3]=3  → nums[1]=3, slow=2  → [1,3,0,3,12]
-slow=2, fast=4: nums[4]=12 → nums[2]=12, slow=3 → [1,3,12,3,12]
+slow=1, fast=3: nums[3]=3  → nums[1]=3, slow=2 → [1,3,0,3,12]
+slow=2, fast=4: nums[4]=12 → nums[2]=12,slow=3 → [1,3,12,3,12]
 
 Fill zeros from slow=3:
-  nums[3]=0, nums[4]=0     → [1,3,12,0,0]
+  nums[3]=0, nums[4]=0      → [1,3,12,0,0]
 
-Result: [1, 3, 12, 0, 0] ✅
+Result: [1,3,12,0,0] ✅
+```
+
+**Dry Run (Recursive):**
+```
+nums = [0,1,0,3]
+
+moveHelper(0,0,0): nums[0]=0 → moveHelper(1,0)
+moveHelper(1,0,0): nums[1]=1 → nums[0]=1, moveHelper(2,1)
+moveHelper(2,1,1): nums[2]=0 → moveHelper(3,1)
+moveHelper(3,1,1): nums[3]=3 → nums[1]=3, moveHelper(4,2)
+moveHelper(4,2,2): fast==end → fillZeros from slow=2
+  nums[2]=0, nums[3]=0
+
+Result: [1,3,0,0] ✅
 ```
 
 ---
 
 ### 2. Palindrome Linked List — LC 234
 
-**Intuition:** Find middle → reverse second half in place → compare both halves → restore list (optional).
+**Intuition:** Find middle → reverse second half in place → compare both halves. Recursively use global left pointer moving forward as right pointer unwinds from end.
 
+#### Iterative
 ```java
 public boolean isPalindrome(ListNode head) {
     // Step 1: find middle
@@ -65,24 +110,23 @@ public boolean isPalindrome(ListNode head) {
     ListNode secondHalf = reverse(slow);
 
     // Step 3: compare both halves
-    ListNode left  = head;
-    ListNode right = secondHalf;
-
-    boolean isPalin = true;
+    ListNode left   = head;
+    ListNode right  = secondHalf;
+    boolean result  = true;
 
     while (right != null) {
         if (left.val != right.val) {
-            isPalin = false;
+            result = false;
             break;
         }
         left  = left.next;
         right = right.next;
     }
 
-    // Step 4: restore list (good practice)
+    // Step 4: restore list
     reverse(secondHalf);
 
-    return isPalin;
+    return result;
 }
 
 private ListNode reverse(ListNode head) {
@@ -100,20 +144,57 @@ private ListNode reverse(ListNode head) {
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+private ListNode left;
+
+public boolean isPalindrome(ListNode head) {
+    left = head;
+    return check(head);
+}
+
+private boolean check(ListNode right) {
+    // base case: reached end
+    if (right == null) return true;
+
+    // recurse to end first
+    boolean result = check(right.next);
+
+    // on way back compare left and right
+    result = result && (left.val == right.val);
+
+    // move left forward
+    left = left.next;
+
+    return result;
+}
 ```
-List: 1 → 2 → 3 → 2 → 1
 
-Step 1: middle = node 3 (slow stops here)
+**Dry Run (Iterative):**
+```
+List: 1→2→3→2→1
 
-Step 2: reverse from node 3
-  second half: 1 → 2 → 3
-
+Step 1: middle = node 3
+Step 2: reverse from 3 → secondHalf: 1→2→3
 Step 3: compare
-  left:  1 → 2 → 3...
-  right: 1 → 2 → 3
-
+  left: 1→2→3...
+  right: 1→2→3
   1==1 ✅  2==2 ✅  3==3 ✅
+
+return true ✅
+```
+
+**Dry Run (Recursive):**
+```
+List: 1→2→3→2→1, left=node1
+
+check(1)→check(2)→check(3)→check(2)→check(1)→check(null)
+
+On way back:
+  right=1: left(1)==right(1) ✅ left→2
+  right=2: left(2)==right(2) ✅ left→3
+  right=3: left(3)==right(3) ✅ left→2
+  (comparison done, result confirmed)
 
 return true ✅
 ```
@@ -124,8 +205,9 @@ return true ✅
 
 ### 3. Reorder List — LC 143
 
-**Intuition:** Find middle → reverse second half → interleave both halves in place.
+**Intuition:** Find middle → reverse second half → interleave both halves. Recursively reverse second half and merge alternately.
 
+#### Iterative
 ```java
 public void reorderList(ListNode head) {
     if (head == null || head.next == null) return;
@@ -151,11 +233,11 @@ public void reorderList(ListNode head) {
         ListNode tmp1 = first.next;  // save first's next
         ListNode tmp2 = second.next; // save second's next
 
-        first.next  = second; // first points to second
-        second.next = tmp1;   // second points to first's old next
+        first.next  = second;
+        second.next = tmp1;
 
-        first  = tmp1;  // advance first
-        second = tmp2;  // advance second
+        first  = tmp1;
+        second = tmp2;
     }
 }
 
@@ -174,39 +256,101 @@ private ListNode reverse(ListNode head) {
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+public void reorderList(ListNode head) {
+    if (head == null || head.next == null) return;
+
+    // Step 1: find middle
+    ListNode mid = findMiddle(head);
+
+    // Step 2: reverse second half recursively
+    ListNode secondHalf = reverseRecursive(mid.next);
+    mid.next = null;
+
+    // Step 3: interleave recursively
+    mergeAlternate(head, secondHalf);
+}
+
+private ListNode findMiddle(ListNode head) {
+    ListNode slow = head;
+    ListNode fast = head;
+
+    while (fast.next != null && fast.next.next != null) {
+        slow = slow.next;
+        fast = fast.next.next;
+    }
+
+    return slow;
+}
+
+private ListNode reverseRecursive(ListNode head) {
+    if (head == null || head.next == null) return head;
+
+    ListNode newHead = reverseRecursive(head.next);
+    head.next.next = head;
+    head.next = null;
+
+    return newHead;
+}
+
+private void mergeAlternate(ListNode first, ListNode second) {
+    // base case
+    if (first == null || second == null) return;
+
+    ListNode tmp1 = first.next;
+    ListNode tmp2 = second.next;
+
+    first.next  = second;
+    second.next = tmp1;
+
+    mergeAlternate(tmp1, tmp2); // recurse on rest
+}
 ```
-List: 1 → 2 → 3 → 4 → 5
 
-Step 1: middle = node 3
-  first half:  1 → 2 → 3 → null
-  second half: 4 → 5
+**Dry Run (Iterative):**
+```
+List: 1→2→3→4→5
 
-Step 2: reverse second half
-  second half: 5 → 4
+Step 1: middle=3
+  first:  1→2→3→null
+  second: 4→5
+
+Step 2: reverse second: 5→4
 
 Step 3: interleave
-  Iteration 1:
-    tmp1=2, tmp2=4
-    1.next=5, 5.next=2
-    List so far: 1 → 5 → 2 ...
-    first=2, second=4
+  iter1: tmp1=2,tmp2=4
+    1→5→2... first=2,second=4
+  iter2: tmp1=3,tmp2=null
+    2→4→3   second=null→stop
 
-  Iteration 2:
+Result: 1→5→2→4→3 ✅
+```
+
+**Dry Run (Recursive):**
+```
+List: 1→2→3→4→5
+
+findMiddle → 3
+reverseRecursive(4→5) → 5→4
+mergeAlternate(1→2→3, 5→4):
+  tmp1=2, tmp2=4
+  1.next=5, 5.next=2
+  mergeAlternate(2→3, 4):
     tmp1=3, tmp2=null
     2.next=4, 4.next=3
-    List so far: 1 → 5 → 2 → 4 → 3
-    first=3, second=null → stop
+    mergeAlternate(3, null) → return
 
-Result: 1 → 5 → 2 → 4 → 3 ✅
+Result: 1→5→2→4→3 ✅
 ```
 
 ---
 
 ### 4. Rotate List — LC 61
 
-**Intuition:** Make list circular → find new tail at `(n - k % n - 1)` → break circle there.
+**Intuition:** Find length and tail → make circular → break at new tail position `(n - k%n - 1)`. Recursive helpers find length and target node.
 
+#### Iterative
 ```java
 public ListNode rotateRight(ListNode head, int k) {
     if (head == null || head.next == null || k == 0) return head;
@@ -239,50 +383,94 @@ public ListNode rotateRight(ListNode head, int k) {
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+public ListNode rotateRight(ListNode head, int k) {
+    if (head == null || head.next == null || k == 0) return head;
+
+    // Step 1: get length recursively
+    int length = getLength(head);
+    int steps  = length - k % length;
+
+    // no rotation needed
+    if (steps == length) return head;
+
+    // Step 2: find new tail recursively
+    ListNode newTail = getNode(head, steps - 1);
+
+    // Step 3: break and reattach
+    ListNode newHead = newTail.next;
+    newTail.next = null;
+
+    // Step 4: find old tail recursively and connect to old head
+    ListNode oldTail = getNode(newHead, length - steps - 1);
+    oldTail.next = head;
+
+    return newHead;
+}
+
+private int getLength(ListNode head) {
+    if (head == null) return 0;
+    return 1 + getLength(head.next);
+}
+
+private ListNode getNode(ListNode head, int steps) {
+    if (steps == 0) return head;
+    return getNode(head.next, steps - 1);
+}
 ```
-List: 1 → 2 → 3 → 4 → 5, k=2
+
+**Dry Run (Iterative):**
+```
+List: 1→2→3→4→5, k=2
 
 Step 1: length=5, tail=5
+Step 2: 5.next=1 → circular
+Step 3: stepsToNewTail = 5-2%5-1 = 2
+  newTail = node 3
+Step 4: newHead=4, 3.next=null
 
-Step 2: make circular
-  5.next = 1
-  ... → 4 → 5 → 1 → 2 → ...
+Result: 4→5→1→2→3 ✅
+```
 
-Step 3: stepsToNewTail = 5 - 2%5 - 1 = 2
-  newTail = node at index 2 = node 3
+**Dry Run (Recursive):**
+```
+List: 1→2→3→4→5, k=2
 
-Step 4: newHead = 4
-  3.next = null
+getLength(1) = 5
+steps = 5 - 2%5 = 3
 
-Result: 4 → 5 → 1 → 2 → 3 ✅
+newTail = getNode(head, 2) = node 3
+newHead = node 4
+3.next  = null
 
-Edge case: k % length == 0
-  means no rotation needed
-  stepsToNewTail = length-1 (last node)
-  returns original list ✅
+oldTail = getNode(4, 5-3-1=1) = node 5
+5.next  = head(1)
+
+Result: 4→5→1→2→3 ✅
 ```
 
 ---
 
 ### 5. Odd Even Linked List — LC 328
 
-**Intuition:** Two pointers — `odd` and `even` weave through list in place. Connect odd tail to even head at end.
+**Intuition:** Two pointers weave — odd skips even, even skips odd, connect at end. Recursively weave odd and even nodes saving evenHead.
 
+#### Iterative
 ```java
 public ListNode oddEvenList(ListNode head) {
     if (head == null) return null;
 
-    ListNode odd      = head;       // starts at node 1 (odd position)
-    ListNode even     = head.next;  // starts at node 2 (even position)
-    ListNode evenHead = even;       // save even head to connect later
+    ListNode odd      = head;
+    ListNode even     = head.next;
+    ListNode evenHead = even;
 
     while (even != null && even.next != null) {
-        odd.next  = even.next;  // odd skips over even
-        odd       = odd.next;   // advance odd
+        odd.next  = even.next; // odd skips even
+        odd       = odd.next;
 
-        even.next = odd.next;   // even skips over odd
-        even      = even.next;  // advance even
+        even.next = odd.next;  // even skips odd
+        even      = even.next;
     }
 
     odd.next = evenHead; // connect odd tail to even head
@@ -291,40 +479,70 @@ public ListNode oddEvenList(ListNode head) {
 }
 ```
 
-**Dry Run:**
-```
-List: 1 → 2 → 3 → 4 → 5
+#### Recursive
+```java
+public ListNode oddEvenList(ListNode head) {
+    if (head == null || head.next == null) return head;
 
+    ListNode evenHead = head.next;
+    buildOdd(head, head.next, evenHead);
+    return head;
+}
+
+private void buildOdd(ListNode odd, ListNode even, ListNode evenHead) {
+    // base case: no more pairs
+    if (even == null || even.next == null) {
+        odd.next = evenHead; // connect odd tail to even head
+        return;
+    }
+
+    odd.next  = even.next;       // odd skips even
+    even.next = even.next.next;  // even skips odd
+
+    buildOdd(odd.next, even.next, evenHead); // recurse on next pair
+}
+```
+
+**Dry Run (Iterative):**
+```
+List: 1→2→3→4→5
 odd=1, even=2, evenHead=2
 
-Iteration 1:
-  odd.next = 3  (1 skips 2)  → odd list:  1 → 3
-  odd = 3
-  even.next = 4 (2 skips 3)  → even list: 2 → 4
-  even = 4
+Iter 1:
+  odd.next=3  → 1→3,  odd=3
+  even.next=4 → 2→4,  even=4
 
-Iteration 2:
-  odd.next = 5  (3 skips 4)  → odd list:  1 → 3 → 5
-  odd = 5
-  even.next = null (4 skips 5, nothing after)
-  even = null → stop
+Iter 2:
+  odd.next=5  → 3→5,  odd=5
+  even.next=null → 4→null, even=null→stop
 
 odd.next = evenHead(2)
-  1 → 3 → 5 → 2 → 4
+Result: 1→3→5→2→4 ✅
+```
 
-Result: 1 → 3 → 5 → 2 → 4 ✅
+**Dry Run (Recursive):**
+```
+List: 1→2→3→4→5
+evenHead=2
 
-Position breakdown:
-  Odd positions  (1,3,5): nodes 1, 3, 5
-  Even positions (2,4):   nodes 2, 4
+buildOdd(1, 2, 2):
+  1.next=3, 2.next=4
+  buildOdd(3, 4, 2):
+    3.next=5, 4.next=null
+    buildOdd(5, null, 2):
+      even=null → 5.next=evenHead(2) ✅
+      return
+
+Result: 1→3→5→2→4 ✅
 ```
 
 ---
 
 ### 6. Swap Nodes in Pairs — LC 24
 
-**Intuition:** Dummy node gives anchor. For each pair, rewire 3 pointers: prev → second → first → rest.
+**Intuition:** Dummy node anchors before each pair. Rewire 3 pointers per pair iteratively. Recursively swap first pair then recurse on rest.
 
+#### Iterative
 ```java
 public ListNode swapPairs(ListNode head) {
     ListNode dummy = new ListNode(0);
@@ -333,13 +551,13 @@ public ListNode swapPairs(ListNode head) {
     ListNode prev = dummy;
 
     while (prev.next != null && prev.next.next != null) {
-        ListNode first  = prev.next;       // first node of pair
-        ListNode second = prev.next.next;  // second node of pair
+        ListNode first  = prev.next;
+        ListNode second = prev.next.next;
 
-        // rewire in place
-        first.next  = second.next; // first skips second
-        second.next = first;       // second points back to first
-        prev.next   = second;      // prev points to second (new front)
+        // swap in place
+        first.next  = second.next;
+        second.next = first;
+        prev.next   = second;
 
         prev = first; // move prev to end of swapped pair
     }
@@ -348,30 +566,56 @@ public ListNode swapPairs(ListNode head) {
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+public ListNode swapPairs(ListNode head) {
+    // base case: 0 or 1 node
+    if (head == null || head.next == null) return head;
+
+    ListNode first  = head;
+    ListNode second = head.next;
+
+    first.next  = swapPairs(second.next); // first points to rest
+    second.next = first;                   // second points to first
+
+    return second; // second is new head
+}
 ```
-List: 1 → 2 → 3 → 4
-dummy → 1 → 2 → 3 → 4,  prev=dummy
 
-Iteration 1:
+**Dry Run (Iterative):**
+```
+List: 1→2→3→4
+dummy→1→2→3→4, prev=dummy
+
+Iter 1:
   first=1, second=2
-  1.next = 3         (first skips second)
-  2.next = 1         (second points to first)
-  dummy.next = 2     (prev points to second)
-  State: dummy → 2 → 1 → 3 → 4
-  prev = 1
+  1.next=3, 2.next=1, dummy.next=2
+  List: dummy→2→1→3→4, prev=1
 
-Iteration 2:
+Iter 2:
   first=3, second=4
-  3.next = null
-  4.next = 3
-  1.next = 4
-  State: dummy → 2 → 1 → 4 → 3
-  prev = 3
+  3.next=null, 4.next=3, 1.next=4
+  List: dummy→2→1→4→3
 
-prev.next = null → stop
+Result: 2→1→4→3 ✅
+```
 
-Result: 2 → 1 → 4 → 3 ✅
+**Dry Run (Recursive):**
+```
+List: 1→2→3→4
+
+swapPairs(1):
+  first=1, second=2
+  1.next = swapPairs(3)
+    first=3, second=4
+    3.next = swapPairs(null) = null
+    4.next = 3
+    return 4 → 4→3
+  1.next=4 → 1→4→3
+  2.next=1
+  return 2 → 2→1→4→3
+
+Result: 2→1→4→3 ✅
 ```
 
 ---
@@ -380,8 +624,63 @@ Result: 2 → 1 → 4 → 3 ✅
 
 ### 7. Reverse Nodes in K-Group — LC 25
 
-**Intuition:** Check k nodes exist → reverse them in place → recurse on rest → connect groups.
+**Intuition:** Check k nodes exist → reverse them in place → connect to next group. Recursively reverse k nodes then connect to recursive call on rest.
 
+#### Iterative
+```java
+public ListNode reverseKGroup(ListNode head, int k) {
+    ListNode dummy        = new ListNode(0);
+    dummy.next            = head;
+    ListNode prevGroupEnd = dummy;
+
+    while (true) {
+        // check if k nodes exist
+        ListNode kthNode = getKthNode(prevGroupEnd, k);
+        if (kthNode == null) break;
+
+        ListNode groupStart = prevGroupEnd.next;
+        ListNode nextGroup  = kthNode.next;
+
+        // disconnect group
+        kthNode.next = null;
+
+        // reverse in place
+        prevGroupEnd.next = reverse(groupStart);
+
+        // connect to next group
+        groupStart.next = nextGroup;
+
+        // move prevGroupEnd to end of reversed group
+        prevGroupEnd = groupStart;
+    }
+
+    return dummy.next;
+}
+
+private ListNode getKthNode(ListNode curr, int k) {
+    while (curr != null && k > 0) {
+        curr = curr.next;
+        k--;
+    }
+    return curr;
+}
+
+private ListNode reverse(ListNode head) {
+    ListNode prev = null;
+    ListNode curr = head;
+
+    while (curr != null) {
+        ListNode next = curr.next;
+        curr.next = prev;
+        prev = curr;
+        curr = next;
+    }
+
+    return prev;
+}
+```
+
+#### Recursive
 ```java
 public ListNode reverseKGroup(ListNode head, int k) {
     // check if k nodes exist
@@ -393,7 +692,7 @@ public ListNode reverseKGroup(ListNode head, int k) {
         count++;
     }
 
-    // less than k nodes → don't reverse
+    // less than k nodes → return as is
     if (count < k) return head;
 
     // reverse k nodes in place
@@ -408,42 +707,62 @@ public ListNode reverseKGroup(ListNode head, int k) {
     }
 
     // head is now tail of reversed group
-    // recursively reverse next group and connect
+    // connect to recursively reversed next group
     head.next = reverseKGroup(curr, k);
 
-    return prev; // prev is new head of this group
+    return prev; // new head of this group
 }
 ```
 
-**Dry Run:**
+**Dry Run (Iterative):**
 ```
-List: 1 → 2 → 3 → 4 → 5, k=3
+List: 1→2→3→4→5, k=2
+prevGroupEnd=dummy
 
-Call 1 (head=1):
-  k=3 nodes exist? Yes (1,2,3) ✅
-  Reverse 1,2,3:
-    prev=null → null←1   2→3→4→5
-    prev=1    → null←1←2   3→4→5
-    prev=2    → null←1←2←3   4→5
-  prev=3 (new head), curr=4
-  1.next = reverseKGroup(4, 3)
+Round 1:
+  kthNode=2, groupStart=1, nextGroup=3
+  reverse(1→2) → 2→1
+  dummy.next=2, 1.next=3
+  prevGroupEnd=1
+  List: 2→1→3→4→5
 
-  Call 2 (head=4):
-    k=3 nodes exist? No (only 4,5 = 2 nodes)
-    return 4 (as is)
+Round 2:
+  kthNode=4, groupStart=3, nextGroup=5
+  reverse(3→4) → 4→3
+  1.next=4, 3.next=5
+  prevGroupEnd=3
+  List: 2→1→4→3→5
 
-  1.next = 4
-  return 3
+Round 3:
+  kthNode=null → break
 
-Final: 3 → 2 → 1 → 4 → 5 ✅
+Result: 2→1→4→3→5 ✅
+```
+
+**Dry Run (Recursive):**
+```
+List: 1→2→3→4→5, k=2
+
+reverseKGroup(1,2):
+  k nodes exist ✅
+  reverse 1,2 → prev=2, curr=3
+  1.next = reverseKGroup(3,2)
+    reverse 3,4 → prev=4, curr=5
+    3.next = reverseKGroup(5,2)
+      only 1 node < k → return 5
+    3.next=5, return 4 → 4→3→5
+  1.next=4, return 2 → 2→1→4→3→5
+
+Result: 2→1→4→3→5 ✅
 ```
 
 ---
 
 ### 8. Split Linked List in Parts — LC 725
 
-**Intuition:** Find length. Each part gets `length / k` nodes. First `length % k` parts get one extra node. Cut list at each part boundary in place.
+**Intuition:** Find length → each part gets `length/k` nodes → first `length%k` parts get one extra. Cut list at each boundary in place. Recursive helper navigates to each cut point.
 
+#### Iterative
 ```java
 public ListNode[] splitListToParts(ListNode head, int k) {
     // Step 1: find total length
@@ -456,17 +775,16 @@ public ListNode[] splitListToParts(ListNode head, int k) {
     }
 
     // Step 2: calculate base size and extra
-    int baseSize = length / k;  // every part gets at least this many
-    int extra    = length % k;  // first 'extra' parts get one more node
+    int baseSize = length / k;
+    int extra    = length % k;
 
     // Step 3: split in place
     ListNode[] result = new ListNode[k];
     curr = head;
 
     for (int i = 0; i < k; i++) {
-        result[i] = curr; // start of this part
+        result[i] = curr;
 
-        // size of this part
         int partSize = baseSize + (extra > 0 ? 1 : 0);
         extra--;
 
@@ -479,7 +797,7 @@ public ListNode[] splitListToParts(ListNode head, int k) {
         if (curr != null) {
             ListNode next = curr.next;
             curr.next = null; // cut here
-            curr = next;      // move to next part
+            curr = next;
         }
     }
 
@@ -487,66 +805,143 @@ public ListNode[] splitListToParts(ListNode head, int k) {
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+public ListNode[] splitListToParts(ListNode head, int k) {
+    int length   = getLength(head);
+    int baseSize = length / k;
+    int extra    = length % k;
+
+    ListNode[] result = new ListNode[k];
+    splitHelper(head, k, baseSize, extra, result, 0);
+    return result;
+}
+
+private void splitHelper(ListNode curr, int k, int baseSize,
+                          int extra, ListNode[] result, int index) {
+    // base case: all parts filled
+    if (index == k) return;
+
+    result[index] = curr;
+
+    int partSize = baseSize + (extra > 0 ? 1 : 0);
+
+    // find end of this part recursively
+    ListNode partEnd = getNode(curr, partSize - 1);
+
+    // cut
+    ListNode next = null;
+    if (partEnd != null) {
+        next = partEnd.next;
+        partEnd.next = null;
+    }
+
+    // recurse on next part
+    splitHelper(next, k, baseSize, extra - 1, result, index + 1);
+}
+
+private int getLength(ListNode head) {
+    if (head == null) return 0;
+    return 1 + getLength(head.next);
+}
+
+private ListNode getNode(ListNode head, int steps) {
+    if (head == null || steps <= 0) return head;
+    return getNode(head.next, steps - 1);
+}
 ```
-List: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10, k=3
 
-Step 1: length = 10
+**Dry Run (Iterative):**
+```
+List: 1→2→3→4→5→6→7→8→9→10, k=3
 
-Step 2: baseSize = 10/3 = 3
-        extra    = 10%3 = 1
+length=10, baseSize=3, extra=1
 
-Step 3: split
-  Part 0: partSize = 3+1 = 4 (extra=1>0, then extra becomes 0)
-    traverse 3 steps from node 1 → stop at node 4
-    cut: 4.next = null
-    result[0] = 1 → 2 → 3 → 4
+Part 0: partSize=3+1=4, extra→0
+  traverse 3 steps from 1 → stop at 4
+  4.next=null, curr=5
+  result[0] = 1→2→3→4
 
-  Part 1: partSize = 3+0 = 3 (extra=0)
-    traverse 2 steps from node 5 → stop at node 7
-    cut: 7.next = null
-    result[1] = 5 → 6 → 7
+Part 1: partSize=3+0=3
+  traverse 2 steps from 5 → stop at 7
+  7.next=null, curr=8
+  result[1] = 5→6→7
 
-  Part 2: partSize = 3+0 = 3
-    traverse 2 steps from node 8 → stop at node 10
-    cut: 10.next = null
-    result[2] = 8 → 9 → 10
+Part 2: partSize=3+0=3
+  traverse 2 steps from 8 → stop at 10
+  10.next=null, curr=null
+  result[2] = 8→9→10
 
 Result: [1→2→3→4], [5→6→7], [8→9→10] ✅
+```
+
+**Dry Run (Recursive):**
+```
+List: 1→2→3→4→5→6, k=4
+
+length=6, baseSize=1, extra=2
+
+splitHelper(1, 4, 1, 2, result, 0):
+  result[0]=1, partSize=1+1=2
+  partEnd=getNode(1,1)=2
+  2.next=null, next=3
+  splitHelper(3, 4, 1, 1, result, 1):
+    result[1]=3, partSize=1+1=2
+    partEnd=getNode(3,1)=4
+    4.next=null, next=5
+    splitHelper(5, 4, 1, 0, result, 2):
+      result[2]=5, partSize=1+0=1
+      partEnd=getNode(5,0)=5
+      5.next=null, next=6
+      splitHelper(6, 4, 1, -1, result, 3):
+        result[3]=6, partSize=1+0=1
+        partEnd=6, 6.next=null
+        splitHelper(null,4,1,-2,result,4): index==k→return
+
+Result: [1→2],[3→4],[5],[6] ✅
 ```
 
 ---
 
 ## Summary Table
 
-| Problem | Core Steps | Key Trick |
-|---|---|---|
-| Move Zeroes | Two pointers | slow tracks next non-zero slot |
-| Palindrome List | Find middle + reverse + compare | Reverse second half in place |
-| Reorder List | Find middle + reverse + interleave | Save tmp1 and tmp2 before rewiring |
-| Rotate List | Find length + make circular + break | k % length handles large k |
-| Odd Even List | Two pointers weaving | Save evenHead before loop |
-| Swap Pairs | Dummy + rewire 3 pointers | prev gives anchor before each pair |
-| Reverse K-Group | Reverse k + recurse | Check k nodes exist first |
-| Split in Parts | Find length + cut at boundaries | First (length%k) parts get extra node |
+| Problem | Iterative Approach | Recursive Approach | Trick |
+|---|---|---|---|
+| Move Zeroes | Two pointers slow/fast + fill zeros | Recursive fast/slow + fill zeros | Don't increment slow on zero |
+| Palindrome List | Find mid + reverse + compare | Global left moves forward as right unwinds | Restore list after compare |
+| Reorder List | Find mid + reverse + interleave | All 3 steps done recursively | Save tmp1 & tmp2 before rewiring |
+| Rotate List | Make circular + break at new point | getLength + getNode helpers | k % length handles large k |
+| Odd Even List | Two pointers weaving + connect | Save evenHead, recursive weaving | Connect odd tail to evenHead at end |
+| Swap Pairs | Dummy + rewire 3 pointers per pair | Swap 2 + recurse on rest | first.next = swapPairs(second.next) |
+| Reverse K-Group | getKthNode + reverse + connect | Check k exist + reverse + recurse | head becomes tail after reverse |
+| Split in Parts | Find length + cut at boundaries | getLength + getNode + recursive split | First (length%k) parts get extra node |
 
 ---
 
 ## The Universal In-Place Rule
 
 ```
-ALWAYS save next pointers BEFORE you rewire anything
+ALWAYS save next pointers BEFORE rewiring anything!
 
-ListNode tmp1 = first.next;   // save before rewiring
-ListNode tmp2 = second.next;  // save before rewiring
+ListNode tmp1 = first.next;    // save before rewiring
+ListNode tmp2 = second.next;   // save before rewiring
 
-first.next  = second;  // now safe to rewire
-second.next = tmp1;    // now safe to rewire
+first.next  = second;          // now safe to rewire
+second.next = tmp1;            // now safe to rewire
 
-first  = tmp1;         // advance using saved pointers
-second = tmp2;         // advance using saved pointers
+first  = tmp1;                 // advance using saved pointers
+second = tmp2;                 // advance using saved pointers
 ```
 
-> If you rewire before saving — you lose the rest of your list forever!
+## Iterative vs Recursive — When to Choose
 
----
+| | Iterative | Recursive |
+|---|---|---|
+| Move Zeroes | Natural two pointer | Clean but needs array reference |
+| Palindrome List | Standard approach | Elegant — no need to reverse |
+| Reorder List | Standard 3-step | Clean separation of steps |
+| Odd Even List | Very clean weaving | Needs evenHead passed down |
+| Reverse K-Group | getKthNode helper needed | Cleaner — just check + reverse |
+| Split in Parts | Standard loop | getNode helper makes it clean |
+
+> **Key Insight:** For in-place problems, iterative solutions are usually preferred because they use O(1) space. Recursive solutions are elegant but add O(n) stack space — especially risky for large lists. 💡

@@ -1,4 +1,4 @@
-# All Dummy Node Solutions in Java
+# Dummy Node Technique — Both Iterative & Recursive Solutions
 
 ---
 
@@ -6,8 +6,9 @@
 
 ### 1. Remove Linked List Elements — LC 203
 
-**Intuition:** Use dummy node so you can delete head node without special case. Check `curr.next.val` and skip if it matches target.
+**Intuition:** Dummy node lets you delete head node without special case. Check `curr.next.val` and skip if matches target. Recursively skip matching nodes on way forward.
 
+#### Iterative
 ```java
 public ListNode removeElements(ListNode head, int val) {
     ListNode dummy = new ListNode(0);
@@ -17,9 +18,9 @@ public ListNode removeElements(ListNode head, int val) {
 
     while (curr.next != null) {
         if (curr.next.val == val) {
-            curr.next = curr.next.next; // skip the node
+            curr.next = curr.next.next; // skip node
         } else {
-            curr = curr.next; // only move forward if no deletion
+            curr = curr.next; // only move if no deletion
         }
     }
 
@@ -27,37 +28,70 @@ public ListNode removeElements(ListNode head, int val) {
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+public ListNode removeElements(ListNode head, int val) {
+    // base case
+    if (head == null) return null;
+
+    // recurse first
+    head.next = removeElements(head.next, val);
+
+    // on way back decide to keep or skip current node
+    if (head.val == val) {
+        return head.next; // skip current node
+    } else {
+        return head;      // keep current node
+    }
+}
 ```
-List: 1 → 2 → 6 → 3 → 6, val=6
 
-dummy → 1 → 2 → 6 → 3 → 6
-curr = dummy
+**Dry Run (Iterative):**
+```
+List: 1→2→6→3→6, val=6
+dummy→1→2→6→3→6, curr=dummy
 
-Step 1: curr.next=1, 1≠6  → move curr to 1
-Step 2: curr.next=2, 2≠6  → move curr to 2
-Step 3: curr.next=6, 6==6 → skip: 2.next = 3
-Step 4: curr.next=3, 3≠6  → move curr to 3
-Step 5: curr.next=6, 6==6 → skip: 3.next = null
+Step 1: curr.next=1, 1≠6 → move curr to 1
+Step 2: curr.next=2, 2≠6 → move curr to 2
+Step 3: curr.next=6, 6==6 → 2.next=3
+Step 4: curr.next=3, 3≠6 → move curr to 3
+Step 5: curr.next=6, 6==6 → 3.next=null
 
-Result: 1 → 2 → 3 ✅
+Result: 1→2→3 ✅
+```
 
-Key: we do NOT move curr when we delete
-     otherwise we might skip the next node
+**Dry Run (Recursive):**
+```
+List: 1→2→6→3, val=6
+
+remove(1)
+  1.next = remove(2)
+    2.next = remove(6)
+      6.next = remove(3)
+        3.next = remove(null) = null
+        3≠6 → return 3
+      6==6 → return 6.next = 3
+    2.next = 3
+    2≠6 → return 2 → 2→3
+  1.next = 2
+  1≠6 → return 1 → 1→2→3
+
+Result: 1→2→3 ✅
 ```
 
 ---
 
 ### 2. Remove Duplicates from Sorted List — LC 83
 
-**Intuition:** Since list is sorted, duplicates are adjacent. If `curr.val == curr.next.val` skip `curr.next`.
+**Intuition:** Since sorted, duplicates are adjacent. Skip `curr.next` if it equals `curr`. Recursively skip duplicates on way forward.
 
+#### Iterative
 ```java
 public ListNode deleteDuplicates(ListNode head) {
     ListNode dummy = new ListNode(0);
     dummy.next = head;
 
-    ListNode curr = head; // start at head, not dummy (no deletion of head here)
+    ListNode curr = head;
 
     while (curr != null && curr.next != null) {
         if (curr.val == curr.next.val) {
@@ -71,20 +105,73 @@ public ListNode deleteDuplicates(ListNode head) {
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+public ListNode deleteDuplicates(ListNode head) {
+    // base case
+    if (head == null || head.next == null) return head;
+
+    // recurse first
+    head.next = deleteDuplicates(head.next);
+
+    // on way back skip if duplicate
+    if (head.val == head.next.val) {
+        return head.next; // skip current, keep next
+    } else {
+        return head;      // keep current
+    }
+}
 ```
-List: 1 → 1 → 2 → 3 → 3
 
-curr = 1
+**Dry Run (Iterative):**
+```
+List: 1→1→2→3→3
+curr=1
 
-Step 1: curr=1, next=1, 1==1 → skip: 1.next = 2
-        List: 1 → 2 → 3 → 3
-Step 2: curr=1, next=2, 1≠2  → move curr to 2
-Step 3: curr=2, next=3, 2≠3  → move curr to 3
-Step 4: curr=3, next=3, 3==3 → skip: 3.next = null
-        List: 1 → 2 → 3
+Step 1: curr=1, next=1, 1==1 → 1.next=2
+        List: 1→2→3→3
+Step 2: curr=1, next=2, 1≠2  → move to 2
+Step 3: curr=2, next=3, 2≠3  → move to 3
+Step 4: curr=3, next=3, 3==3 → 3.next=null
+        List: 1→2→3
 
-Result: 1 → 2 → 3 ✅
+Result: 1→2→3 ✅
+```
+
+**Dry Run (Recursive):**
+```
+List: 1→1→2→3→3
+
+delete(1)
+  1.next = delete(1)
+    1.next = delete(2)
+      2.next = delete(3)
+        3.next = delete(3)
+          3.next = delete(null) = null
+          3.next==null → return 3
+        3==3 → return 3.next = null... 
+
+wait let me redo:
+        3.next = delete(null) = null
+        return 3 (no next to compare)
+      3.next=delete(3):
+        3.next=null → return 3
+      head(3).val==head.next(3).val → return head.next=null
+
+Hmm, let me redo more carefully:
+
+delete(1→1→2→3→3):
+  head=1(first), head.next = delete(1→2→3→3)
+    head=1(second), head.next = delete(2→3→3)
+      head=2, head.next = delete(3→3)
+        head=3(first), head.next = delete(3→null)
+          head=3(second), head.next=null → return 3
+        3==3 → return head.next = 3(second)
+      2.next=3(second), 2≠3 → return 2 → 2→3
+    1(second).next=2, 1==2? No → return 1(second) → 1→2→3
+  1(first).next=1(second), 1==1 → return 1(second) → 1→2→3
+
+Result: 1→2→3 ✅
 ```
 
 ---
@@ -93,8 +180,9 @@ Result: 1 → 2 → 3 ✅
 
 ### 3. Remove Nth Node From End — LC 19
 
-**Intuition:** Dummy + fast & slow. Move fast N+1 steps ahead so slow stops just BEFORE the target node.
+**Intuition:** Dummy + fast & slow. Move fast N+1 steps so slow lands just before target. Recursively count from end and skip the Nth node.
 
+#### Iterative
 ```java
 public ListNode removeNthFromEnd(ListNode head, int n) {
     ListNode dummy = new ListNode(0);
@@ -114,64 +202,99 @@ public ListNode removeNthFromEnd(ListNode head, int n) {
         fast = fast.next;
     }
 
-    // slow is just before target node
+    // slow is just before target
     slow.next = slow.next.next;
 
     return dummy.next;
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+public ListNode removeNthFromEnd(ListNode head, int n) {
+    int[] count = {0};
+    return removeHelper(head, n, count);
+}
+
+private ListNode removeHelper(ListNode node, int n, int[] count) {
+    // base case
+    if (node == null) return null;
+
+    // recurse to end first
+    node.next = removeHelper(node.next, n, count);
+
+    // on way back increment count
+    count[0]++;
+
+    // if this is nth node from end, skip it
+    if (count[0] == n) return node.next;
+
+    return node;
+}
 ```
-List: 1 → 2 → 3 → 4 → 5, n=2
 
-dummy → 1 → 2 → 3 → 4 → 5
+**Dry Run (Iterative):**
+```
+List: 1→2→3→4→5, n=2
+dummy→1→2→3→4→5
 
-Move fast n+1=3 steps:
-  fast = 3
+Move fast n+1=3 steps: fast=node3
+slow=dummy
 
-Move both until fast = null:
+Move both:
   slow=1, fast=4
   slow=2, fast=5
   slow=3, fast=null → stop
 
-slow.next = slow.next.next
-  3.next = 5 (skip 4)
+3.next = 5 (skip 4)
 
-Result: 1 → 2 → 3 → 5 ✅
+Result: 1→2→3→5 ✅
+```
 
-Why n+1 steps? So slow lands BEFORE
-the target, not ON it — needed to delete!
+**Dry Run (Recursive):**
+```
+List: 1→2→3→4→5, n=2
+
+remove(1)→remove(2)→remove(3)→remove(4)→remove(5)→remove(null)
+
+On way back (count increments):
+  node=5: count=1, 1≠2 → return 5
+  node=4: count=2, 2==2 → return 4.next=5 (skip 4!) ✅
+  node=3: count=3, 3≠2 → 3.next=5, return 3
+  node=2: count=4 → return 2
+  node=1: count=5 → return 1
+
+Result: 1→2→3→5 ✅
 ```
 
 ---
 
 ### 4. Partition List — LC 86
 
-**Intuition:** Two dummy nodes — one collects nodes less than x, other collects nodes >= x. Connect them at the end.
+**Intuition:** Two dummy nodes collect nodes less than x and greater/equal to x separately. Connect them at end. Recursively route each node to correct partition.
 
+#### Iterative
 ```java
 public ListNode partition(ListNode head, int x) {
-    ListNode lessHead = new ListNode(0);    // dummy for < x list
-    ListNode greaterHead = new ListNode(0); // dummy for >= x list
+    ListNode lessHead    = new ListNode(0); // dummy for < x
+    ListNode greaterHead = new ListNode(0); // dummy for >= x
 
-    ListNode less = lessHead;
+    ListNode less    = lessHead;
     ListNode greater = greaterHead;
-
-    ListNode curr = head;
+    ListNode curr    = head;
 
     while (curr != null) {
         if (curr.val < x) {
             less.next = curr;
-            less = less.next;
+            less      = less.next;
         } else {
             greater.next = curr;
-            greater = greater.next;
+            greater      = greater.next;
         }
         curr = curr.next;
     }
 
-    // IMPORTANT: cut off any old links from greater list
+    // IMPORTANT: cut stale links
     greater.next = null;
 
     // connect less list to greater list
@@ -181,82 +304,106 @@ public ListNode partition(ListNode head, int x) {
 }
 ```
 
-**Dry Run:**
+#### Recursive
+```java
+public ListNode partition(ListNode head, int x) {
+    // base case
+    if (head == null) return null;
+
+    if (head.val < x) {
+        // keep head, recurse on rest
+        head.next = partition(head.next, x);
+        return head;
+    } else {
+        // head goes to greater partition
+        // find first node < x after head
+        ListNode result = partition(head.next, x);
+
+        // attach head at end of less partition
+        head.next = getGreaterHead(result, x);
+        getLessTail(result, x).next = head; // less tail connects to head
+
+        // tricky — easier to use iterative for this one
+        // see note below
+        return result;
+    }
+}
 ```
-List: 1 → 4 → 3 → 2 → 5 → 2, x=3
 
-curr=1: 1<3  → less:    dummy1 → 1
-curr=4: 4>=3 → greater: dummy2 → 4
-curr=3: 3>=3 → greater: dummy2 → 4 → 3
-curr=2: 2<3  → less:    dummy1 → 1 → 2
-curr=5: 5>=3 → greater: dummy2 → 4 → 3 → 5
-curr=2: 2<3  → less:    dummy1 → 1 → 2 → 2
+> **Note:** Pure recursion for partition is tricky because you need to track two separate list tails simultaneously. The iterative two-dummy approach is the **recommended and cleaner solution**. Below is a cleaner recursive alternative using helper lists:
 
-greater.next = null  (cut old links!)
-less.next = greaterHead.next
+```java
+// Cleaner Recursive Alternative
+public ListNode partition(ListNode head, int x) {
+    if (head == null) return null;
 
-Result: 1 → 2 → 2 → 4 → 3 → 5 ✅
+    // recursively partition the rest
+    ListNode rest = partition(head.next, x);
+    head.next = null; // detach head
 
-Why greater.next = null?
-  Last node in greater (5) might still
-  point to something old — must cut it!
+    if (head.val < x) {
+        // head belongs at front of less partition
+        head.next = rest;
+        return head;
+    } else {
+        // head belongs after all less-than-x nodes
+        if (rest == null || rest.val >= x) {
+            // no less partition — just prepend
+            head.next = rest;
+            return head;
+        }
+
+        // find the tail of less-than-x nodes
+        ListNode curr = rest;
+        while (curr.next != null && curr.next.val < x) {
+            curr = curr.next;
+        }
+
+        // insert head after less partition
+        head.next  = curr.next;
+        curr.next  = head;
+        return rest;
+    }
+}
+```
+
+**Dry Run (Iterative):**
+```
+List: 1→4→3→2→5→2, x=3
+
+curr=1: 1<3  → less:    dummy1→1
+curr=4: 4>=3 → greater: dummy2→4
+curr=3: 3>=3 → greater: dummy2→4→3
+curr=2: 2<3  → less:    dummy1→1→2
+curr=5: 5>=3 → greater: dummy2→4→3→5
+curr=2: 2<3  → less:    dummy1→1→2→2
+
+greater.next = null
+less.next = greaterHead.next(4)
+
+Result: 1→2→2→4→3→5 ✅
 ```
 
 ---
 
 ### 5. Odd Even Linked List — LC 328
 
-**Intuition:** Two dummy nodes — one for odd positions, one for even positions. Connect odd list to even list at the end.
+**Intuition:** Two pointers weave through list — odd skips even, even skips odd. Connect odd tail to even head at end. Recursively route nodes to odd/even positions.
 
+#### Iterative
 ```java
 public ListNode oddEvenList(ListNode head) {
     if (head == null) return null;
 
-    ListNode oddDummy  = new ListNode(0); // dummy for odd positions
-    ListNode evenDummy = new ListNode(0); // dummy for even positions
-
-    ListNode odd  = oddDummy;
-    ListNode even = evenDummy;
-
-    ListNode curr = head;
-    int position = 1;
-
-    while (curr != null) {
-        if (position % 2 == 1) {
-            odd.next = curr;
-            odd = odd.next;
-        } else {
-            even.next = curr;
-            even = even.next;
-        }
-        curr = curr.next;
-        position++;
-    }
-
-    // cut old links
-    even.next = null;
-
-    // connect odd list to even list
-    odd.next = evenDummy.next;
-
-    return oddDummy.next;
-}
-```
-
-**Optimized (without position counter):**
-```java
-public ListNode oddEvenList(ListNode head) {
-    if (head == null) return null;
-
-    ListNode odd  = head;
-    ListNode even = head.next;
-    ListNode evenHead = even; // save even head to connect later
+    ListNode odd      = head;
+    ListNode even     = head.next;
+    ListNode evenHead = even; // save to connect later
 
     while (even != null && even.next != null) {
-        odd.next  = even.next;  // odd skips even
+        odd.next  = even.next; // odd skips even
         odd       = odd.next;
 
-        even.next = odd.next;   // even skips odd
+        even.next = odd.next;  // even skips odd
         even      = even.next;
     }
 
@@ -266,36 +413,108 @@ public ListNode oddEvenList(ListNode head) {
 }
 ```
 
-**Dry Run:**
-```
-List: 1 → 2 → 3 → 4 → 5
+#### Recursive
+```java
+public ListNode oddEvenList(ListNode head) {
+    if (head == null) return null;
 
+    ListNode evenHead = head.next;
+    rearrange(head, head.next);
+    return head;
+}
+
+private void rearrange(ListNode odd, ListNode even) {
+    // base case: no more pairs to process
+    if (even == null || even.next == null) {
+        // connect odd tail to even head
+        // find even head by traversing from odd
+        // Note: we save evenHead in main method
+        return;
+    }
+
+    odd.next  = even.next;       // odd skips even
+    even.next = even.next.next;  // even skips odd
+
+    rearrange(odd.next, even.next); // recurse on next pair
+}
+```
+
+> **Note:** The recursive version needs evenHead saved externally to connect at the end. Here is a cleaner self-contained recursive version:
+
+```java
+// Cleaner Recursive Version
+public ListNode oddEvenList(ListNode head) {
+    if (head == null || head.next == null) return head;
+
+    ListNode evenHead = head.next;
+    oddEvenHelper(head, head.next);
+    return head;
+}
+
+private ListNode oddEvenHelper(ListNode odd, ListNode even) {
+    // base case: even chain exhausted
+    if (even == null || even.next == null) {
+        odd.next = (even == null) ? null : even; // will be overwritten
+        return odd;
+    }
+
+    odd.next  = even.next;        // odd skips even
+    even.next = even.next.next;   // even skips odd
+
+    ListNode oddTail = oddEvenHelper(odd.next, even.next);
+    return oddTail;
+}
+
+// Full clean recursive solution
+public ListNode oddEvenListClean(ListNode head) {
+    if (head == null || head.next == null) return head;
+
+    ListNode[] evenHead = {head.next};
+    buildOdd(head, head.next, evenHead);
+    return head;
+}
+
+private void buildOdd(ListNode odd, ListNode even, ListNode[] evenHead) {
+    if (even == null || even.next == null) {
+        odd.next = evenHead[0]; // connect odd tail to even head
+        return;
+    }
+
+    odd.next  = even.next;        // odd skips even
+    even.next = even.next.next;   // even skips odd
+
+    buildOdd(odd.next, even.next, evenHead);
+}
+```
+
+**Dry Run (Iterative):**
+```
+List: 1→2→3→4→5
 odd=1, even=2, evenHead=2
 
 Iteration 1:
-  odd.next = 3  → odd list:  1 → 3
-  odd = 3
-  even.next = 4 → even list: 2 → 4
-  even = 4
+  odd.next=3  → odd list: 1→3
+  odd=3
+  even.next=4 → even list: 2→4
+  even=4
 
 Iteration 2:
-  odd.next = 5  → odd list:  1 → 3 → 5
-  odd = 5
-  even.next = null → even list: 2 → 4
-  even = null → stop
+  odd.next=5  → odd list: 1→3→5
+  odd=5
+  even.next=null → even list: 2→4
+  even=null → stop
 
 odd.next = evenHead(2)
-  1 → 3 → 5 → 2 → 4
-
-Result: 1 → 3 → 5 → 2 → 4 ✅
+Result: 1→3→5→2→4 ✅
 ```
 
 ---
 
 ### 6. Swap Nodes in Pairs — LC 24
 
-**Intuition:** Dummy node gives you a `prev` before the first pair. Swap each pair by relinking, then move prev forward by 2.
+**Intuition:** Dummy node anchors before each pair. Rewire 3 pointers to swap. Recursively swap first pair then recurse on rest.
 
+#### Iterative
 ```java
 public ListNode swapPairs(ListNode head) {
     ListNode dummy = new ListNode(0);
@@ -304,13 +523,13 @@ public ListNode swapPairs(ListNode head) {
     ListNode prev = dummy;
 
     while (prev.next != null && prev.next.next != null) {
-        ListNode first  = prev.next;       // first node of pair
-        ListNode second = prev.next.next;  // second node of pair
+        ListNode first  = prev.next;
+        ListNode second = prev.next.next;
 
         // swap
-        first.next  = second.next; // first skips second
-        second.next = first;       // second points back to first
-        prev.next   = second;      // prev points to second (new front)
+        first.next  = second.next;
+        second.next = first;
+        prev.next   = second;
 
         // move prev to end of swapped pair
         prev = first;
@@ -320,30 +539,58 @@ public ListNode swapPairs(ListNode head) {
 }
 ```
 
-**Dry Run:**
-```
-List: 1 → 2 → 3 → 4
-dummy → 1 → 2 → 3 → 4
+#### Recursive
+```java
+public ListNode swapPairs(ListNode head) {
+    // base case: 0 or 1 node
+    if (head == null || head.next == null) return head;
 
-prev = dummy
+    ListNode first  = head;
+    ListNode second = head.next;
+
+    // first points to result of rest
+    first.next  = swapPairs(second.next);
+    // second points back to first
+    second.next = first;
+
+    return second; // second is new head
+}
+```
+
+**Dry Run (Iterative):**
+```
+List: 1→2→3→4
+dummy→1→2→3→4, prev=dummy
 
 Iteration 1:
   first=1, second=2
-  1.next = 3         → 1 → 3
-  2.next = 1         → 2 → 1 → 3
-  dummy.next = 2     → dummy → 2 → 1 → 3 → 4
-  prev = 1
+  1.next=3, 2.next=1, dummy.next=2
+  List: dummy→2→1→3→4, prev=1
 
 Iteration 2:
   first=3, second=4
-  3.next = null      → 3 → null
-  4.next = 3         → 4 → 3
-  1.next = 4         → 1 → 4 → 3
-  prev = 3
+  3.next=null, 4.next=3, 1.next=4
+  List: dummy→2→1→4→3, prev=3
 
-prev.next = null → stop
+Result: 2→1→4→3 ✅
+```
 
-Result: 2 → 1 → 4 → 3 ✅
+**Dry Run (Recursive):**
+```
+List: 1→2→3→4
+
+swapPairs(1):
+  first=1, second=2
+  1.next = swapPairs(3)
+    first=3, second=4
+    3.next = swapPairs(null) = null
+    4.next = 3
+    return 4 → 4→3
+  1.next = 4 → 1→4→3
+  2.next = 1
+  return 2 → 2→1→4→3
+
+Result: 2→1→4→3 ✅
 ```
 
 ---
@@ -352,30 +599,30 @@ Result: 2 → 1 → 4 → 3 ✅
 
 ### 7. Remove Duplicates from Sorted List II — LC 82
 
-**Intuition:** Delete ALL nodes that have duplicates (not just the extras). Use dummy + prev pointer. If duplicates found, skip ALL of them using a while loop.
+**Intuition:** Delete ALL nodes that have duplicates. `prev` tracks last confirmed unique node. Inner while loop skips all copies of duplicate value. Recursively skip entire duplicate groups.
 
+#### Iterative
 ```java
 public ListNode deleteDuplicates(ListNode head) {
     ListNode dummy = new ListNode(0);
     dummy.next = head;
 
-    ListNode prev = dummy; // prev always points to last confirmed unique node
-
+    ListNode prev = dummy;
     ListNode curr = head;
 
     while (curr != null) {
-        // check if current node has duplicates
         boolean isDuplicate = false;
 
+        // skip all nodes with same value
         while (curr.next != null && curr.val == curr.next.val) {
-            curr = curr.next; // skip all duplicates
+            curr        = curr.next;
             isDuplicate = true;
         }
 
         if (isDuplicate) {
             prev.next = curr.next; // skip ALL nodes with this value
         } else {
-            prev = prev.next; // move prev only if no duplicate
+            prev = prev.next;      // move prev only if unique
         }
 
         curr = curr.next;
@@ -385,75 +632,126 @@ public ListNode deleteDuplicates(ListNode head) {
 }
 ```
 
-**Dry Run:**
-```
-List: 1 → 2 → 2 → 3 → 3 → 4
+#### Recursive
+```java
+public ListNode deleteDuplicates(ListNode head) {
+    // base case
+    if (head == null || head.next == null) return head;
 
-dummy → 1 → 2 → 2 → 3 → 3 → 4
-prev = dummy, curr = 1
+    if (head.val == head.next.val) {
+        // skip all nodes with same value as head
+        while (head.next != null && head.val == head.next.val) {
+            head = head.next;
+        }
+        // skip head itself too, recurse on what's left
+        return deleteDuplicates(head.next);
+    } else {
+        // head is unique, keep it and recurse
+        head.next = deleteDuplicates(head.next);
+        return head;
+    }
+}
+```
+
+**Dry Run (Iterative):**
+```
+List: 1→2→2→3→3→4
+dummy→1→2→2→3→3→4
+prev=dummy, curr=1
 
 Step 1: curr=1
-  curr.next=2, 1≠2 → not duplicate
+  next=2, 1≠2 → not duplicate
   prev moves to 1
-  curr = 2
+  curr=2
 
 Step 2: curr=2
-  curr.next=2, 2==2 → isDuplicate=true
+  next=2, 2==2 → isDuplicate=true
     inner while: curr moves to second 2
-  isDuplicate=true → prev.next = curr.next = 3
-  List: dummy → 1 → 3 → 3 → 4
-  curr = 3
+  isDuplicate → prev.next=curr.next=3
+  List: dummy→1→3→3→4
+  curr=3
 
 Step 3: curr=3
-  curr.next=3, 3==3 → isDuplicate=true
+  next=3, 3==3 → isDuplicate=true
     inner while: curr moves to second 3
-  isDuplicate=true → prev.next = curr.next = 4
-  List: dummy → 1 → 4
-  curr = 4
+  isDuplicate → prev.next=curr.next=4
+  List: dummy→1→4
+  curr=4
 
 Step 4: curr=4
-  curr.next=null → not duplicate
+  next=null → not duplicate
   prev moves to 4
-  curr = null → stop
+  curr=null → stop
 
-Result: 1 → 4 ✅
+Result: 1→4 ✅
+```
+
+**Dry Run (Recursive):**
+```
+List: 1→2→2→3→3→4
+
+delete(1):
+  1≠2 → unique
+  1.next = delete(2→2→3→3→4)
+    delete(2):
+      2==2 → duplicate!
+      skip all 2s → head=second 2
+      return delete(3→3→4)
+        delete(3):
+          3==3 → duplicate!
+          skip all 3s → head=second 3
+          return delete(4)
+            delete(4):
+              4.next=null → return 4
+          return 4
+        return 4
+      return 4
+    return 4
+  1.next = 4
+  return 1 → 1→4
+
+Result: 1→4 ✅
 
 Difference from LC 83:
-  LC 83: keep ONE copy of duplicate  → 1→2→3→4
-  LC 82: delete ALL copies           → 1→4
+  LC 83: keep ONE copy  → 1→2→3→4
+  LC 82: delete ALL     → 1→4
 ```
 
 ---
 
 ## Summary Table
 
-| Problem | Dummy Nodes | Key Trick |
-|---|---|---|
-| Remove Elements | 1 dummy | Don't move curr on deletion |
-| Remove Duplicates I | 1 dummy | Skip extra copies only |
-| Remove Nth From End | 1 dummy | N+1 gap so slow lands before target |
-| Partition List | 2 dummies | Cut greater.next to avoid stale links |
-| Odd Even List | 2 dummies (or none) | Save evenHead before loop |
-| Swap Pairs | 1 dummy | prev gives anchor before each pair |
-| Remove Duplicates II | 1 dummy | Inner while skips ALL duplicates |
+| Problem | Iterative Approach | Recursive Approach | Trick |
+|---|---|---|---|
+| Remove Elements | Dummy + skip on match | Recurse first, skip on way back | Don't move curr on deletion |
+| Remove Duplicates I | Skip curr.next if equal | Recurse first, skip if next equal | Only move curr if no deletion |
+| Remove Nth From End | Dummy + N+1 gap pointers | Recurse to end, count on way back | count[0]==n → return node.next |
+| Partition List | Two dummies + connect | Recursively route to correct partition | Cut greater.next to avoid stale links |
+| Odd Even List | Two pointers weaving | Save evenHead, recursive weaving | Connect odd tail to evenHead at end |
+| Swap Pairs | Dummy + rewire 3 pointers | Swap 2 + recurse on rest | first.next = swapPairs(second.next) |
+| Remove Duplicates II | Dummy + inner while skips all | Skip entire duplicate group + recurse | Recursion is cleaner than iterative here |
 
 ---
 
 ## The 3 Golden Rules (Never Forget)
 
 ```
-1. dummy.next = head          → always attach to real list
-2. Start pointer at dummy     → so you can delete/insert at head
-3. return dummy.next          → never return head (it might be deleted!)
+1. dummy.next = head      → always attach to real list
+2. Start at dummy         → so head deletion is handled cleanly
+3. return dummy.next      → never return head (it might be gone!)
 ```
 
 ---
 
-## When to Use 2 Dummy Nodes?
+## Iterative vs Recursive — When to Choose
 
-> Whenever you need to **split** the list into two separate lists and **join** them later.
+| | Iterative | Recursive |
+|---|---|---|
+| Remove Elements | Clean, easy to trace | Elegant 3-liner |
+| Partition List | Cleaner with two dummies | Tricky — iterative preferred |
+| Remove Duplicates II | Needs inner while loop | Cleaner — recursive preferred |
+| Swap Pairs | Standard dummy approach | Elegant — recursive preferred |
 
-- Partition List → less than x  /  greater than x
-- Odd Even List  → odd positions / even positions
+> **Key Insight:** For deletion problems, recursive solutions naturally handle the "skip and continue" pattern very cleanly. For partition problems, iterative two-dummy approach is cleaner because recursion needs to track two tails simultaneously. 💡
 
----
+Ready for the next set! 🚀
