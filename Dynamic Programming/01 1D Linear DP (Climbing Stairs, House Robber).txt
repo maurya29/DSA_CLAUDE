@@ -1,0 +1,173 @@
+# 1D Linear DP — Deep Dive
+
+---
+
+## 1. Pattern Explanation
+
+### 🧠 Core Idea
+> At each position `i`, the answer depends **only on a few previous positions** (i-1, i-2, etc.).
+> You build the solution **left to right**, each state depending on **already solved smaller states**.
+
+```
+dp[i] = f(dp[i-1], dp[i-2], ... dp[i-k])
+```
+
+Think of it as: **"What's the best decision I can make at step i, given what I already know?"**
+
+---
+
+### 🔍 How to Recognize These Problems
+| Signal | Example |
+|---|---|
+| "Number of ways to reach..." | Climbing Stairs |
+| "Max/Min if you can't pick adjacent" | House Robber |
+| "At each step, choose from k options" | Min Cost Climbing Stairs |
+| "Linear array, result at index i depends on prev" | Fibonacci variants |
+| "Skip or Take" decision at each index | House Robber II |
+
+---
+
+### 📦 Key Variants with Visual Dry Runs
+
+---
+
+#### Variant 1 — Pure Fibonacci Style (Climbing Stairs)
+**Problem:** `n` stairs, take 1 or 2 steps. How many ways?
+
+```
+n = 5
+
+dp[0] = 1   (1 way to stay at ground)
+dp[1] = 1   (only one 1-step)
+dp[2] = dp[1] + dp[0] = 2
+dp[3] = dp[2] + dp[1] = 3
+dp[4] = dp[3] + dp[2] = 5
+dp[5] = dp[4] + dp[3] = 8
+
+Index:  0   1   2   3   4   5
+dp:    [1,  1,  2,  3,  5,  8]
+              ↑   ↑
+              sum of previous two
+```
+
+---
+
+#### Variant 2 — Skip or Take (House Robber)
+**Problem:** Can't rob adjacent houses. Max money?
+
+```
+nums = [2, 7, 9, 3, 1]
+
+At each house: rob it (skip prev) OR skip it (keep prev best)
+
+dp[0] = 2
+dp[1] = max(2, 7)        = 7
+dp[2] = max(dp[1], dp[0]+9) = max(7, 11) = 11
+dp[3] = max(dp[2], dp[1]+3) = max(11, 10) = 11
+dp[4] = max(dp[3], dp[2]+1) = max(11, 12) = 12
+
+Index:  0   1   2   3   4
+nums:  [2,  7,  9,  3,  1]
+dp:    [2,  7, 11, 11, 12]  ← answer = 12
+```
+
+---
+
+#### Variant 3 — Min Cost (Min Cost Climbing Stairs)
+**Problem:** Each step has cost. Reach top with min cost.
+
+```
+cost = [10, 15, 20]
+
+dp[0] = 10
+dp[1] = 15
+dp[2] = cost[2] + min(dp[1], dp[0]) = 20 + min(15,10) = 30
+answer = min(dp[1], dp[2]) = min(15, 30) = 15
+
+      10    15    20   [TOP]
+       ↑     ↑     ↑
+      dp0   dp1  dp2
+                       ↑
+                    answer = min(dp1, dp2)
+```
+
+---
+
+### 🥇 Golden Template in Java
+
+```java
+// TEMPLATE: 1D Linear DP
+public int solve(int[] nums) {
+    int n = nums.length;
+
+    // Step 1: Define dp array
+    int[] dp = new int[n];
+
+    // Step 2: Base cases
+    dp[0] = nums[0];
+    if (n > 1) dp[1] = Math.max(nums[0], nums[1]);  // adjust per problem
+
+    // Step 3: Fill left to right
+    for (int i = 2; i < n; i++) {
+        dp[i] = Math.max(dp[i-1], dp[i-2] + nums[i]);  // adjust transition
+    }
+
+    // Step 4: Return answer
+    return dp[n-1];
+}
+
+// ─────────────────────────────────────────
+// SPACE OPTIMIZED (most 1D DP only needs last 2 values)
+public int solveOptimized(int[] nums) {
+    int prev2 = nums[0];
+    int prev1 = Math.max(nums[0], nums[1]);
+
+    for (int i = 2; i < nums.length; i++) {
+        int curr = Math.max(prev1, prev2 + nums[i]);
+        prev2 = prev1;
+        prev1 = curr;
+    }
+    return prev1;
+}
+```
+
+---
+
+### 📋 Key Rules to Remember
+
+| Rule | Detail |
+|---|---|
+| **Define dp[i] clearly** | "dp[i] = max money robbing houses 0..i" — be precise |
+| **Base cases first** | dp[0] and dp[1] before the loop |
+| **Transition is the core** | dp[i] = f(dp[i-1], dp[i-2]) — get this right |
+| **Space optimize at end** | Most 1D DP → O(1) space using two variables |
+| **Recurrence = recursive definition** | Write recursive first if confused, then convert |
+| **Answer isn't always dp[n-1]** | Sometimes min(dp[n-1], dp[n-2]) or max of all |
+
+---
+
+## 2. Practice Problems
+
+### 🟢 Easy (LeetCode)
+| # | Problem | LC Link |
+|---|---|---|
+| 1 | Climbing Stairs | LC 70 |
+| 2 | Min Cost Climbing Stairs | LC 746 |
+| 3 | Fibonacci Number | LC 509 |
+
+### 🟡 Medium (LeetCode)
+| # | Problem | LC Link |
+|---|---|---|
+| 1 | House Robber | LC 198 |
+| 2 | House Robber II (circular) | LC 213 |
+| 3 | Jump Game II (Min Jumps) | LC 45 |
+
+### 🔴 Hard (LeetCode)
+| # | Problem | LC Link |
+|---|---|---|
+| 1 | Jump Game VII | LC 1871 |
+| 2 | Minimum Cost to Cut a Stick | LC 1547 |
+
+---
+
+> ✅ Say **"Write Java solutions"** (Step 3) and I'll code every problem above with intuition + dry run + summary table. 🚀

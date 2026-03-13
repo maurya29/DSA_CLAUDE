@@ -1,0 +1,1132 @@
+# 🌳 DFS on Trees — All Solutions
+
+---
+
+# 🟢 LC 104 — Maximum Depth of Binary Tree
+
+## Intuition
+Bottom-up DFS: each node asks left and right children for their height, takes the maximum, and adds 1 for itself. Base case: null node has height 0.
+
+### Tree used:
+```
+        3
+       / \
+      9  20
+         / \
+        15   7
+
+Expected: 3
+```
+
+---
+
+### ✅ Recursive Solution (Bottom-Up)
+```java
+class Solution {
+    public int maxDepth(TreeNode root) {
+        if (root == null) return 0;          // Base case: null = height 0
+
+        int leftHeight  = maxDepth(root.left);   // Trust left
+        int rightHeight = maxDepth(root.right);  // Trust right
+
+        return Math.max(leftHeight, rightHeight) + 1; // +1 for current node
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+maxDepth(3)
+  maxDepth(9)
+    maxDepth(null) = 0
+    maxDepth(null) = 0
+    return max(0,0)+1 = 1
+  maxDepth(20)
+    maxDepth(15)
+      return max(0,0)+1 = 1
+    maxDepth(7)
+      return max(0,0)+1 = 1
+    return max(1,1)+1 = 2
+  return max(1,2)+1 = 3 ✅
+```
+
+---
+
+### ✅ Iterative Solution 1 — BFS Level Order
+```java
+class Solution {
+    public int maxDepth(TreeNode root) {
+        if (root == null) return 0;
+
+        Queue<TreeNode> queue = new LinkedList<>();
+        queue.offer(root);
+        int depth = 0;
+
+        while (!queue.isEmpty()) {
+            int size = queue.size();          // Nodes at current level
+            depth++;                          // Each level = +1 depth
+
+            for (int i = 0; i < size; i++) {
+                TreeNode node = queue.poll();
+                if (node.left  != null) queue.offer(node.left);
+                if (node.right != null) queue.offer(node.right);
+            }
+        }
+        return depth;
+    }
+}
+```
+
+### ✅ Iterative Solution 2 — DFS with Stack
+```java
+class Solution {
+    public int maxDepth(TreeNode root) {
+        if (root == null) return 0;
+
+        // Stack stores [node, currentDepth]
+        Stack<int[]> depthStack = new Stack<>();
+        Stack<TreeNode> nodeStack = new Stack<>();
+        nodeStack.push(root);
+        depthStack.push(new int[]{1});
+        int maxDepth = 0;
+
+        while (!nodeStack.isEmpty()) {
+            TreeNode node = nodeStack.pop();
+            int depth = depthStack.pop()[0];
+            maxDepth = Math.max(maxDepth, depth);
+
+            if (node.left != null) {
+                nodeStack.push(node.left);
+                depthStack.push(new int[]{depth + 1});
+            }
+            if (node.right != null) {
+                nodeStack.push(node.right);
+                depthStack.push(new int[]{depth + 1});
+            }
+        }
+        return maxDepth;
+    }
+}
+```
+
+### 🔍 Iterative BFS Dry Run
+```
+Queue:[3]  depth=0
+
+Level 1: size=1, depth=1
+  Poll 3 → add 9,20     Queue:[9,20]
+
+Level 2: size=2, depth=2
+  Poll 9  → no children
+  Poll 20 → add 15,7    Queue:[15,7]
+
+Level 3: size=2, depth=3
+  Poll 15 → no children
+  Poll 7  → no children
+
+Queue empty → return 3 ✅
+```
+
+### ⚡ When to prefer which?
+| | Recursive | BFS Iterative | DFS Iterative |
+|---|---|---|---|
+| Simplicity | ✅ Cleanest | Medium | Verbose |
+| Early termination | ❌ | ✅ Stop at first level | Possible |
+| Memory | O(H) stack | O(W) width | O(H) stack |
+
+---
+---
+
+# 🟢 LC 226 — Invert Binary Tree
+
+## Intuition
+Bottom-up DFS: recursively invert left and right subtrees first, then swap them at the current node. Every node just swaps its two children — the rest is handled by recursion.
+
+### Tree used:
+```
+Before:          After:
+     4                4
+    / \              / \
+   2   7            7   2
+  / \ / \          / \ / \
+ 1  3 6  9        9  6 3  1
+```
+
+---
+
+### ✅ Recursive Solution
+```java
+class Solution {
+    public TreeNode invertTree(TreeNode root) {
+        if (root == null) return null;        // Base case
+
+        // First invert both subtrees
+        TreeNode left  = invertTree(root.left);
+        TreeNode right = invertTree(root.right);
+
+        // Then swap them
+        root.left  = right;
+        root.right = left;
+
+        return root;
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+invertTree(4)
+  invertTree(2)
+    invertTree(1) → return node(1) [leaf, no change]
+    invertTree(3) → return node(3) [leaf, no change]
+    swap: node(2).left=3, node(2).right=1
+    return node(2) [now: 3←2→1]
+  invertTree(7)
+    invertTree(6) → return node(6)
+    invertTree(9) → return node(9)
+    swap: node(7).left=9, node(7).right=6
+    return node(7) [now: 9←7→6]
+  swap root: node(4).left=7, node(4).right=2
+
+Result:
+     4
+    / \
+   7   2
+  / \ / \
+ 9  6 3  1  ✅
+```
+
+---
+
+### ✅ Iterative Solution (BFS)
+```java
+class Solution {
+    public TreeNode invertTree(TreeNode root) {
+        if (root == null) return null;
+
+        Queue<TreeNode> queue = new LinkedList<>();
+        queue.offer(root);
+
+        while (!queue.isEmpty()) {
+            TreeNode node = queue.poll();
+
+            // Swap children
+            TreeNode temp = node.left;
+            node.left  = node.right;
+            node.right = temp;
+
+            // Add children to queue for further inversion
+            if (node.left  != null) queue.offer(node.left);
+            if (node.right != null) queue.offer(node.right);
+        }
+        return root;
+    }
+}
+```
+
+### ✅ Iterative Solution (DFS Stack)
+```java
+class Solution {
+    public TreeNode invertTree(TreeNode root) {
+        if (root == null) return null;
+
+        Stack<TreeNode> stack = new Stack<>();
+        stack.push(root);
+
+        while (!stack.isEmpty()) {
+            TreeNode node = stack.pop();
+
+            // Swap children
+            TreeNode temp = node.left;
+            node.left  = node.right;
+            node.right = temp;
+
+            if (node.left  != null) stack.push(node.left);
+            if (node.right != null) stack.push(node.right);
+        }
+        return root;
+    }
+}
+```
+
+### 🔍 Iterative BFS Dry Run
+```
+Queue:[4]
+
+Poll 4: swap(2,7) → 4.left=7, 4.right=2
+  Add 7, 2    Queue:[7,2]
+
+Poll 7: swap(6,9) → 7.left=9, 7.right=6
+  Add 9, 6    Queue:[2,9,6]
+
+Poll 2: swap(1,3) → 2.left=3, 2.right=1
+  Add 3, 1    Queue:[9,6,3,1]
+
+Poll 9,6,3,1: all leaves, swap nulls → no change
+
+Result:
+     4
+    / \
+   7   2
+  / \ / \
+ 9  6 3  1  ✅
+```
+
+---
+---
+
+# 🟢 LC 572 — Subtree of Another Tree
+
+## Intuition
+For every node in the main tree, check if the subtree rooted at that node is identical to the target tree. Use a helper `isSameTree` function. DFS explores all nodes; `isSameTree` does the deep comparison.
+
+### Trees used:
+```
+Main Tree (s):      SubTree (t):
+        3                 4
+       / \               / \
+      4   5             1   2
+     / \
+    1   2
+
+Is t a subtree of s? YES ✅ (matches left subtree of root)
+```
+
+---
+
+### ✅ Recursive Solution
+```java
+class Solution {
+    public boolean isSubtree(TreeNode root, TreeNode subRoot) {
+        if (root == null) return false;         // Exhausted main tree
+
+        // Check if current node matches, or recurse left/right
+        if (isSameTree(root, subRoot)) return true;
+
+        return isSubtree(root.left, subRoot) ||
+               isSubtree(root.right, subRoot);
+    }
+
+    private boolean isSameTree(TreeNode s, TreeNode t) {
+        if (s == null && t == null) return true;  // Both null = same
+        if (s == null || t == null) return false; // One null = different
+        if (s.val != t.val) return false;          // Values differ
+
+        return isSameTree(s.left, t.left) &&
+               isSameTree(s.right, t.right);
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+isSubtree(3, 4)
+  isSameTree(3, 4) → 3≠4 → false
+  isSubtree(4, 4)
+    isSameTree(4, 4)
+      4==4 ✅
+      isSameTree(1,1) → 1==1, both leaves → true
+      isSameTree(2,2) → 2==2, both leaves → true
+      return true ✅
+  return true (short-circuit, don't check right)
+
+Result: true ✅
+```
+
+---
+
+### ✅ Iterative Solution (BFS + isSameTree check)
+```java
+class Solution {
+    public boolean isSubtree(TreeNode root, TreeNode subRoot) {
+        if (root == null) return false;
+
+        Queue<TreeNode> queue = new LinkedList<>();
+        queue.offer(root);
+
+        while (!queue.isEmpty()) {
+            TreeNode node = queue.poll();
+
+            // Check if this node matches subRoot
+            if (isSameTree(node, subRoot)) return true;
+
+            if (node.left  != null) queue.offer(node.left);
+            if (node.right != null) queue.offer(node.right);
+        }
+        return false;
+    }
+
+    private boolean isSameTree(TreeNode s, TreeNode t) {
+        if (s == null && t == null) return true;
+        if (s == null || t == null) return false;
+        if (s.val != t.val) return false;
+        return isSameTree(s.left, t.left) &&
+               isSameTree(s.right, t.right);
+    }
+}
+```
+
+### 🔍 Iterative Dry Run
+```
+Queue:[3]
+
+Poll 3: isSameTree(3,4) → 3≠4 → false
+  Add 4,5     Queue:[4,5]
+
+Poll 4: isSameTree(4,4)?
+  4==4 ✅
+  isSameTree(1,1) → true
+  isSameTree(2,2) → true
+  → return true ✅ (immediately return)
+```
+
+---
+---
+
+# 🟡 LC 236 — Lowest Common Ancestor of Binary Tree
+
+## Intuition
+Bottom-up DFS: if current node is p or q, return it. After getting results from left and right subtrees — if both sides return non-null, current node IS the LCA. If only one side returns non-null, bubble that up.
+
+### Tree used:
+```
+        3
+       / \
+      5   1
+     / \ / \
+    6  2 0  8
+      / \
+     7   4
+
+Find LCA(5, 1) → Expected: 3
+Find LCA(5, 4) → Expected: 5
+```
+
+---
+
+### ✅ Recursive Solution
+```java
+class Solution {
+    public TreeNode lowestCommonAncestor(TreeNode root, TreeNode p, TreeNode q) {
+        // Base case: if null or found p or q, return current node
+        if (root == null || root == p || root == q) return root;
+
+        // Search in both subtrees
+        TreeNode left  = lowestCommonAncestor(root.left,  p, q);
+        TreeNode right = lowestCommonAncestor(root.right, p, q);
+
+        // If both sides found something → current node is LCA
+        if (left != null && right != null) return root;
+
+        // Otherwise bubble up whichever side found something
+        return left != null ? left : right;
+    }
+}
+```
+
+### 🔍 Recursive Dry Run — LCA(5,1)
+```
+LCA(3, 5, 1)
+  LCA(5, 5, 1)
+    root==p(5) → return node(5)   [left=node(5)]
+  LCA(1, 5, 1)
+    root==q(1) → return node(1)   [right=node(1)]
+  left=node(5) ≠ null
+  right=node(1) ≠ null
+  → BOTH non-null → return root(3) ✅
+
+LCA(5, 5, 4)  [find LCA of 5 and 4]
+  root==p(5) → return node(5) immediately
+  [No need to search children since node 5 itself is returned]
+  Parent(3): left=node(5), right will find nothing for 4
+  Bubbles up node(5) → LCA = 5 ✅
+```
+
+---
+
+### ✅ Iterative Solution (Parent Map)
+```java
+class Solution {
+    public TreeNode lowestCommonAncestor(TreeNode root, TreeNode p, TreeNode q) {
+        // Step 1: Build parent map using BFS
+        Map<TreeNode, TreeNode> parentMap = new HashMap<>();
+        Queue<TreeNode> queue = new LinkedList<>();
+        parentMap.put(root, null);
+        queue.offer(root);
+
+        // Build until both p and q are found
+        while (!parentMap.containsKey(p) || !parentMap.containsKey(q)) {
+            TreeNode node = queue.poll();
+            if (node.left != null) {
+                parentMap.put(node.left, node);
+                queue.offer(node.left);
+            }
+            if (node.right != null) {
+                parentMap.put(node.right, node);
+                queue.offer(node.right);
+            }
+        }
+
+        // Step 2: Collect all ancestors of p
+        Set<TreeNode> ancestors = new HashSet<>();
+        TreeNode curr = p;
+        while (curr != null) {
+            ancestors.add(curr);
+            curr = parentMap.get(curr);
+        }
+
+        // Step 3: Walk up from q until we hit an ancestor of p
+        curr = q;
+        while (!ancestors.contains(curr)) {
+            curr = parentMap.get(curr);
+        }
+        return curr;
+    }
+}
+```
+
+### 🔍 Iterative Dry Run — LCA(5,1)
+```
+Parent map built:
+  3→null, 5→3, 1→3, 6→5, 2→5, 0→1, 8→1, 7→2, 4→2
+
+Ancestors of p(5):
+  5 → 3 → null
+  ancestors = {5, 3}
+
+Walk up from q(1):
+  1 → in ancestors? NO
+  3 → in ancestors? YES → return 3 ✅
+```
+
+---
+---
+
+# 🟡 LC 437 — Path Sum III
+
+## Intuition
+Use prefix sum technique. At each node, store the running sum from root. Check how many previous prefix sums satisfy `currentSum - target = prefixSum` (meaning a subpath sums to target). Use a HashMap to track prefix sum frequencies. Backtrack by removing prefix sum after returning from a node.
+
+### Tree used:
+```
+        10
+       /  \
+      5   -3
+     / \    \
+    3   2   11
+   / \   \
+  3  -2   1
+
+Target = 8
+Paths: 5→3, 5→2→1, -3→11  →  Count = 3
+```
+
+---
+
+### ✅ Recursive Solution (Prefix Sum + HashMap)
+```java
+class Solution {
+    public int pathSum(TreeNode root, int targetSum) {
+        Map<Long, Integer> prefixCount = new HashMap<>();
+        prefixCount.put(0L, 1);  // Empty path has sum 0
+        return dfs(root, 0L, targetSum, prefixCount);
+    }
+
+    private int dfs(TreeNode node, long currSum, int target,
+                    Map<Long, Integer> prefixCount) {
+        if (node == null) return 0;
+
+        currSum += node.val;
+
+        // How many paths ending here sum to target?
+        int count = prefixCount.getOrDefault(currSum - target, 0);
+
+        // Add current prefix sum to map
+        prefixCount.put(currSum, prefixCount.getOrDefault(currSum, 0) + 1);
+
+        // Recurse into children
+        count += dfs(node.left,  currSum, target, prefixCount);
+        count += dfs(node.right, currSum, target, prefixCount);
+
+        // BACKTRACK: remove current prefix sum (leaving this path)
+        prefixCount.put(currSum, prefixCount.get(currSum) - 1);
+
+        return count;
+    }
+}
+```
+
+### 🔍 Recursive Dry Run (target=8)
+```
+prefixCount = {0:1}
+
+dfs(10, currSum=0)
+  currSum = 10
+  check (10-8=2) in map → NO → count=0
+  prefixCount = {0:1, 10:1}
+
+  dfs(5, currSum=10)
+    currSum = 15
+    check (15-8=7) → NO → count=0
+    prefixCount = {0:1, 10:1, 15:1}
+
+    dfs(3, currSum=15)
+      currSum = 18
+      check (18-8=10) → YES! count=1 [path 5→3]
+      prefixCount={...,18:1}
+
+      dfs(3, currSum=18)
+        currSum=21, check(21-8=13)→NO
+        dfs(null)=0, dfs(null)=0
+        backtrack 21
+        return 0
+
+      dfs(-2, currSum=18)
+        currSum=16, check(16-8=8)→NO
+        return 0
+
+      backtrack 18
+      return 1
+
+    dfs(2, currSum=15)
+      currSum=17
+      check(17-8=9)→NO → count=0
+
+      dfs(1, currSum=17)
+        currSum=18
+        check(18-8=10)→YES! count=1 [path 5→2→1]
+        return 1
+
+      backtrack 17
+      return 1
+
+    backtrack 15
+    return 1+1=2
+
+  dfs(-3, currSum=10)
+    currSum=7
+    check(7-8=-1)→NO
+
+    dfs(11, currSum=7)
+      currSum=18
+      check(18-8=10)→YES! count=1 [path -3→11]
+      return 1
+
+    backtrack 7
+    return 1
+
+  backtrack 10
+  return 2+1=3
+
+Total count = 3 ✅
+```
+
+---
+
+### ✅ Iterative Solution (Stack + prefix map per path)
+```java
+class Solution {
+    public int pathSum(TreeNode root, int targetSum) {
+        if (root == null) return 0;
+        int count = 0;
+
+        // Stack stores [node, currentPrefixSum, prefixSumMap snapshot]
+        // Easier: use explicit DFS with state
+        Stack<TreeNode> nodeStack = new Stack<>();
+        Stack<Long> sumStack = new Stack<>();
+        Stack<Map<Long, Integer>> mapStack = new Stack<>();
+
+        Map<Long, Integer> initMap = new HashMap<>();
+        initMap.put(0L, 1);
+
+        nodeStack.push(root);
+        sumStack.push((long) root.val);
+        mapStack.push(initMap);
+
+        while (!nodeStack.isEmpty()) {
+            TreeNode node = nodeStack.pop();
+            long currSum  = sumStack.pop();
+            Map<Long, Integer> prefixCount = mapStack.pop();
+
+            count += prefixCount.getOrDefault(currSum - targetSum, 0);
+
+            // Create new map with current sum added
+            Map<Long, Integer> newMap = new HashMap<>(prefixCount);
+            newMap.put(currSum, newMap.getOrDefault(currSum, 0) + 1);
+
+            if (node.right != null) {
+                nodeStack.push(node.right);
+                sumStack.push(currSum + node.right.val);
+                mapStack.push(newMap);
+            }
+            if (node.left != null) {
+                nodeStack.push(node.left);
+                sumStack.push(currSum + node.left.val);
+                mapStack.push(newMap);
+            }
+        }
+        return count;
+    }
+}
+```
+
+> 💡 **Note:** The recursive solution with backtracking is strongly preferred for this problem — it's O(N) time and O(H) space. The iterative version copies maps at each node making it O(N²) space in worst case.
+
+---
+---
+
+# 🟡 LC 1448 — Count Good Nodes in Binary Tree
+
+## Intuition
+Top-down DFS: pass the maximum value seen so far on the path from root to current node. A node is "good" if its value is ≥ this maximum. Update the max as you go deeper.
+
+### Tree used:
+```
+        3
+       / \
+      1   4
+     /   / \
+    3   1   5
+
+Good nodes: 3(root), 3(left→left), 4(right), 5(right→right)
+Answer = 4
+```
+
+---
+
+### ✅ Recursive Solution (Top-Down)
+```java
+class Solution {
+    public int goodNodes(TreeNode root) {
+        return dfs(root, Integer.MIN_VALUE);
+    }
+
+    private int dfs(TreeNode node, int maxSoFar) {
+        if (node == null) return 0;
+
+        // Is current node good?
+        int count = node.val >= maxSoFar ? 1 : 0;
+
+        // Update max for children
+        int newMax = Math.max(maxSoFar, node.val);
+
+        count += dfs(node.left,  newMax);  // Pass updated max down
+        count += dfs(node.right, newMax);
+
+        return count;
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+dfs(3, -∞)
+  3 >= -∞ → good! count=1, newMax=3
+  dfs(1, 3)
+    1 < 3 → not good, count=0, newMax=3
+    dfs(3, 3)
+      3 >= 3 → good! count=1, newMax=3
+      dfs(null)=0, dfs(null)=0
+      return 1
+    return 0+1=1
+  dfs(4, 3)
+    4 >= 3 → good! count=1, newMax=4
+    dfs(1, 4)
+      1 < 4 → not good
+      return 0
+    dfs(5, 4)
+      5 >= 4 → good! count=1
+      return 1
+    return 1+0+1=2
+
+Total = 1+1+2 = 4 ✅
+```
+
+---
+
+### ✅ Iterative Solution (Stack with max state)
+```java
+class Solution {
+    public int goodNodes(TreeNode root) {
+        if (root == null) return 0;
+        int count = 0;
+
+        // Stack stores [node, maxSoFar]
+        Stack<TreeNode> nodeStack = new Stack<>();
+        Stack<Integer>  maxStack  = new Stack<>();
+
+        nodeStack.push(root);
+        maxStack.push(Integer.MIN_VALUE);
+
+        while (!nodeStack.isEmpty()) {
+            TreeNode node = nodeStack.pop();
+            int maxSoFar  = maxStack.pop();
+
+            if (node.val >= maxSoFar) count++; // Good node!
+
+            int newMax = Math.max(maxSoFar, node.val);
+
+            if (node.left != null) {
+                nodeStack.push(node.left);
+                maxStack.push(newMax);
+            }
+            if (node.right != null) {
+                nodeStack.push(node.right);
+                maxStack.push(newMax);
+            }
+        }
+        return count;
+    }
+}
+```
+
+### 🔍 Iterative Dry Run
+```
+Stack: [node(3)]  maxStack: [-∞]
+
+Pop 3, max=-∞: 3>=-∞ → count=1, newMax=3
+  Push left(1) with max=3
+  Push right(4) with max=3
+
+Pop 4, max=3: 4>=3 → count=2, newMax=4
+  Push left(1) with max=4
+  Push right(5) with max=4
+
+Pop 5, max=4: 5>=4 → count=3
+Pop 1, max=4: 1<4  → not good
+Pop 1, max=3: 1<3  → not good
+  Push left(3) with max=3
+
+Pop 3, max=3: 3>=3 → count=4
+
+Final count = 4 ✅
+```
+
+---
+---
+
+# 🔴 LC 124 — Binary Tree Maximum Path Sum
+
+## Intuition
+Classic Tree DP. At each node: get max gain from left and right (ignore negatives with `max(...,0)`). Update global answer with `left + node + right` (path through this node). Return to parent only the better single-direction path: `node + max(left, right)` — because a path can't branch at two different ancestors.
+
+### Tree used:
+```
+       -10
+       /  \
+      9   20
+          / \
+         15   7
+
+Expected: 42 (path: 15→20→7)
+```
+
+---
+
+### ✅ Recursive Solution (Tree DP)
+```java
+class Solution {
+    private int globalMax = Integer.MIN_VALUE;
+
+    public int maxPathSum(TreeNode root) {
+        maxGain(root);
+        return globalMax;
+    }
+
+    private int maxGain(TreeNode node) {
+        if (node == null) return 0;
+
+        // Max gain from left and right (ignore negative paths)
+        int leftGain  = Math.max(maxGain(node.left),  0);
+        int rightGain = Math.max(maxGain(node.right), 0);
+
+        // Path through current node (goes both directions)
+        int pathThrough = node.val + leftGain + rightGain;
+        globalMax = Math.max(globalMax, pathThrough); // Update global
+
+        // Return to parent: only ONE direction (can't branch)
+        return node.val + Math.max(leftGain, rightGain);
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+maxGain(-10)
+  maxGain(9)
+    maxGain(null)=0, maxGain(null)=0
+    leftGain=0, rightGain=0
+    pathThrough = 9+0+0=9 → globalMax=9
+    return 9+max(0,0)=9
+
+  maxGain(20)
+    maxGain(15)
+      pathThrough=15 → globalMax=15
+      return 15
+    maxGain(7)
+      pathThrough=7  → globalMax=15
+      return 7
+
+    leftGain=15, rightGain=7
+    pathThrough = 20+15+7=42 → globalMax=42 ✅
+    return 20+max(15,7)=35
+
+  leftGain=max(9,0)=9
+  rightGain=max(35,0)=35
+  pathThrough = -10+9+35=34 → globalMax stays 42
+  return -10+max(9,35)=25
+
+globalMax = 42 ✅
+```
+
+---
+
+### ✅ Iterative Solution (Post-Order with Stack)
+```java
+class Solution {
+    public int maxPathSum(TreeNode root) {
+        Map<TreeNode, Integer> gainMap = new HashMap<>();
+        int globalMax = Integer.MIN_VALUE;
+
+        // Post-order iterative using two stacks
+        Stack<TreeNode> stack = new Stack<>();
+        Stack<TreeNode> postOrder = new Stack<>();
+        stack.push(root);
+
+        // Build post-order sequence
+        while (!stack.isEmpty()) {
+            TreeNode node = stack.pop();
+            postOrder.push(node);
+            if (node.left  != null) stack.push(node.left);
+            if (node.right != null) stack.push(node.right);
+        }
+
+        // Process in post-order (children before parents)
+        while (!postOrder.isEmpty()) {
+            TreeNode node = postOrder.pop();
+
+            int leftGain  = Math.max(gainMap.getOrDefault(node.left,  0), 0);
+            int rightGain = Math.max(gainMap.getOrDefault(node.right, 0), 0);
+
+            // Update global max
+            globalMax = Math.max(globalMax, node.val + leftGain + rightGain);
+
+            // Store this node's max single-path gain
+            gainMap.put(node, node.val + Math.max(leftGain, rightGain));
+        }
+        return globalMax;
+    }
+}
+```
+
+### 🔍 Iterative Dry Run
+```
+Post-order sequence: 9, 15, 7, 20, -10
+(process leaves first, root last)
+
+Process 9:  leftGain=0, rightGain=0
+  pathThrough=9, globalMax=9
+  gainMap[9]=9
+
+Process 15: pathThrough=15, globalMax=15, gainMap[15]=15
+Process 7:  pathThrough=7,  globalMax=15, gainMap[7]=7
+
+Process 20: leftGain=gainMap[15]=15, rightGain=gainMap[7]=7
+  pathThrough=20+15+7=42, globalMax=42 ✅
+  gainMap[20]=20+max(15,7)=35
+
+Process -10: leftGain=gainMap[9]=9, rightGain=gainMap[20]=35
+  pathThrough=-10+9+35=34, globalMax stays 42
+
+return 42 ✅
+```
+
+---
+---
+
+# 🔴 LC 968 — Binary Tree Cameras
+
+## Intuition
+Greedy + Tree DP bottom-up. Each node can be in 3 states: **0 = not covered**, **1 = has camera**, **2 = covered (no camera)**. Place cameras at the lowest possible level (greedy). If a child is uncovered → parent MUST place camera. If a child has camera → parent is covered. Count cameras placed.
+
+### Tree used:
+```
+        0
+       / \
+      0   0
+     /
+    0
+
+Optimal placement:
+        C      ← camera (covers root and both children's cameras)
+       / \
+      *   *    ← covered
+     /
+    C           ← camera (covers parent)
+    
+Answer: 2
+```
+
+---
+
+### ✅ Recursive Solution (Bottom-Up 3-State)
+```java
+class Solution {
+    private int cameras = 0;
+
+    public int minCameraCover(TreeNode root) {
+        // If root itself is uncovered after DFS, place camera at root
+        if (dfs(root) == 0) cameras++;
+        return cameras;
+    }
+
+    // Returns:
+    // 0 → node is NOT covered
+    // 1 → node HAS a camera
+    // 2 → node is COVERED (no camera)
+    private int dfs(TreeNode node) {
+        if (node == null) return 2; // Null nodes are "covered" by default
+
+        int left  = dfs(node.left);
+        int right = dfs(node.right);
+
+        // If any child is uncovered → MUST place camera here
+        if (left == 0 || right == 0) {
+            cameras++;
+            return 1; // This node has camera
+        }
+
+        // If any child has camera → this node is covered
+        if (left == 1 || right == 1) {
+            return 2; // Covered by child's camera
+        }
+
+        // Both children are covered (state 2) but no camera nearby
+        // This node is NOT covered → let parent handle it (greedy)
+        return 0;
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+Tree:
+        A
+       / \
+      B   C
+     /
+    D
+
+dfs(D): left=null→2, right=null→2
+  Both children covered(2), no camera nearby
+  return 0 [D is not covered]
+
+dfs(B): left=dfs(D)=0, right=null→2
+  left==0 → MUST place camera at B!
+  cameras=1, return 1 [B has camera]
+
+dfs(C): left=null→2, right=null→2
+  Both state 2, return 0 [C not covered]
+
+dfs(A): left=dfs(B)=1, right=dfs(C)=0
+  right==0 → MUST place camera at A!
+  cameras=2, return 1 [A has camera]
+
+After DFS: root returned 1 (has camera) → no extra camera needed
+
+Total cameras = 2 ✅
+```
+
+---
+
+### ✅ Iterative Solution (Post-Order)
+```java
+class Solution {
+    public int minCameraCover(TreeNode root) {
+        // Build post-order using two stacks
+        Stack<TreeNode> stack = new Stack<>();
+        Stack<TreeNode> postOrder = new Stack<>();
+        stack.push(root);
+
+        while (!stack.isEmpty()) {
+            TreeNode node = stack.pop();
+            postOrder.push(node);
+            if (node.left  != null) stack.push(node.left);
+            if (node.right != null) stack.push(node.right);
+        }
+
+        Map<TreeNode, Integer> state = new HashMap<>();
+        int cameras = 0;
+
+        while (!postOrder.isEmpty()) {
+            TreeNode node = postOrder.pop();
+
+            int leftState  = state.getOrDefault(node.left,  2); // null=covered
+            int rightState = state.getOrDefault(node.right, 2); // null=covered
+
+            if (leftState == 0 || rightState == 0) {
+                // Child uncovered → place camera here
+                cameras++;
+                state.put(node, 1);
+            } else if (leftState == 1 || rightState == 1) {
+                // Child has camera → this node is covered
+                state.put(node, 2);
+            } else {
+                // Both children covered, no camera nearby → not covered
+                state.put(node, 0);
+            }
+        }
+
+        // If root is not covered, add one more camera
+        if (state.get(root) == 0) cameras++;
+        return cameras;
+    }
+}
+```
+
+### 🔍 Iterative Dry Run
+```
+Post-order: D, B, C, A
+
+Process D: left=null→2, right=null→2
+  Both state 2 → state[D]=0 (not covered)
+
+Process B: leftState=state[D]=0
+  0 found → cameras=1, state[B]=1 (has camera)
+
+Process C: left=null→2, right=null→2
+  Both state 2 → state[C]=0 (not covered)
+
+Process A: leftState=state[B]=1, rightState=state[C]=0
+  rightState==0 → cameras=2, state[A]=1
+
+state[root=A]=1 (not 0) → no extra camera
+
+return 2 ✅
+```
+
+---
+---
+
+# 📊 Final Summary Table
+
+| Problem | Pattern Type | Key Technique | Golden Trick |
+|---|---|---|---|
+| LC 104 — Max Depth | Bottom-Up | `max(left,right)+1` | BFS counts levels naturally |
+| LC 226 — Invert Tree | Bottom-Up | Swap children post-recursion | Process children first, then swap |
+| LC 572 — Subtree | DFS + isSameTree | Check every node as potential root | Short-circuit on first match |
+| LC 236 — LCA | Bottom-Up | Both sides non-null → current is LCA | Return node itself if it equals p or q |
+| LC 437 — Path Sum III | Top-Down + Backtrack | Prefix sum HashMap | `currSum - target` in map = valid path count |
+| LC 1448 — Good Nodes | Top-Down | Pass `maxSoFar` downward | Node is good if `val >= maxSoFar` |
+| LC 124 — Max Path Sum | Tree DP | `max(gain,0)` ignores negatives | Return ONE side to parent; use BOTH sides for global |
+| LC 968 — Cameras | Greedy + Tree DP | 3 states: 0=uncovered,1=camera,2=covered | Place camera only when child is uncovered (greedy bottom-up) |
+
+---
+
+## 💡 3 Golden Rules for DFS on Trees
+
+> **Rule 1 (Bottom-Up):** Ask *"what do my children give me?"* — combine results, update global answer, return something to parent. These are always different things.
+>
+> **Rule 2 (Top-Down):** Ask *"what does my parent give me?"* — carry accumulated state (maxSoFar, currentSum, currentPath) downward through parameters.
+>
+> **Rule 3 (Tree DP):** Use `Math.max(gain, 0)` to discard negative paths. Return only ONE direction to parent but consider BOTH directions when updating the global answer.

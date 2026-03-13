@@ -1,0 +1,28 @@
+# Heap DSA Patterns — Master List
+
+| # | Pattern Name | ⭐ Rating | Why It Matters |
+|---|---|---|---|
+| 1 | **Top K Elements** | ⭐⭐⭐⭐⭐ | Most frequent interview pattern |
+| 2 | **K-Way Merge** | ⭐⭐⭐⭐⭐ | Classic with sorted arrays/lists |
+| 3 | **Two Heaps (Min + Max)** | ⭐⭐⭐⭐⭐ | Median problems, partitioning |
+| 4 | **Sliding Window + Heap** | ⭐⭐⭐⭐ | Max/Min in window efficiently |
+| 5 | **Greedy + Heap** | ⭐⭐⭐⭐ | Task scheduling, interval problems |
+| 6 | **Heap + HashMap (Frequency Map)** | ⭐⭐⭐⭐ | Top K frequent elements/words |
+| 7 | **Modified Dijkstra / Shortest Path** | ⭐⭐⭐⭐ | Graph + heap combo |
+| 8 | **Custom Comparator Heap** | ⭐⭐⭐ | Multi-criteria sorting/ordering |
+| 9 | **Heap + BFS/Matrix** | ⭐⭐⭐ | Swim in water, trapping rain |
+| 10 | **Running Stream / Online Algorithm** | ⭐⭐⭐ | Insert + query continuously |
+
+---
+
+### Quick Priority Guide
+```
+Must Know  → Patterns 1, 2, 3
+Should Know → Patterns 4, 5, 6, 7
+Good to Know → Patterns 8, 9, 10
+```
+
+---
+
+**Send the pattern name to begin Step 2 👇**
+*(e.g., just type: `Top K Elements`)*

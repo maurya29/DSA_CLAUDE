@@ -1,0 +1,29 @@
+# Arrays DSA Patterns — Priority Guide
+
+| # | Pattern Name | ⭐ Rating | Why It Matters |
+|---|---|---|---|
+| 1 | **Two Pointers** | ⭐⭐⭐⭐⭐ | Solves 30+ classic problems |
+| 2 | **Sliding Window** | ⭐⭐⭐⭐⭐ | Every subarray/substring problem |
+| 3 | **Prefix Sum** | ⭐⭐⭐⭐⭐ | Range queries, subarrays |
+| 4 | **Binary Search on Array** | ⭐⭐⭐⭐⭐ | Must-know for sorted arrays |
+| 5 | **Kadane's Algorithm** | ⭐⭐⭐⭐⭐ | Max subarray family |
+| 6 | **Fast & Slow Pointers** | ⭐⭐⭐⭐ | Cycles, duplicates, middle |
+| 7 | **Merge Intervals** | ⭐⭐⭐⭐ | Interval overlap problems |
+| 8 | **Cyclic Sort** | ⭐⭐⭐⭐ | Missing/duplicate in 1..N |
+| 9 | **Dutch National Flag (3-way partition)** | ⭐⭐⭐⭐ | Sort colors, partitioning |
+| 10 | **Monotonic Stack** | ⭐⭐⭐⭐ | Next greater/smaller element |
+| 11 | **Matrix Traversal** | ⭐⭐⭐⭐ | Spiral, rotate, diagonal |
+| 12 | **Hashing / Frequency Map** | ⭐⭐⭐⭐ | Count, anagram, seen-before |
+| 13 | **Greedy on Arrays** | ⭐⭐⭐ | Jump game, gas station |
+| 14 | **Product / Difference Arrays** | ⭐⭐⭐ | Product except self, range update |
+| 15 | **Backtracking on Arrays** | ⭐⭐⭐ | Subsets, permutations, combinations |
+
+---
+
+> ✅ **Tier 1 (Must Master):** Two Pointers, Sliding Window, Prefix Sum, Binary Search, Kadane's
+> 🔶 **Tier 2 (High Value):** Monotonic Stack, Merge Intervals, Cyclic Sort, Dutch Flag, Matrix
+> 🔷 **Tier 3 (Advanced):** Greedy, Product Array, Backtracking
+
+---
+
+**Send the pattern name to begin Step 2** — e.g., just type `Two Pointers` and I'll explain the full pattern before any code.

@@ -1,0 +1,1234 @@
+# 🌳 Tree Construction — All Solutions
+
+---
+
+# 🟢 LC 108 — Convert Sorted Array to Binary Search Tree
+
+## Intuition
+Always pick the middle element as root — this guarantees equal distribution of nodes on both sides, creating a height-balanced BST. Recurse on left and right halves for subtrees.
+
+### Array used:
+```
+nums = [-10, -3, 0, 5, 9]
+         0    1  2  3  4
+
+mid = 2 → val=0 → ROOT
+Left:  [-10,-3] → mid=1 → -3 → left child=-10
+Right: [5,9]    → mid=3 → 9  → left child=5
+```
+
+---
+
+### ✅ Recursive Solution
+```java
+class Solution {
+    public TreeNode sortedArrayToBST(int[] nums) {
+        return build(nums, 0, nums.length - 1);
+    }
+
+    private TreeNode build(int[] nums, int left, int right) {
+        if (left > right) return null;             // Base case: no elements
+
+        int mid = left + (right - left) / 2;       // Middle index = root
+        TreeNode root = new TreeNode(nums[mid]);
+
+        root.left  = build(nums, left, mid - 1);   // Left half
+        root.right = build(nums, mid + 1, right);  // Right half
+
+        return root;
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+build(nums, 0, 4)
+  mid=2, root=0
+  build(nums, 0, 1)          ← left subtree
+    mid=0, root=-10... 
+    
+    Wait: mid = 0+(1-0)/2 = 0
+    root=-10
+    build(nums,0,-1)=null    ← left
+    build(nums,1,1)          ← right
+      mid=1, root=-3
+      build(nums,1,0)=null
+      build(nums,2,1)=null
+      return node(-3)
+    node(-10).right=node(-3)
+    return node(-10)
+
+  Correction: mid=0+(1-0)/2=0, root=nums[0]=-10
+  Hmm let me redo: left=0,right=1 → mid=0
+  root=-10, left=null, right=build(1,1)=node(-3)
+
+  Actually for balanced: mid should give -3 as root
+  left=0,right=1: mid=0+(1-0)/2=0 → nums[0]=-10
+
+  Let me just show final tree:
+  
+build(0,4): mid=2 → root=0
+  build(0,1): mid=0 → root=-10
+    build(0,-1) → null
+    build(1,1):  mid=1 → root=-3 → return node(-3)
+    node(-10).right = node(-3)
+    return node(-10)
+  root(0).left = node(-10) with right child -3
+
+  build(3,4): mid=3 → root=5
+    build(3,2) → null
+    build(4,4): mid=4 → root=9 → return node(9)
+    node(5).right = node(9)
+    return node(5)
+  root(0).right = node(5) with right child 9
+
+Result:
+        0
+       / \
+    -10   5
+      \    \
+      -3    9  ✅ (valid BST, height-balanced)
+```
+
+---
+
+### ✅ Iterative Solution (Stack-based)
+```java
+class Solution {
+    public TreeNode sortedArrayToBST(int[] nums) {
+        if (nums == null || nums.length == 0) return null;
+
+        // Stack stores [node, leftBound, rightBound]
+        Stack<int[]> boundsStack = new Stack<>();
+        Stack<TreeNode> nodeStack = new Stack<>();
+
+        int mid = 0 + (nums.length - 1) / 2;
+        TreeNode root = new TreeNode(nums[mid]);
+
+        boundsStack.push(new int[]{0, mid - 1, 0});     // left half, isLeft=1
+        boundsStack.push(new int[]{mid + 1, nums.length - 1, 1}); // right half
+        nodeStack.push(root);  // corresponds to left child pending
+        nodeStack.push(root);  // corresponds to right child pending
+
+        // Simpler iterative: use queue of tasks
+        Queue<int[]> taskQueue = new LinkedList<>();
+        // Each task: [nodeRef_via_index, left, right, isLeftChild]
+        // Easier: just simulate with explicit stack
+
+        // Restart with cleaner approach
+        record Task(TreeNode parent, int left, int right, boolean isLeft) {}
+        Deque<Task> stack = new ArrayDeque<>();
+
+        int rootMid = (nums.length - 1) / 2;
+        root = new TreeNode(nums[rootMid]);
+        stack.push(new Task(root, 0, rootMid - 1, true));
+        stack.push(new Task(root, rootMid + 1, nums.length - 1, false));
+
+        while (!stack.isEmpty()) {
+            Task task = stack.pop();
+            if (task.left > task.right) continue;      // No elements
+
+            int m = task.left + (task.right - task.left) / 2;
+            TreeNode node = new TreeNode(nums[m]);
+
+            if (task.isLeft) task.parent.left  = node;
+            else             task.parent.right = node;
+
+            stack.push(new Task(node, task.left,  m - 1, true));
+            stack.push(new Task(node, m + 1, task.right, false));
+        }
+        return root;
+    }
+}
+```
+
+### ⚡ When to prefer which?
+| | Recursive | Iterative |
+|---|---|---|
+| Code clarity | ✅ Much cleaner | Verbose |
+| Interview | ✅ Write first | Only if asked |
+| Risk | Stack overflow on huge array | ✅ Safe |
+
+---
+---
+
+# 🟢 LC 617 — Merge Two Binary Trees
+
+## Intuition
+DFS simultaneously on both trees. If both nodes exist → create new node with sum. If only one exists → return that node (entire subtree is preserved). If both null → return null.
+
+### Trees used:
+```
+Tree 1:          Tree 2:          Merged:
+    1                2                3
+   / \              / \              / \
+  3   2            1   3            4   5
+ /                  \   \          / \   \
+5                    4   7        5   4   7
+```
+
+---
+
+### ✅ Recursive Solution
+```java
+class Solution {
+    public TreeNode mergeTrees(TreeNode root1, TreeNode root2) {
+        // If either is null, return the other (preserve entire subtree)
+        if (root1 == null) return root2;
+        if (root2 == null) return root1;
+
+        // Both exist: sum values, recurse on children
+        root1.val += root2.val;                         // Merge into root1
+
+        root1.left  = mergeTrees(root1.left,  root2.left);
+        root1.right = mergeTrees(root1.right, root2.right);
+
+        return root1;
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+mergeTrees(1, 2)
+  both exist → root1.val = 1+2 = 3
+  left:  mergeTrees(3, 1)
+    both exist → root1.val = 3+1 = 4
+    left:  mergeTrees(5, null) → return node(5)
+    right: mergeTrees(null, 4) → return node(4)
+    return node(4) [4.left=5, 4.right=4... ]
+    
+    Wait: node(3 becomes 4).left = node(5)
+          node(3 becomes 4).right = node(4 from tree2)
+    return node(4) with left=5, right=4
+  right: mergeTrees(2, 3)
+    both exist → root1.val = 2+3 = 5
+    left:  mergeTrees(null, null) → null
+    right: mergeTrees(null, 7)   → node(7)
+    return node(5) with right=7
+
+Final tree:
+    3
+   / \
+  4   5
+ / \   \
+5   4   7  ✅
+```
+
+---
+
+### ✅ Iterative Solution (Queue — BFS style)
+```java
+class Solution {
+    public TreeNode mergeTrees(TreeNode root1, TreeNode root2) {
+        if (root1 == null) return root2;
+        if (root2 == null) return root1;
+
+        Queue<TreeNode[]> queue = new LinkedList<>();
+        queue.offer(new TreeNode[]{root1, root2});
+
+        while (!queue.isEmpty()) {
+            TreeNode[] pair = queue.poll();
+            TreeNode n1 = pair[0], n2 = pair[1];
+
+            // n1 is never null here (we only add valid pairs)
+            n1.val += n2.val;                          // Merge values
+
+            // Handle left children
+            if (n1.left != null && n2.left != null) {
+                queue.offer(new TreeNode[]{n1.left, n2.left}); // Both exist → queue
+            } else if (n1.left == null) {
+                n1.left = n2.left;                     // Take n2's left subtree
+            }
+
+            // Handle right children
+            if (n1.right != null && n2.right != null) {
+                queue.offer(new TreeNode[]{n1.right, n2.right});
+            } else if (n1.right == null) {
+                n1.right = n2.right;                   // Take n2's right subtree
+            }
+        }
+        return root1;
+    }
+}
+```
+
+### 🔍 Iterative Dry Run
+```
+Queue: [(1,2)]
+
+Poll (1,2): n1.val=3
+  left:  n1.left=3, n2.left=1   → both exist → queue (3,1)
+  right: n1.right=2, n2.right=3 → both exist → queue (2,3)
+Queue: [(3,1),(2,3)]
+
+Poll (3,1): n1.val=4
+  left:  n1.left=5, n2.left=null  → n2.left null → skip
+  right: n1.right=null, n2.right=4 → n1.right=null → n1.right=node(4)
+Queue: [(2,3)]
+
+Poll (2,3): n1.val=5
+  left:  both null → skip
+  right: n1.right=null, n2.right=7 → n1.right=node(7)
+
+Result:
+    3
+   / \
+  4   5
+ / \   \
+5   4   7  ✅
+```
+
+---
+---
+
+# 🟢 LC 606 — Construct String from Binary Tree
+
+## Intuition
+Preorder DFS (root → left → right). Add parentheses around each subtree. Omit empty right subtree parentheses (unnecessary). Never omit empty left subtree when right exists — that would create ambiguity.
+
+### Tree used:
+```
+        1
+       / \
+      2   3
+     /
+    4
+
+Expected: "1(2(4))(3)"
+
+Rules:
+- root with no children: just "val"
+- omit right "()" if right is null
+- CANNOT omit left "()" if right exists (ambiguous)
+```
+
+---
+
+### ✅ Recursive Solution
+```java
+class Solution {
+    public String tree2str(TreeNode root) {
+        if (root == null) return "";
+
+        String result = String.valueOf(root.val);  // Start with root value
+
+        // Add left subtree (always add if right exists too)
+        if (root.left != null || root.right != null) {
+            result += "(" + tree2str(root.left) + ")";
+        }
+
+        // Add right subtree (omit if null — no ambiguity without it)
+        if (root.right != null) {
+            result += "(" + tree2str(root.right) + ")";
+        }
+
+        return result;
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+tree2str(1)
+  result = "1"
+  left(2)!=null → add left parens
+  tree2str(2)
+    result = "2"
+    left(4)!=null, right=null → add left parens only
+    tree2str(4)
+      result = "4"
+      left=null, right=null → skip both
+      return "4"
+    result = "2(4)"
+    right=null → skip right parens
+    return "2(4)"
+  result = "1(2(4))"
+  right(3)!=null → add right parens
+  tree2str(3)
+    result = "3"
+    left=null, right=null → skip
+    return "3"
+  result = "1(2(4))(3)"
+  return "1(2(4))(3)" ✅
+```
+
+---
+
+### ✅ Iterative Solution (Stack + visited set)
+```java
+class Solution {
+    public String tree2str(TreeNode root) {
+        if (root == null) return "";
+
+        StringBuilder sb = new StringBuilder();
+        Stack<TreeNode> stack = new Stack<>();
+        Set<TreeNode> visited = new HashSet<>();
+        stack.push(root);
+
+        while (!stack.isEmpty()) {
+            TreeNode node = stack.peek();          // Peek don't pop yet
+
+            if (!visited.contains(node)) {
+                // First visit: open paren + add value
+                visited.add(node);
+                sb.append("(").append(node.val);
+
+                // Push children (right first — LIFO)
+                if (node.left == null && node.right != null) {
+                    sb.append("()");               // Empty left needed for clarity
+                }
+                if (node.right != null) stack.push(node.right);
+                if (node.left  != null) stack.push(node.left);
+
+            } else {
+                // Second visit: close paren, pop
+                stack.pop();
+                sb.append(")");
+            }
+        }
+
+        // Remove outermost parentheses added for root
+        return sb.substring(1, sb.length() - 1);
+    }
+}
+```
+
+### 🔍 Iterative Dry Run
+```
+Stack:[1]  visited:{}  sb=""
+
+Peek 1: not visited → visited={1}
+  sb="(1"
+  left=2,right=3 → push 3, push 2
+  Stack:[1,3,2]
+
+Peek 2: not visited → visited={1,2}
+  sb="(1(2"
+  left=4,right=null → push 4 only
+  Stack:[1,3,2,4]
+
+Peek 4: not visited → visited={1,2,4}
+  sb="(1(2(4"
+  no children
+  Stack:[1,3,2,4]
+
+Peek 4: visited → pop, sb="(1(2(4)"
+  Stack:[1,3,2]
+
+Peek 2: visited → pop, sb="(1(2(4))"
+  Stack:[1,3]
+
+Peek 3: not visited → visited={1,2,3,4}
+  sb="(1(2(4))(3"
+  no children
+  Stack:[1,3]
+
+Peek 3: visited → pop, sb="(1(2(4))(3)"
+  Stack:[1]
+
+Peek 1: visited → pop, sb="(1(2(4))(3))"
+
+Strip outer parens → "1(2(4))(3)" ✅
+```
+
+---
+---
+
+# 🟡 LC 105 — Construct Binary Tree from Preorder and Inorder Traversal
+
+## Intuition
+Preorder's first element is always root. Find that root in inorder — everything to its left is the left subtree, everything to its right is the right subtree. Use a HashMap for O(1) inorder lookups. Advance preorder index as you build left subtree first, then right.
+
+### Arrays used:
+```
+preorder = [3, 9, 20, 15, 7]
+inorder  = [9, 3, 15, 20, 7]
+
+preorder[0]=3 → ROOT
+Find 3 in inorder at index 1
+Left inorder:  [9]       (indices 0..0) → 1 node
+Right inorder: [15,20,7] (indices 2..4) → 3 nodes
+```
+
+---
+
+### ✅ Recursive Solution
+```java
+class Solution {
+    int preIdx = 0;
+    Map<Integer, Integer> inorderMap = new HashMap<>();
+
+    public TreeNode buildTree(int[] preorder, int[] inorder) {
+        // O(1) lookup for root position in inorder
+        for (int i = 0; i < inorder.length; i++)
+            inorderMap.put(inorder[i], i);
+
+        return build(preorder, 0, inorder.length - 1);
+    }
+
+    private TreeNode build(int[] preorder, int left, int right) {
+        if (left > right) return null;              // No elements in range
+
+        int rootVal = preorder[preIdx++];            // Consume next preorder value
+        TreeNode root = new TreeNode(rootVal);
+
+        int mid = inorderMap.get(rootVal);           // Split point
+
+        // Build LEFT first — preIdx must advance through left subtree
+        root.left  = build(preorder, left, mid - 1);
+        root.right = build(preorder, mid + 1, right);
+
+        return root;
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+inorderMap: {9:0, 3:1, 15:2, 20:3, 7:4}
+preIdx=0
+
+build(pre, left=0, right=4)
+  rootVal=pre[0]=3, preIdx=1
+  mid=inorderMap[3]=1
+  root=node(3)
+
+  LEFT: build(pre, 0, 0)     ← inorder[0..0]=[9]
+    rootVal=pre[1]=9, preIdx=2
+    mid=inorderMap[9]=0
+    root=node(9)
+    LEFT:  build(pre,0,-1) → null
+    RIGHT: build(pre,1,0)  → null (left>right)
+    return node(9)
+  node(3).left = node(9)
+
+  RIGHT: build(pre, 2, 4)    ← inorder[2..4]=[15,20,7]
+    rootVal=pre[2]=20, preIdx=3
+    mid=inorderMap[20]=3
+    root=node(20)
+    LEFT:  build(pre,2,2)    ← inorder[2..2]=[15]
+      rootVal=pre[3]=15, preIdx=4
+      mid=2, return node(15)
+    RIGHT: build(pre,4,4)    ← inorder[4..4]=[7]
+      rootVal=pre[4]=7, preIdx=5
+      mid=4, return node(7)
+    return node(20) with left=15, right=7
+
+Result:
+        3
+       / \
+      9  20
+         / \
+        15   7  ✅
+```
+
+---
+
+### ✅ Iterative Solution (Stack)
+```java
+class Solution {
+    public TreeNode buildTree(int[] preorder, int[] inorder) {
+        if (preorder.length == 0) return null;
+
+        Stack<TreeNode> stack = new Stack<>();
+        TreeNode root = new TreeNode(preorder[0]);
+        stack.push(root);
+
+        int inIdx = 0;                              // Pointer into inorder
+
+        for (int preIdx = 1; preIdx < preorder.length; preIdx++) {
+            TreeNode node = new TreeNode(preorder[preIdx]);
+            TreeNode parent = null;
+
+            // Pop nodes whose inorder value matches → we've finished their left subtree
+            while (!stack.isEmpty() && stack.peek().val == inorder[inIdx]) {
+                parent = stack.pop();
+                inIdx++;
+            }
+
+            if (parent != null) {
+                parent.right = node;               // Attach as RIGHT child
+            } else {
+                stack.peek().left = node;          // Attach as LEFT child
+            }
+
+            stack.push(node);
+        }
+        return root;
+    }
+}
+```
+
+### 🔍 Iterative Dry Run
+```
+preorder=[3,9,20,15,7]  inorder=[9,3,15,20,7]
+root=node(3), stack=[3], inIdx=0
+
+preIdx=1: node=9
+  stack.peek()=3, inorder[0]=9 → 3≠9 → no pop
+  parent=null → stack.peek(3).left = node(9)
+  stack=[3,9]
+
+preIdx=2: node=20
+  stack.peek()=9, inorder[0]=9 → 9==9 → pop(9), parent=9, inIdx=1
+  stack.peek()=3, inorder[1]=3 → 3==3 → pop(3), parent=3, inIdx=2
+  stack empty → stop
+  parent=3 → node(3).right = node(20)
+  stack=[20]
+
+preIdx=3: node=15
+  stack.peek()=20, inorder[2]=15 → 20≠15 → no pop
+  parent=null → node(20).left = node(15)
+  stack=[20,15]
+
+preIdx=4: node=7
+  stack.peek()=15, inorder[2]=15 → 15==15 → pop(15), parent=15, inIdx=3
+  stack.peek()=20, inorder[3]=20 → 20==20 → pop(20), parent=20, inIdx=4
+  parent=20 → node(20).right = node(7)
+  stack=[7]
+
+Result:
+        3
+       / \
+      9  20
+         / \
+        15   7  ✅
+```
+
+---
+---
+
+# 🟡 LC 106 — Construct Binary Tree from Inorder and Postorder Traversal
+
+## Intuition
+Postorder's LAST element is always the root (mirror of preorder). Find root in inorder to split left/right subtrees. Process postorder index from right to left, building RIGHT subtree before LEFT (mirror of preorder approach).
+
+### Arrays used:
+```
+inorder   = [9, 3, 15, 20, 7]
+postorder = [9, 15, 7, 20, 3]
+                             ↑
+                       ROOT = 3 (last element)
+```
+
+---
+
+### ✅ Recursive Solution
+```java
+class Solution {
+    int postIdx;
+    Map<Integer, Integer> inorderMap = new HashMap<>();
+
+    public TreeNode buildTree(int[] inorder, int[] postorder) {
+        postIdx = postorder.length - 1;            // Start from END of postorder
+
+        for (int i = 0; i < inorder.length; i++)
+            inorderMap.put(inorder[i], i);
+
+        return build(postorder, 0, inorder.length - 1);
+    }
+
+    private TreeNode build(int[] postorder, int left, int right) {
+        if (left > right) return null;
+
+        int rootVal = postorder[postIdx--];         // Consume from END
+        TreeNode root = new TreeNode(rootVal);
+
+        int mid = inorderMap.get(rootVal);
+
+        // Build RIGHT first — postIdx reads right subtree before left from end
+        root.right = build(postorder, mid + 1, right);
+        root.left  = build(postorder, left, mid - 1);
+
+        return root;
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+inorderMap: {9:0, 3:1, 15:2, 20:3, 7:4}
+postIdx=4
+
+build(post, 0, 4)
+  rootVal=post[4]=3, postIdx=3
+  mid=1, root=node(3)
+
+  RIGHT: build(post, 2, 4)     ← inorder[2..4]=[15,20,7]
+    rootVal=post[3]=20, postIdx=2
+    mid=3, root=node(20)
+    RIGHT: build(post,4,4)     ← inorder[4]=[7]
+      rootVal=post[2]=7, postIdx=1
+      return node(7)
+    LEFT:  build(post,2,2)     ← inorder[2]=[15]
+      rootVal=post[1]=15, postIdx=0
+      return node(15)
+    return node(20) with left=15, right=7
+
+  LEFT: build(post, 0, 0)      ← inorder[0]=[9]
+    rootVal=post[0]=9, postIdx=-1
+    return node(9)
+
+Result:
+        3
+       / \
+      9  20
+         / \
+        15   7  ✅
+```
+
+---
+
+### ✅ Iterative Solution (Stack — mirror of LC 105)
+```java
+class Solution {
+    public TreeNode buildTree(int[] inorder, int[] postorder) {
+        if (postorder.length == 0) return null;
+
+        Stack<TreeNode> stack = new Stack<>();
+        int n = postorder.length;
+        TreeNode root = new TreeNode(postorder[n - 1]);
+        stack.push(root);
+
+        int inIdx = n - 1;                          // Inorder pointer from right
+
+        for (int postIdx = n - 2; postIdx >= 0; postIdx--) {
+            TreeNode node = new TreeNode(postorder[postIdx]);
+            TreeNode parent = null;
+
+            // Pop nodes whose inorder matches → finished right subtree
+            while (!stack.isEmpty() && stack.peek().val == inorder[inIdx]) {
+                parent = stack.pop();
+                inIdx--;
+            }
+
+            if (parent != null) {
+                parent.left = node;                 // Attach as LEFT child
+            } else {
+                stack.peek().right = node;          // Attach as RIGHT child
+            }
+            stack.push(node);
+        }
+        return root;
+    }
+}
+```
+
+---
+---
+
+# 🟡 LC 109 — Convert Sorted List to Binary Search Tree
+
+## Intuition
+Find middle of linked list using slow/fast pointers — that's the root. Cut the list before middle so left half is a separate list. Recurse on left half and right half (from middle.next onward). This mirrors the sorted array approach but uses pointer-based mid finding.
+
+### List used:
+```
+-10 → -3 → 0 → 5 → 9
+
+Find mid using slow/fast:
+slow=-10,fast=-10
+slow=-3, fast=0
+slow=0,  fast=9   ← fast.next=null, stop
+
+mid=0 → ROOT
+Left:  -10→-3 (cut before mid)
+Right: 5→9   (mid.next onward)
+```
+
+---
+
+### ✅ Recursive Solution (Slow/Fast Pointer)
+```java
+class Solution {
+    public TreeNode sortedListToBST(ListNode head) {
+        if (head == null) return null;
+        if (head.next == null) return new TreeNode(head.val); // Single node
+
+        // Find middle with slow/fast pointers
+        ListNode prev = null;
+        ListNode slow = head;
+        ListNode fast = head;
+
+        while (fast != null && fast.next != null) {
+            prev = slow;
+            slow = slow.next;
+            fast = fast.next.next;
+        }
+
+        // Cut list: left half ends at prev
+        if (prev != null) prev.next = null;
+
+        TreeNode root = new TreeNode(slow.val);    // Mid = root
+        root.left  = sortedListToBST(head);        // Left: head to prev
+        root.right = sortedListToBST(slow.next);   // Right: after mid
+
+        return root;
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+List: -10→-3→0→5→9
+
+Find mid:
+  prev=null,  slow=-10, fast=-10
+  prev=-10,   slow=-3,  fast=0
+  prev=-3,    slow=0,   fast=9   ← fast.next=null, stop
+
+mid=0, cut: prev(-3).next=null
+Left list:  -10→-3
+Right list: 5→9
+
+root=node(0)
+root.left = sortedListToBST(-10→-3)
+  Find mid:
+    prev=null, slow=-10, fast=-10
+    prev=-10,  slow=-3,  fast=null ← stop
+  mid=-3, cut: prev(-10).next=null
+  Left:  -10 (single node → return node(-10))
+  Right: null (no node after -3)
+  root=node(-3)
+  node(-3).left=node(-10), node(-3).right=null
+  return node(-3)
+
+root.right = sortedListToBST(5→9)
+  Find mid:
+    prev=null,slow=5,fast=5
+    prev=5,   slow=9,fast=null ← stop
+  mid=9, cut: prev(5).next=null
+  Left:  5 → node(5)
+  Right: null
+  root=node(9).left=node(5)
+  return node(9)
+
+Final tree:
+        0
+       / \
+     -3   9
+     /   /
+  -10   5  ✅
+```
+
+---
+
+### ✅ Iterative Solution (Convert to array first)
+```java
+class Solution {
+    public TreeNode sortedListToBST(ListNode head) {
+        // Convert list to array for O(1) random access
+        List<Integer> vals = new ArrayList<>();
+        while (head != null) {
+            vals.add(head.val);
+            head = head.next;
+        }
+
+        // Now same as LC 108 — sorted array to BST
+        return build(vals, 0, vals.size() - 1);
+    }
+
+    private TreeNode build(List<Integer> vals, int left, int right) {
+        if (left > right) return null;
+
+        int mid = left + (right - left) / 2;
+        TreeNode root = new TreeNode(vals.get(mid));
+
+        root.left  = build(vals, left, mid - 1);
+        root.right = build(vals, mid + 1, right);
+
+        return root;
+    }
+}
+```
+
+> 💡 **Note:** The array conversion approach is O(N) time and O(N) space. The slow/fast pointer approach is O(N log N) time but O(log N) space (no array). The array approach is preferred in interviews for clarity unless O(1) extra space is required.
+
+---
+---
+
+# 🔴 LC 1008 — Construct BST from Preorder Traversal
+
+## Intuition
+Use BST property to avoid needing inorder. Pass valid `[min, max]` range for each node. Process preorder left to right — consume next element only if it falls within current valid range, otherwise it belongs to a different subtree.
+
+### Array used:
+```
+preorder = [8, 5, 1, 7, 10, 12]
+
+BST ranges:
+8  → root     (−∞, +∞)
+5  → 5 < 8   → left  of 8 (−∞, 8)
+1  → 1 < 5   → left  of 5 (−∞, 5)
+7  → 7 > 1, in (5,8) → right of 5 (5, 8)
+10 → 10 > 8  → right of 8 (8, +∞)
+12 → 12 > 10 → right of 10 (10, +∞)
+```
+
+---
+
+### ✅ Recursive Solution (Bounds Trick)
+```java
+class Solution {
+    int idx = 0;
+
+    public TreeNode bstFromPreorder(int[] preorder) {
+        return build(preorder, Integer.MIN_VALUE, Integer.MAX_VALUE);
+    }
+
+    private TreeNode build(int[] preorder, int min, int max) {
+        if (idx == preorder.length) return null;
+
+        int val = preorder[idx];
+
+        // Current value outside valid range → doesn't belong in this subtree
+        if (val < min || val > max) return null;
+
+        idx++;                                      // Consume this element
+        TreeNode root = new TreeNode(val);
+
+        // Left subtree: values must be < val
+        root.left  = build(preorder, min, val);
+        // Right subtree: values must be > val
+        root.right = build(preorder, val, max);
+
+        return root;
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+preorder=[8,5,1,7,10,12]  idx=0
+
+build(-∞,+∞): val=8, idx=1, root=8
+  LEFT build(-∞,8):
+    val=5, 5 in (-∞,8) ✅ idx=2, root=5
+    LEFT build(-∞,5):
+      val=1, 1 in (-∞,5) ✅ idx=3, root=1
+      LEFT build(-∞,1):
+        val=7, 7>1 ❌ return null
+      RIGHT build(1,5):
+        val=7, 7>5 ❌ return null
+      return node(1)
+    node(5).left=node(1)
+    RIGHT build(5,8):
+      val=7, 7 in (5,8) ✅ idx=4, root=7
+      LEFT build(5,7):
+        val=10, 10>7 ❌ return null
+      RIGHT build(7,8):
+        val=10, 10>8 ❌ return null
+      return node(7)
+    node(5).right=node(7)
+    return node(5)
+  node(8).left=node(5)
+  RIGHT build(8,+∞):
+    val=10, 10 in (8,+∞) ✅ idx=5, root=10
+    LEFT build(8,10):
+      val=12, 12>10 ❌ return null
+    RIGHT build(10,+∞):
+      val=12, 12 in (10,+∞) ✅ idx=6, root=12
+      return node(12)
+    return node(10) with right=12
+  node(8).right=node(10)
+
+Result:
+        8
+       / \
+      5  10
+     / \   \
+    1   7  12  ✅
+```
+
+---
+
+### ✅ Iterative Solution (Stack with bounds)
+```java
+class Solution {
+    public TreeNode bstFromPreorder(int[] preorder) {
+        if (preorder.length == 0) return null;
+
+        TreeNode root = new TreeNode(preorder[0]);
+        Stack<TreeNode> stack = new Stack<>();
+        stack.push(root);
+
+        for (int i = 1; i < preorder.length; i++) {
+            TreeNode node = new TreeNode(preorder[i]);
+            TreeNode parent = stack.peek();
+
+            // Find correct parent: pop until we find where this node belongs
+            while (!stack.isEmpty() && preorder[i] > stack.peek().val) {
+                parent = stack.pop();               // This could be our parent
+            }
+
+            // Attach node
+            if (preorder[i] < parent.val) {
+                parent.left  = node;                // Goes left of parent
+            } else {
+                parent.right = node;                // Goes right of last popped
+            }
+
+            stack.push(node);
+        }
+        return root;
+    }
+}
+```
+
+### 🔍 Iterative Dry Run
+```
+preorder=[8,5,1,7,10,12]
+root=8, stack=[8]
+
+i=1: val=5
+  stack.peek()=8, 5<8 → don't pop
+  parent=8, 5<8 → node(8).left=node(5)
+  stack=[8,5]
+
+i=2: val=1
+  stack.peek()=5, 1<5 → don't pop
+  parent=5, 1<5 → node(5).left=node(1)
+  stack=[8,5,1]
+
+i=3: val=7
+  stack.peek()=1, 7>1 → pop(1), parent=1
+  stack.peek()=5, 7>5 → pop(5), parent=5
+  stack.peek()=8, 7<8 → stop
+  parent=5 (last popped), 7>5 → node(5).right=node(7)
+  stack=[8,7]
+
+i=4: val=10
+  stack.peek()=7, 10>7 → pop(7), parent=7
+  stack.peek()=8, 10>8 → pop(8), parent=8
+  stack empty → stop
+  parent=8, 10>8 → node(8).right=node(10)
+  stack=[10]
+
+i=5: val=12
+  stack.peek()=10, 12>10 → pop(10), parent=10
+  stack empty → stop
+  parent=10, 12>10 → node(10).right=node(12)
+  stack=[12]
+
+Result:
+        8
+       / \
+      5  10
+     / \   \
+    1   7  12  ✅
+```
+
+---
+---
+
+# 🔴 LC 889 — Construct Binary Tree from Preorder and Postorder Traversal
+
+## Intuition
+Preorder[0] = root. Preorder[1] = left child's root. Find preorder[1] in postorder — everything before it in postorder is the left subtree. Use left subtree size to split both preorder and postorder arrays. Recurse on each half.
+
+### Arrays used:
+```
+preorder  = [1, 2, 4, 5, 3, 6, 7]
+postorder = [4, 5, 2, 6, 7, 3, 1]
+
+pre[0]=1 → ROOT
+pre[1]=2 → left child root
+Find 2 in postorder at index 2
+Left subtree size = 2+1 = 3
+Left preorder:  [2,4,5]      (pre[1..3])
+Left postorder: [4,5,2]      (post[0..2])
+Right preorder:  [3,6,7]     (pre[4..6])
+Right postorder: [6,7,3]     (post[3..5])
+```
+
+---
+
+### ✅ Recursive Solution
+```java
+class Solution {
+    int preIdx = 0;
+    Map<Integer, Integer> postMap = new HashMap<>();
+
+    public TreeNode constructFromPrePost(int[] preorder, int[] postorder) {
+        // Map postorder values to indices for O(1) lookup
+        for (int i = 0; i < postorder.length; i++)
+            postMap.put(postorder[i], i);
+
+        return build(preorder, postorder, 0, postorder.length - 1);
+    }
+
+    private TreeNode build(int[] preorder, int[] postorder,
+                           int postLeft, int postRight) {
+        if (postLeft > postRight) return null;
+
+        TreeNode root = new TreeNode(preorder[preIdx++]); // Next preorder = root
+
+        if (postLeft == postRight) return root;            // Leaf node
+
+        // Left child root = preorder[preIdx]
+        int leftChildRoot = preorder[preIdx];
+        int leftChildPostIdx = postMap.get(leftChildRoot); // Position in postorder
+        int leftSize = leftChildPostIdx - postLeft + 1;    // Size of left subtree
+
+        // Left subtree: postorder[postLeft .. leftChildPostIdx]
+        root.left  = build(preorder, postorder,
+                           postLeft, leftChildPostIdx);
+
+        // Right subtree: postorder[leftChildPostIdx+1 .. postRight-1]
+        root.right = build(preorder, postorder,
+                           leftChildPostIdx + 1, postRight - 1);
+
+        return root;
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+postMap: {4:0, 5:1, 2:2, 6:3, 7:4, 3:5, 1:6}
+preIdx=0
+
+build(postLeft=0, postRight=6)
+  root=pre[0]=1, preIdx=1
+  leftChildRoot=pre[1]=2
+  leftChildPostIdx=postMap[2]=2
+  leftSize=2-0+1=3
+
+  LEFT: build(postLeft=0, postRight=2)  ← [4,5,2]
+    root=pre[1]=2, preIdx=2
+    leftChildRoot=pre[2]=4
+    leftChildPostIdx=postMap[4]=0
+    LEFT: build(0,0)
+      root=pre[2]=4, preIdx=3
+      postLeft==postRight → leaf → return node(4)
+    RIGHT: build(1,1)
+      root=pre[3]=5, preIdx=4
+      postLeft==postRight → leaf → return node(5)
+    return node(2) with left=4, right=5
+
+  RIGHT: build(postLeft=3, postRight=5) ← [6,7,3]
+    root=pre[4]=3, preIdx=5
+    leftChildRoot=pre[5]=6
+    leftChildPostIdx=postMap[6]=3
+    LEFT: build(3,3)
+      root=pre[5]=6, preIdx=6 → leaf → return node(6)
+    RIGHT: build(4,4)
+      root=pre[6]=7, preIdx=7 → leaf → return node(7)
+    return node(3) with left=6, right=7
+
+Result:
+        1
+       / \
+      2   3
+     / \ / \
+    4  5 6  7  ✅
+```
+
+---
+
+### ✅ Iterative Solution (Stack)
+```java
+class Solution {
+    public TreeNode constructFromPrePost(int[] preorder, int[] postorder) {
+        Stack<TreeNode> stack = new Stack<>();
+        TreeNode root = new TreeNode(preorder[0]);
+        stack.push(root);
+
+        int postIdx = 0;                           // Points to expected left subtree root in postorder
+
+        for (int preIdx = 1; preIdx < preorder.length; preIdx++) {
+            TreeNode node = new TreeNode(preorder[preIdx]);
+
+            // Assign as left child if possible, else right child
+            while (stack.peek().val == postorder[postIdx]) {
+                stack.pop();                       // This node's subtree is complete
+                postIdx++;
+            }
+
+            if (stack.peek().left == null) {
+                stack.peek().left  = node;         // Fill left first
+            } else {
+                stack.peek().right = node;         // Then right
+            }
+
+            stack.push(node);
+        }
+        return root;
+    }
+}
+```
+
+### 🔍 Iterative Dry Run
+```
+preorder =[1,2,4,5,3,6,7]
+postorder=[4,5,2,6,7,3,1]
+root=1, stack=[1], postIdx=0
+
+preIdx=1: node=2
+  stack.peek()=1, postorder[0]=4 → 1≠4 → no pop
+  node(1).left==null → node(1).left=node(2)
+  stack=[1,2]
+
+preIdx=2: node=4
+  stack.peek()=2, postorder[0]=4 → 2≠4 → no pop
+  node(2).left==null → node(2).left=node(4)
+  stack=[1,2,4]
+
+preIdx=3: node=5
+  stack.peek()=4, postorder[0]=4 → 4==4 → pop(4), postIdx=1
+  stack.peek()=2, postorder[1]=5 → 2≠5 → stop
+  node(2).left exists → node(2).right=node(5)
+  stack=[1,2,5]
+
+preIdx=4: node=3
+  stack.peek()=5, postorder[1]=5 → 5==5 → pop(5), postIdx=2
+  stack.peek()=2, postorder[2]=2 → 2==2 → pop(2), postIdx=3
+  stack.peek()=1, postorder[3]=6 → 1≠6 → stop
+  node(1).left exists → node(1).right=node(3)
+  stack=[1,3]
+
+preIdx=5: node=6
+  stack.peek()=3, postorder[3]=6 → 3≠6 → no pop
+  node(3).left==null → node(3).left=node(6)
+  stack=[1,3,6]
+
+preIdx=6: node=7
+  stack.peek()=6, postorder[3]=6 → 6==6 → pop(6), postIdx=4
+  stack.peek()=3, postorder[4]=7 → 3≠7 → stop
+  node(3).left exists → node(3).right=node(7)
+  stack=[1,3,7]
+
+Result:
+        1
+       / \
+      2   3
+     / \ / \
+    4  5 6  7  ✅
+```
+
+---
+---
+
+# 📊 Final Summary Table
+
+| Problem | Key Technique | Golden Trick |
+|---|---|---|
+| LC 108 — Sorted Array → BST | Divide and conquer | `mid = left+(right-left)/2` as root every time |
+| LC 617 — Merge Two Trees | Simultaneous DFS | Return non-null node when one tree is null |
+| LC 606 — Tree to String | Preorder DFS | Omit right `()` if null; NEVER omit left `()` if right exists |
+| LC 105 — Pre+Inorder | preIdx + inorderMap | Build LEFT before RIGHT; HashMap for O(1) split |
+| LC 106 — Post+Inorder | postIdx from end | Build RIGHT before LEFT; consume postorder right to left |
+| LC 109 — List → BST | Slow/fast pointer mid | Cut list before mid; recurse on two halves |
+| LC 1008 — BST from Preorder | Min/max bounds | Skip element if outside `(min,max)` range |
+| LC 889 — Pre+Postorder | Left subtree size | `pre[preIdx+1]` in postorder gives left subtree boundary |
+
+---
+
+## 💡 3 Golden Rules for Tree Construction
+
+> **Rule 1:** **Preorder first = root, Postorder last = root.** Find that root in Inorder to split left and right subtrees. This is the universal construction algorithm.
+>
+> **Rule 2:** **Left before Right in Preorder, Right before Left in Postorder.** The order you build subtrees must match the order the index is consumed.
+>
+> **Rule 3:** **Always use a HashMap for inorder index lookup.** Linear search makes it O(N²). HashMap makes it O(N) — a critical optimization in every construction problem.

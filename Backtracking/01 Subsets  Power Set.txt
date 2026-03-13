@@ -1,0 +1,149 @@
+# Pattern 1: Subsets / Power Set ⭐⭐⭐⭐⭐
+
+---
+
+## 1. Core Idea
+
+> Given a set of elements, generate **all possible subsets** (including empty set and the full set itself).
+
+For `[1,2,3]` → `[[], [1], [2], [3], [1,2], [1,3], [2,3], [1,2,3]]`
+
+A set of `n` elements always produces **2ⁿ subsets** — at each element you make a binary choice: **take it or leave it.**
+
+---
+
+## How to Recognize These Problems
+
+| Signal in Problem Statement | Example |
+|---|---|
+| "all subsets", "power set" | LC 78 |
+| "all subsequences" | LC 90 |
+| "pick or not pick" decision | Most subset problems |
+| Output size hint: 2ⁿ | Dead giveaway |
+| "distinct subsets" with duplicates | LC 90 |
+
+---
+
+## Key Variants
+
+### Variant 1 — Plain Subsets (No Duplicates)
+```
+Input: [1, 2, 3]
+
+Decision Tree (take/skip each element):
+                    []
+          /                  \
+        [1]                  []
+       /    \              /    \
+    [1,2]  [1]          [2]    []
+    /  \   /  \        /  \   /  \
+[1,2,3][1,2][1,3][1] [2,3][2][3] []
+
+All leaf nodes = all subsets ✅
+```
+
+### Variant 2 — Subsets With Duplicates
+```
+Input: [1, 2, 2]   (sorted first!)
+
+At same recursion level, skip duplicate elements:
+         []
+       /    \
+     [1]    []
+    /   \   /  \
+ [1,2] [1] [2]  []
+  /        /
+[1,2,2]  [2,2]
+
+Key Rule: if(i > start && nums[i] == nums[i-1]) → SKIP
+```
+
+### Variant 3 — Subsets of Length K (Combinations)
+```
+Input: [1,2,3,4], k=2
+Only collect subset when size == k
+→ [1,2], [1,3], [1,4], [2,3], [2,4], [3,4]
+```
+
+---
+
+## Golden Template in Java
+
+```java
+void backtrack(int[] nums, int start, List<Integer> current, List<List<Integer>> result) {
+    
+    // ✅ Collect answer (for subsets: collect at EVERY node, not just leaf)
+    result.add(new ArrayList<>(current));
+    
+    // 🔁 Explore choices
+    for (int i = start; i < nums.length; i++) {
+        
+        // 🚫 Pruning (for duplicates variant)
+        // if (i > start && nums[i] == nums[i-1]) continue;
+        
+        // ➕ Choose
+        current.add(nums[i]);
+        
+        // 🔽 Explore (move start forward to avoid reuse)
+        backtrack(nums, i + 1, current, result);
+        
+        // ➖ Un-choose (backtrack)
+        current.remove(current.size() - 1);
+    }
+}
+```
+
+---
+
+## 3 Mental Models for Subsets
+
+```
+MODEL 1: For-loop backtracking (index moves forward)
+→ Best for: subsets, combinations
+
+MODEL 2: Pick / Not-Pick (binary decision per element)
+→ Best for: understanding recursion tree clearly
+
+MODEL 3: Bit Masking (iterative)
+→ Best for: n ≤ 20, interview iterative solution
+   For n=3: 000→[], 001→[3], 010→[2], 011→[2,3]... etc
+```
+
+---
+
+## Key Rules Table
+
+| Rule | Why |
+|---|---|
+| `start` index moves **forward** (`i+1`) | Prevents reusing same element, avoids duplicates like `[2,1]` when `[1,2]` exists |
+| Collect result **before** the loop | Captures empty set and all intermediate subsets |
+| **Sort first** before handling duplicates | Groups duplicate values together so skip logic works |
+| `i > start && nums[i] == nums[i-1]` → skip | Skips duplicate branches at **same recursion level** only |
+| Deep copy when adding: `new ArrayList<>(current)` | List is passed by reference; without copy, all results point to same list |
+| Total subsets = **2ⁿ** | Sanity check your output |
+
+---
+
+## Practice Problems
+
+### 🟢 Easy
+| # | Problem | LeetCode |
+|---|---|---|
+| 1 | Subsets | LC 78 |
+| 2 | Binary Watch | LC 401 |
+
+### 🟡 Medium
+| # | Problem | LeetCode |
+|---|---|---|
+| 1 | Subsets II (with duplicates) | LC 90 |
+| 2 | Find All Subsets of Size K (Combinations) | LC 77 |
+| 3 | Count Number of Maximum Bitwise-OR Subsets | LC 2044 |
+
+### 🔴 Hard
+| # | Problem | LeetCode |
+|---|---|---|
+| 1 | Minimum Number of Work Sessions (bitmask/backtrack) | LC 1986 |
+
+---
+
+**Ready. Send `Write Java solutions` to proceed to Step 3.** 🚀

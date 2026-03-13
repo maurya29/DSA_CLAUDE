@@ -1,0 +1,201 @@
+# Pattern 2: Permutations ⭐⭐⭐⭐⭐
+
+---
+
+## 1. Core Idea
+
+> Given a set of elements, generate **all possible orderings** (arrangements) of those elements.
+
+For `[1,2,3]` → `[[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]]`
+
+Unlike subsets, **order matters** here. `[1,2,3]` and `[2,1,3]` are different permutations. A set of `n` elements always produces **n!** permutations — at each position you pick from remaining unused elements.
+
+---
+
+## How to Recognize These Problems
+
+| Signal in Problem Statement | Example |
+|---|---|
+| "all arrangements / orderings" | LC 46 |
+| "all permutations" | LC 47 |
+| "next permutation / kth permutation" | LC 31, LC 60 |
+| "rearrange / reorder elements" | LC 567 |
+| Output size hint: n! | Dead giveaway |
+| "distinct permutations" with duplicates | LC 47 |
+
+---
+
+## Key Variants
+
+### Variant 1 — Plain Permutations (No Duplicates)
+```
+Input: [1, 2, 3]
+
+At each level, pick one unused element for current position:
+
+                        []
+           /             |             \
+         [1]            [2]            [3]
+        /    \          /   \          /   \
+     [1,2] [1,3]    [2,1] [2,3]    [3,1] [3,2]
+       |      |       |      |       |      |
+   [1,2,3][1,3,2] [2,1,3][2,3,1] [3,1,2][3,2,1]
+
+All leaf nodes = all permutations ✅  (3! = 6)
+```
+
+### Variant 2 — Permutations With Duplicates
+```
+Input: [1, 1, 2]   (sort first!)
+
+At same recursion level, skip duplicate elements:
+                    []
+          /          |          \
+        [1]         [1]←SKIP   [2]
+       /    \                  /   \
+    [1,1]  [1,2]           [2,1]  [2,1]←SKIP
+      |       |               |
+  [1,1,2] [1,2,1]         [2,1,1]
+
+Key Rule: Sort + use visited[] + if(nums[i]==nums[i-1] && !visited[i-1]) → SKIP
+```
+
+### Variant 3 — Next Permutation (In-Place)
+```
+Input: [1, 3, 2]  → Next: [2, 1, 3]
+
+Step 1: Find rightmost "dip" → nums[i] < nums[i+1]
+        1, [3], 2  → index 0 (nums[0]=1 < nums[1]=3... wait)
+        Actually: scan right to left for first nums[i] < nums[i+1]
+        i=1: nums[1]=3 > nums[2]=2 → no
+        i=0: nums[0]=1 < nums[1]=3 → YES, pivot = index 0
+
+Step 2: Find rightmost element > pivot → index 2 (nums[2]=2 > 1)
+
+Step 3: Swap pivot and that element → [2, 3, 1]
+
+Step 4: Reverse suffix after pivot index → [2, 1, 3] ✅
+```
+
+### Variant 4 — Kth Permutation
+```
+Input: n=3, k=3
+All permutations: [1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]
+                    1        2       3  ← answer
+
+Use factorials to directly pick each digit:
+factorial[2]=2 → block size = 2
+k=3 → (k-1)/blockSize = 2/2 = 1 → pick nums[1] = 2
+...and so on
+```
+
+---
+
+## Golden Template in Java
+
+```java
+void backtrack(int[] nums, boolean[] used,
+               List<Integer> current,
+               List<List<Integer>> result) {
+
+    // ✅ Leaf node: all elements placed → valid permutation
+    if (current.size() == nums.length) {
+        result.add(new ArrayList<>(current));
+        return;
+    }
+
+    for (int i = 0; i < nums.length; i++) {
+
+        // 🚫 Skip already used elements
+        if (used[i]) continue;
+
+        // 🚫 Skip duplicates at same level (for LC 47)
+        // if (i > 0 && nums[i] == nums[i-1] && !used[i-1]) continue;
+
+        used[i] = true;              // ➕ choose
+        current.add(nums[i]);
+
+        backtrack(nums, used, current, result); // 🔽 explore
+
+        used[i] = false;             // ➖ un-choose
+        current.remove(current.size() - 1);
+    }
+}
+```
+
+---
+
+## Subsets vs Permutations — Key Difference
+
+```
+SUBSETS                          PERMUTATIONS
+────────────────────────────     ────────────────────────────
+Uses START index                 Uses USED[] boolean array
+Moves forward only               Can pick any unused element
+[1,2] == [2,1] (same subset)    [1,2] ≠ [2,1] (diff permutation)
+Collects at every node           Collects only at LEAF nodes
+n=3 → 2³ = 8 results            n=3 → 3! = 6 results
+```
+
+---
+
+## Swap-Based Permutation (Alternative Template)
+
+```java
+// Instead of used[], swap elements in-place
+void permute(int[] nums, int start, List<List<Integer>> result) {
+    if (start == nums.length) {
+        // collect current arrangement
+        List<Integer> perm = new ArrayList<>();
+        for (int n : nums) perm.add(n);
+        result.add(perm);
+        return;
+    }
+
+    for (int i = start; i < nums.length; i++) {
+        swap(nums, start, i);           // ➕ choose: fix nums[i] at position start
+        permute(nums, start + 1, result); // 🔽 explore
+        swap(nums, start, i);           // ➖ un-choose: restore
+    }
+}
+```
+
+---
+
+## Key Rules Table
+
+| Rule | Why |
+|---|---|
+| Use `used[]` array | Tracks which elements are in current path |
+| Collect **only at leaf** (`size == n`) | Unlike subsets, partial arrangements aren't valid answers |
+| **Sort first** for duplicates (LC 47) | Groups identical values so skip logic works |
+| `nums[i]==nums[i-1] && !used[i-1]` → skip | Ensures identical values are used in order, preventing duplicate permutations |
+| Swap-based avoids `used[]` extra space | In-place O(1) space but harder to handle duplicates |
+| Total permutations = **n!** | Sanity check: n=3→6, n=4→24, n=5→120 |
+
+---
+
+## Practice Problems
+
+### 🟢 Easy
+| # | Problem | LeetCode |
+|---|---|---|
+| 1 | Permutations | LC 46 |
+| 2 | Build Array from Permutation | LC 1920 |
+
+### 🟡 Medium
+| # | Problem | LeetCode |
+|---|---|---|
+| 1 | Permutations II (with duplicates) | LC 47 |
+| 2 | Next Permutation | LC 31 |
+| 3 | Permutation in String | LC 567 |
+
+### 🔴 Hard
+| # | Problem | LeetCode |
+|---|---|---|
+| 1 | Kth Permutation | LC 60 |
+| 2 | Palindrome Permutation II | LC 267 |
+
+---
+
+**Ready. Send `Write Java solutions` to proceed to Step 3.** 🚀

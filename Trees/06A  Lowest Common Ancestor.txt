@@ -1,0 +1,418 @@
+# 🌳 Pattern 6 — Lowest Common Ancestor (LCA)
+
+---
+
+## 1. Core Idea
+
+> **LCA of two nodes p and q = the deepest node that has both p and q as descendants (a node is a descendant of itself).**
+> The core insight: if you find p on one side and q on the other side of a node → that node IS the LCA. If both are on the same side → recurse deeper into that side.
+
+```
+The LCA Contract:
+┌─────────────────────────────────────────────────────────┐
+│  At every node ask:                                     │
+│  "Is p or q in my LEFT subtree?"                        │
+│  "Is p or q in my RIGHT subtree?"                       │
+│                                                         │
+│  IF both sides return non-null → I AM the LCA           │
+│  IF only one side → bubble that result up               │
+│  IF I am p or q → return myself                         │
+│                                                         │
+│  For BST: use BST property to decide direction          │
+│  For Binary Tree: search both sides always              │
+└─────────────────────────────────────────────────────────┘
+```
+
+### LCA Variants at a Glance:
+```
+VARIANT 1: Binary Tree LCA          → Search both sides (no BST property)
+VARIANT 2: BST LCA                  → Use BST property to guide direction
+VARIANT 3: LCA with parent pointers → Walk up like linked list intersection
+VARIANT 4: LCA of deepest leaves    → Find deepest level first, then LCA
+VARIANT 5: LCA with multiple nodes  → Generalize to a set of targets
+VARIANT 6: Binary Lifting (k-th ancestor, fast LCA) → Advanced/competitive
+```
+
+---
+
+## 🧠 How to Recognize LCA Problems
+
+| Clue in Problem | Pattern |
+|---|---|
+| "lowest common ancestor" | Direct LCA |
+| "deepest common ancestor" | LCA of deepest leaves |
+| "distance between two nodes" | LCA + depth calculation |
+| "path between two nodes" | Find via LCA |
+| "smallest subtree containing p and q" | LCA (root of that subtree) |
+| "BST" + "two nodes" + "ancestor" | BST LCA (use property) |
+| "k-th ancestor of a node" | Binary lifting |
+| "all nodes at distance K" | LCA + distance from LCA |
+
+---
+
+## 🌲 Tree Used for ALL Dry Runs
+
+```
+            3
+           / \
+          5   1
+         / \ / \
+        6  2 0  8
+          / \
+         7   4
+
+Nodes: 3,5,1,6,2,0,8,7,4
+```
+
+---
+
+## 📌 Variant 1 — LCA in Binary Tree
+
+```
+Find LCA(5, 1):
+
+dfs(3): search both sides
+  dfs(5): root==p → return node(5)     ← LEFT returns node(5)
+  dfs(1): root==q → return node(1)     ← RIGHT returns node(1)
+  BOTH sides non-null → node(3) is LCA ✅
+
+Find LCA(5, 4):
+
+dfs(3):
+  LEFT dfs(5): root==p(5) → return node(5) immediately
+               (no need to search children)
+  RIGHT dfs(1): p and q not here → return null
+  Only LEFT non-null → bubble up node(5)
+
+LCA = node(5) ✅
+(5 is ancestor of 4, so 5 is the LCA)
+```
+
+---
+
+## 📌 Variant 2 — LCA in BST
+
+```
+BST:
+        6
+       / \
+      2   8
+     / \ / \
+    0  4 7  9
+      / \
+     3   5
+
+Find LCA(2, 8):
+  At node 6: 2<6 and 8>6 → nodes on DIFFERENT sides
+  → node(6) is LCA ✅
+
+Find LCA(2, 4):
+  At node 6: both 2<6 and 4<6 → go LEFT
+  At node 2: both 2>=2 and 4>2 → 2==p → 2 is LCA ✅
+  (2 is ancestor of 4)
+
+BST LCA Rule:
+  if both < root  → go left
+  if both > root  → go right
+  else            → root is LCA (split point)
+```
+
+---
+
+## 📌 Variant 3 — LCA with Parent Pointers
+
+```
+Like finding intersection of two linked lists!
+
+Ancestors of node 7 (going up):
+  7 → 2 → 5 → 3
+
+Ancestors of node 4 (going up):
+  4 → 2 → 5 → 3
+
+First common = node(2) → LCA ✅
+
+APPROACH 1: HashSet
+  Walk from p upward, add all ancestors to set
+  Walk from q upward, return first ancestor in set
+
+APPROACH 2: Depth equalization (like linked list)
+  Find depth of p and q
+  Move deeper node up to same depth
+  Move both up together until they meet
+```
+
+---
+
+## 📌 Variant 4 — LCA of Deepest Leaves
+
+```
+        3
+       / \
+      5   1
+     / \ / \
+    6  2 0  8
+      / \
+     7   4
+
+Deepest level = level 3 → nodes: 7, 4
+
+LCA(7, 4):
+  Find 7 in inorder → subtree via node 2
+  Find 4 in inorder → subtree via node 2
+  Both in same subtree of node 2
+  → LCA = node(2) ✅
+
+KEY TRICK: Return (node, depth) from each subtree
+  If leftDepth == rightDepth → current node is LCA of deepest
+  If leftDepth > rightDepth  → left subtree has deepest leaves
+  If rightDepth > leftDepth  → right subtree has deepest leaves
+```
+
+---
+
+## 📌 Variant 5 — Distance Between Two Nodes
+
+```
+Distance(p, q) = depth(p) + depth(q) - 2*depth(LCA(p,q))
+
+Example: Distance(7, 0) in our tree
+
+LCA(7,0) = node(3) at depth 0
+depth(7) = 3
+depth(0) = 2
+
+Distance = 3 + 2 - 2*0 = 5
+
+Path: 7→2→5→3→1→0  (5 edges) ✅
+```
+
+---
+
+## 📌 Variant 6 — Binary Lifting (K-th Ancestor)
+
+```
+Preprocess: For each node store 2^j-th ancestor
+  up[node][0] = direct parent
+  up[node][1] = parent of parent (2nd ancestor)
+  up[node][2] = 4th ancestor
+  up[node][j] = 2^j-th ancestor
+
+To find k-th ancestor of node:
+  Express k in binary, jump by powers of 2
+
+Example: 5th ancestor of node 7
+  k=5 = 101 in binary
+  Jump 1 step  (2^0): 7→2
+  Jump 4 steps (2^2): 2→... (if depth allows)
+
+LCA using Binary Lifting:
+  Bring both nodes to same depth using jumps
+  Then jump both together until they meet
+  → O(log N) per query vs O(N) naive
+```
+
+---
+
+## 🏆 Golden Templates in Java
+
+### ✅ Template 1 — LCA Binary Tree (Recursive)
+```java
+class Solution {
+    public TreeNode lowestCommonAncestor(TreeNode root,
+                                         TreeNode p, TreeNode q) {
+        // Base: null or found p or q
+        if (root == null || root == p || root == q) return root;
+
+        TreeNode left  = lowestCommonAncestor(root.left,  p, q);
+        TreeNode right = lowestCommonAncestor(root.right, p, q);
+
+        // Both sides found something → current node is LCA
+        if (left != null && right != null) return root;
+
+        // Bubble up whichever side found something
+        return left != null ? left : right;
+    }
+}
+```
+
+---
+
+### ✅ Template 2 — LCA in BST (Recursive)
+```java
+class Solution {
+    public TreeNode lowestCommonAncestor(TreeNode root,
+                                         TreeNode p, TreeNode q) {
+        if (root == null) return null;
+
+        // Both smaller → LCA is in left subtree
+        if (p.val < root.val && q.val < root.val)
+            return lowestCommonAncestor(root.left, p, q);
+
+        // Both larger → LCA is in right subtree
+        if (p.val > root.val && q.val > root.val)
+            return lowestCommonAncestor(root.right, p, q);
+
+        // Split point → current node is LCA
+        return root;
+    }
+}
+```
+
+---
+
+### ✅ Template 3 — LCA with Parent Map (Iterative)
+```java
+class Solution {
+    public TreeNode lowestCommonAncestor(TreeNode root,
+                                         TreeNode p, TreeNode q) {
+        Map<TreeNode, TreeNode> parent = new HashMap<>();
+        Stack<TreeNode> stack = new Stack<>();
+        parent.put(root, null);
+        stack.push(root);
+
+        // Build parent map until both p and q are found
+        while (!parent.containsKey(p) || !parent.containsKey(q)) {
+            TreeNode node = stack.pop();
+            if (node.left  != null) { parent.put(node.left,  node); stack.push(node.left);  }
+            if (node.right != null) { parent.put(node.right, node); stack.push(node.right); }
+        }
+
+        // Collect ancestors of p
+        Set<TreeNode> ancestors = new HashSet<>();
+        while (p != null) { ancestors.add(p); p = parent.get(p); }
+
+        // Walk up from q until hitting p's ancestor
+        while (!ancestors.contains(q)) q = parent.get(q);
+        return q;
+    }
+}
+```
+
+---
+
+### ✅ Template 4 — LCA of Deepest Leaves
+```java
+class Solution {
+    public TreeNode lcaDeepestLeaves(TreeNode root) {
+        return dfs(root).node;
+    }
+
+    // Returns (LCA candidate, depth of deepest leaf in subtree)
+    private Pair dfs(TreeNode node) {
+        if (node == null) return new Pair(null, 0);
+
+        Pair left  = dfs(node.left);
+        Pair right = dfs(node.right);
+
+        if (left.depth == right.depth)
+            return new Pair(node, left.depth + 1);       // Current is LCA
+        else if (left.depth > right.depth)
+            return new Pair(left.node, left.depth + 1);  // LCA in left
+        else
+            return new Pair(right.node, right.depth + 1);// LCA in right
+    }
+
+    record Pair(TreeNode node, int depth) {}
+}
+```
+
+---
+
+### ✅ Template 5 — Distance Between Two Nodes
+```java
+class Solution {
+    public int findDistance(TreeNode root, int p, int q) {
+        TreeNode lca = findLCA(root, p, q);
+        return depthOf(lca, p, 0) + depthOf(lca, q, 0);
+    }
+
+    private TreeNode findLCA(TreeNode root, int p, int q) {
+        if (root == null) return null;
+        if (root.val == p || root.val == q) return root;
+        TreeNode left  = findLCA(root.left,  p, q);
+        TreeNode right = findLCA(root.right, p, q);
+        if (left != null && right != null) return root;
+        return left != null ? left : right;
+    }
+
+    private int depthOf(TreeNode root, int target, int depth) {
+        if (root == null) return -1;
+        if (root.val == target) return depth;
+        int left = depthOf(root.left,  target, depth + 1);
+        if (left != -1) return left;
+        return depthOf(root.right, target, depth + 1);
+    }
+}
+```
+
+---
+
+### ✅ Template 6 — Binary Lifting (K-th Ancestor)
+```java
+class Solution {
+    int[][] up;        // up[node][j] = 2^j-th ancestor
+    int[]   depth;
+    int     LOG = 16;  // log2(max_nodes)
+
+    void preprocess(int n, int[] parent) {
+        up    = new int[n][LOG];
+        depth = new int[n];
+
+        // up[i][0] = direct parent
+        for (int i = 0; i < n; i++) up[i][0] = parent[i];
+
+        // Fill up[i][j] = up[up[i][j-1]][j-1]
+        for (int j = 1; j < LOG; j++)
+            for (int i = 0; i < n; i++)
+                up[i][j] = up[up[i][j-1]][j-1];
+    }
+
+    int kthAncestor(int node, int k) {
+        for (int j = 0; j < LOG; j++)
+            if (((k >> j) & 1) == 1)  // j-th bit of k is set
+                node = up[node][j];    // Jump 2^j steps
+        return node;
+    }
+}
+```
+
+---
+
+## 📋 Key Rules to Remember
+
+| Rule | Why It Matters |
+|---|---|
+| **Both sides non-null → current node is LCA** | Core binary tree LCA logic |
+| **Return node immediately when root==p or q** | No need to search children — p/q is its own ancestor |
+| **BST LCA: split point = LCA** | Both go same direction? Recurse. Different? Current is LCA |
+| **LCA iterative = parent map + ancestor set** | Walk up from p collecting ancestors, walk q until hit |
+| **Distance(p,q) = depth(p)+depth(q)-2*depth(LCA)** | Standard distance formula via LCA |
+| **Deepest leaves LCA: compare subtree depths** | Equal depth = current node is LCA of both deepest leaves |
+| **LCA of node with itself = itself** | A node is a descendant of itself |
+| **Binary lifting preprocesses in O(N log N)** | Each query then answers in O(log N) |
+| **Use Long.MIN/MAX for BST validation bounds** | Prevents integer overflow at extremes |
+| **LCA + DFS depth = path between any two nodes** | Combine two standard techniques |
+
+---
+
+## 🏋️ Practice Problems
+
+### 🟢 Easy
+- **LC 235** — Lowest Common Ancestor of a BST
+- **LC 1971** — Find if Path Exists in Graph
+- **LC 2236** — Root Equals Sum of Children
+
+### 🟡 Medium
+- **LC 236** — Lowest Common Ancestor of Binary Tree *(solved in DFS pattern)*
+- **LC 1650** — Lowest Common Ancestor of Binary Tree III (with parent pointers)
+- **LC 1676** — Lowest Common Ancestor of Binary Tree IV (multiple nodes)
+- **LC 1123** — Lowest Common Ancestor of Deepest Leaves
+
+### 🔴 Hard
+- **LC 1483** — Kth Ancestor of a Tree Node (Binary Lifting)
+- **LC 2846** — Minimum Edge Weight Equilibrium Queries
+
+---
+
+> ✅ Say **"Solve LCA"** to get full Java solutions (recursive + iterative) with dry runs for all problems above.

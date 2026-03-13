@@ -1,0 +1,642 @@
+# Step 3 — Java Solutions: Subsets / Power Set Pattern
+
+---
+
+## 🟢 LC 78 — Subsets
+
+### Intuition
+At every node in the recursion tree, we have a valid subset — so we collect result **before** the loop. We move `start` forward to avoid reusing elements and prevent duplicate subsets like `[2,1]` when `[1,2]` exists.
+
+---
+
+### Solution 1 — Backtracking (Recursive)
+
+```java
+class Solution {
+    public List<List<Integer>> subsets(int[] nums) {
+        List<List<Integer>> result = new ArrayList<>();
+        backtrack(nums, 0, new ArrayList<>(), result);
+        return result;
+    }
+
+    private void backtrack(int[] nums, int start, 
+                           List<Integer> current, 
+                           List<List<Integer>> result) {
+        // ✅ Collect at every node (not just leaf)
+        result.add(new ArrayList<>(current));
+
+        for (int i = start; i < nums.length; i++) {
+            current.add(nums[i]);               // ➕ choose
+            backtrack(nums, i + 1, current, result); // 🔽 explore
+            current.remove(current.size() - 1); // ➖ un-choose
+        }
+    }
+}
+```
+
+---
+
+### Solution 2 — Pick / Not-Pick (Recursive)
+
+```java
+class Solution {
+    public List<List<Integer>> subsets(int[] nums) {
+        List<List<Integer>> result = new ArrayList<>();
+        pickOrSkip(nums, 0, new ArrayList<>(), result);
+        return result;
+    }
+
+    private void pickOrSkip(int[] nums, int idx,
+                            List<Integer> current,
+                            List<List<Integer>> result) {
+        // ✅ Base case: processed all elements
+        if (idx == nums.length) {
+            result.add(new ArrayList<>(current));
+            return;
+        }
+
+        // ➕ PICK nums[idx]
+        current.add(nums[idx]);
+        pickOrSkip(nums, idx + 1, current, result);
+        current.remove(current.size() - 1);     // ➖ un-choose
+
+        // ⏭️ SKIP nums[idx]
+        pickOrSkip(nums, idx + 1, current, result);
+    }
+}
+```
+
+---
+
+### Solution 3 — Iterative (Bit Masking)
+
+```java
+class Solution {
+    public List<List<Integer>> subsets(int[] nums) {
+        int n = nums.length;
+        List<List<Integer>> result = new ArrayList<>();
+
+        // For n=3: masks go from 000 to 111 (0 to 7 = 2^3)
+        for (int mask = 0; mask < (1 << n); mask++) {
+            List<Integer> subset = new ArrayList<>();
+            for (int i = 0; i < n; i++) {
+                // Check if i-th bit is set in mask
+                if ((mask & (1 << i)) != 0) {
+                    subset.add(nums[i]);
+                }
+            }
+            result.add(subset);
+        }
+        return result;
+    }
+}
+```
+
+---
+
+### 🔍 Dry Run — LC 78 `nums = [1, 2, 3]`
+
+```
+backtrack(start=0, current=[])
+  ✅ add []
+  i=0: pick 1 → backtrack(start=1, current=[1])
+         ✅ add [1]
+         i=1: pick 2 → backtrack(start=2, current=[1,2])
+                ✅ add [1,2]
+                i=2: pick 3 → backtrack(start=3, current=[1,2,3])
+                       ✅ add [1,2,3]
+                unpick 3
+              unpick 2
+         i=2: pick 3 → backtrack(start=3, current=[1,3])
+                ✅ add [1,3]
+              unpick 3
+       unpick 1
+  i=1: pick 2 → backtrack(start=2, current=[2])
+         ✅ add [2]
+         i=2: pick 3 → backtrack(start=3, current=[2,3])
+                ✅ add [2,3]
+              unpick 3
+       unpick 2
+  i=2: pick 3 → backtrack(start=3, current=[3])
+         ✅ add [3]
+       unpick 3
+
+Result: [[], [1], [1,2], [1,2,3], [1,3], [2], [2,3], [3]] ✅
+```
+
+---
+---
+
+## 🟢 LC 401 — Binary Watch
+
+### Intuition
+A binary watch has 4 bits for hours (0–11) and 6 bits for minutes (0–59). We need all times where total lit LEDs = `num`. Instead of backtracking, we iterate all valid `(h, m)` pairs and check if their combined bit count equals `num`.
+
+---
+
+### Solution 1 — Bit Count Iteration (Clean & Fast)
+
+```java
+class Solution {
+    public List<String> readBinaryWatch(int num) {
+        List<String> result = new ArrayList<>();
+
+        // Hours: 0–11, Minutes: 0–59
+        for (int h = 0; h < 12; h++) {
+            for (int m = 0; m < 60; m++) {
+                // Total lit LEDs = set bits in h + set bits in m
+                if (Integer.bitCount(h) + Integer.bitCount(m) == num) {
+                    // Format: minutes always 2 digits
+                    result.add(h + ":" + (m < 10 ? "0" + m : "" + m));
+                }
+            }
+        }
+        return result;
+    }
+}
+```
+
+---
+
+### Solution 2 — Backtracking (Pick LEDs)
+
+```java
+class Solution {
+    // LEDs: index 0-3 = hours (1,2,4,8), index 4-9 = minutes (1,2,4,8,16,32)
+    private int[] leds = {1, 2, 4, 8, 1, 2, 4, 8, 16, 32};
+
+    public List<String> readBinaryWatch(int num) {
+        List<String> result = new ArrayList<>();
+        backtrack(num, 0, 0, 0, result);
+        return result;
+    }
+
+    private void backtrack(int num, int start, int hours, int minutes,
+                           List<String> result) {
+        // ✅ Collected required number of lit LEDs
+        if (num == 0) {
+            if (hours < 12 && minutes < 60) {
+                result.add(hours + ":" + (minutes < 10 ? "0" + minutes : "" + minutes));
+            }
+            return;
+        }
+
+        for (int i = start; i < leds.length; i++) {
+            if (i < 4) {
+                // Hour LED
+                backtrack(num - 1, i + 1, hours + leds[i], minutes, result);
+            } else {
+                // Minute LED
+                backtrack(num - 1, i + 1, hours, minutes + leds[i], result);
+            }
+        }
+    }
+}
+```
+
+---
+
+### 🔍 Dry Run — LC 401 `num = 1`
+
+```
+Iteration approach:
+h=0 (bits=0), m=1  (bits=1) → 0+1=1 ✅ → "0:01"
+h=0 (bits=0), m=2  (bits=1) → 0+1=1 ✅ → "0:02"
+h=0 (bits=0), m=4  (bits=1) → 0+1=1 ✅ → "0:04"
+h=0 (bits=0), m=8  (bits=1) → 0+1=1 ✅ → "0:08"
+h=0 (bits=0), m=16 (bits=1) → 0+1=1 ✅ → "0:16"
+h=0 (bits=0), m=32 (bits=1) → 0+1=1 ✅ → "0:32"
+h=1 (bits=1), m=0  (bits=0) → 1+0=1 ✅ → "1:00"
+h=2 (bits=1), m=0  (bits=0) → 1+0=1 ✅ → "2:00"
+...and so on
+
+Result: ["0:01","0:02","0:04","0:08","0:16","0:32","1:00","2:00","4:00","8:00"] ✅
+```
+
+---
+---
+
+## 🟡 LC 90 — Subsets II (With Duplicates)
+
+### Intuition
+Sort the array first so duplicates are adjacent. At each recursion level (same `start`), if we see `nums[i] == nums[i-1]` and `i > start`, it means we already explored a branch starting with that value at this level — **skip it** to avoid duplicate subsets.
+
+---
+
+### Solution 1 — Backtracking (Recursive)
+
+```java
+class Solution {
+    public List<List<Integer>> subsetsWithDup(int[] nums) {
+        Arrays.sort(nums); // ⚠️ Sort first — groups duplicates together
+        List<List<Integer>> result = new ArrayList<>();
+        backtrack(nums, 0, new ArrayList<>(), result);
+        return result;
+    }
+
+    private void backtrack(int[] nums, int start,
+                           List<Integer> current,
+                           List<List<Integer>> result) {
+        result.add(new ArrayList<>(current)); // ✅ collect at every node
+
+        for (int i = start; i < nums.length; i++) {
+            // 🚫 Skip duplicate at same recursion level
+            if (i > start && nums[i] == nums[i - 1]) continue;
+
+            current.add(nums[i]);                    // ➕ choose
+            backtrack(nums, i + 1, current, result); // 🔽 explore
+            current.remove(current.size() - 1);      // ➖ un-choose
+        }
+    }
+}
+```
+
+---
+
+### Solution 2 — Iterative
+
+```java
+class Solution {
+    public List<List<Integer>> subsetsWithDup(int[] nums) {
+        Arrays.sort(nums);
+        List<List<Integer>> result = new ArrayList<>();
+        result.add(new ArrayList<>()); // start with empty subset
+
+        int start = 0;
+        int prevSize = 0;
+
+        for (int i = 0; i < nums.length; i++) {
+            // If duplicate, only expand subsets added in LAST round
+            start = (i > 0 && nums[i] == nums[i - 1]) ? prevSize : 0;
+            prevSize = result.size();
+
+            for (int j = start; j < prevSize; j++) {
+                List<Integer> newSubset = new ArrayList<>(result.get(j));
+                newSubset.add(nums[i]);
+                result.add(newSubset);
+            }
+        }
+        return result;
+    }
+}
+```
+
+---
+
+### 🔍 Dry Run — LC 90 `nums = [1, 2, 2]`
+
+```
+After sort: [1, 2, 2]
+
+backtrack(start=0, [])
+  ✅ add []
+  i=0: pick 1 → backtrack(start=1, [1])
+         ✅ add [1]
+         i=1: pick 2 → backtrack(start=2, [1,2])
+                ✅ add [1,2]
+                i=2: pick 2 → backtrack(start=3, [1,2,2])
+                       ✅ add [1,2,2]
+              unpick 2
+         i=2: nums[2]==nums[1] AND i(2) > start(1) → 🚫 SKIP
+       unpick 1
+  i=1: pick 2 → backtrack(start=2, [2])
+         ✅ add [2]
+         i=2: pick 2 → backtrack(start=3, [2,2])
+                ✅ add [2,2]
+              unpick 2
+       unpick 2
+  i=2: nums[2]==nums[1] AND i(2) > start(0) → 🚫 SKIP
+
+Result: [[], [1], [1,2], [1,2,2], [2], [2,2]] ✅  (no duplicate [2] !)
+```
+
+---
+---
+
+## 🟡 LC 77 — Combinations (Subsets of Size K)
+
+### Intuition
+Same as subsets backtracking, but we **only collect** when `current.size() == k`. We can prune early: if remaining elements are fewer than what we still need, no point going further.
+
+---
+
+### Solution 1 — Backtracking (Recursive)
+
+```java
+class Solution {
+    public List<List<Integer>> combine(int n, int k) {
+        List<List<Integer>> result = new ArrayList<>();
+        backtrack(n, k, 1, new ArrayList<>(), result);
+        return result;
+    }
+
+    private void backtrack(int n, int k, int start,
+                           List<Integer> current,
+                           List<List<Integer>> result) {
+        // ✅ Collect only when size == k
+        if (current.size() == k) {
+            result.add(new ArrayList<>(current));
+            return;
+        }
+
+        // 🔑 Pruning: need (k - current.size()) more elements
+        //    remaining elements = n - i + 1
+        //    only proceed if remaining >= needed
+        for (int i = start; i <= n - (k - current.size()) + 1; i++) {
+            current.add(i);                          // ➕ choose
+            backtrack(n, k, i + 1, current, result); // 🔽 explore
+            current.remove(current.size() - 1);       // ➖ un-choose
+        }
+    }
+}
+```
+
+---
+
+### Solution 2 — Iterative
+
+```java
+class Solution {
+    public List<List<Integer>> combine(int n, int k) {
+        List<List<Integer>> result = new ArrayList<>();
+        // Start with [1, 2, ..., k] and iterate
+        LinkedList<Integer> combo = new LinkedList<>();
+        for (int i = 1; i <= k; i++) combo.add(i);
+        combo.add(n + 1); // sentinel
+
+        int j = 0;
+        while (j < k) {
+            result.add(new LinkedList<>(combo.subList(0, k)));
+            j = 0;
+            // Find leftmost element that can be incremented
+            while (j < k && combo.get(j + 1) == combo.get(j) + 1) j++;
+            combo.set(j, combo.get(j) + 1);
+            for (int i = 0; i < j; i++) combo.set(i, i + 1);
+        }
+        return result;
+    }
+}
+```
+
+---
+
+### 🔍 Dry Run — LC 77 `n=4, k=2`
+
+```
+backtrack(start=1, current=[])
+  i=1 (max i = 4-2+1=3): pick 1
+    backtrack(start=2, current=[1])
+      i=2 (max i = 4-1+1=4): pick 2
+        backtrack(start=3, current=[1,2])
+          size==k ✅ add [1,2]
+        unpick 2
+      i=3: pick 3 → add [1,3] ✅
+      i=4: pick 4 → add [1,4] ✅
+    unpick 1
+  i=2: pick 2
+    backtrack(start=3, [2])
+      i=3: pick 3 → add [2,3] ✅
+      i=4: pick 4 → add [2,4] ✅
+  i=3: pick 3
+    backtrack(start=4, [3])
+      i=4: pick 4 → add [3,4] ✅
+
+Result: [[1,2],[1,3],[1,4],[2,3],[2,4],[3,4]] ✅
+```
+
+---
+---
+
+## 🟡 LC 2044 — Count Maximum Bitwise-OR Subsets
+
+### Intuition
+First find the maximum possible OR (OR of all elements — you can't do better). Then use backtracking to enumerate all subsets, counting those whose OR equals the maximum.
+
+---
+
+### Solution 1 — Backtracking (Recursive)
+
+```java
+class Solution {
+    private int maxOR;
+    private int count;
+
+    public int countMaxOrSubsets(int[] nums) {
+        // Max OR = OR of all elements
+        maxOR = 0;
+        for (int num : nums) maxOR |= num;
+
+        count = 0;
+        backtrack(nums, 0, 0);
+        return count;
+    }
+
+    private void backtrack(int[] nums, int idx, int currentOR) {
+        if (idx == nums.length) {
+            if (currentOR == maxOR) count++;
+            return;
+        }
+
+        // Pick nums[idx]
+        backtrack(nums, idx + 1, currentOR | nums[idx]);
+
+        // Skip nums[idx]
+        backtrack(nums, idx + 1, currentOR);
+    }
+}
+```
+
+---
+
+### Solution 2 — Iterative (Bit Masking)
+
+```java
+class Solution {
+    public int countMaxOrSubsets(int[] nums) {
+        int maxOR = 0;
+        for (int num : nums) maxOR |= num;
+
+        int n = nums.length;
+        int count = 0;
+
+        for (int mask = 0; mask < (1 << n); mask++) {
+            int currentOR = 0;
+            for (int i = 0; i < n; i++) {
+                if ((mask & (1 << i)) != 0) {
+                    currentOR |= nums[i];
+                }
+            }
+            if (currentOR == maxOR) count++;
+        }
+        return count;
+    }
+}
+```
+
+---
+
+### 🔍 Dry Run — LC 2044 `nums = [3, 1]`
+
+```
+maxOR = 3 | 1 = 3 (binary: 11)
+
+All subsets:
+  []     → OR = 0  ≠ 3
+  [3]    → OR = 3  = 3 ✅
+  [1]    → OR = 1  ≠ 3
+  [3,1]  → OR = 3  = 3 ✅
+
+count = 2 ✅
+```
+
+---
+---
+
+## 🔴 LC 1986 — Minimum Work Sessions
+
+### Intuition
+Use backtracking with bitmask to try assigning each task to a current session or a new one. Prune when sessions used already exceed best found. If a task fits in the current session, try adding it; otherwise, start a new session.
+
+---
+
+### Solution — Backtracking + Bitmask (Recursive)
+
+```java
+class Solution {
+    private int[] tasks;
+    private int sessionTime;
+    private int n;
+    private int minSessions;
+    private int[] memo;
+
+    public int minSessions(int[] tasks, int sessionTime) {
+        this.tasks = tasks;
+        this.sessionTime = sessionTime;
+        this.n = tasks.length;
+        this.minSessions = n; // worst case: each task in own session
+        this.memo = new int[1 << n];
+        Arrays.fill(memo, Integer.MAX_VALUE);
+
+        backtrack(0, 0, 0, 1);
+        return minSessions;
+    }
+
+    // mask      = bitmask of completed tasks
+    // timeUsed  = time used in current session
+    // sessions  = number of sessions used so far
+    private void backtrack(int mask, int timeUsed, int sessions, int totalSessions) {
+        // ✅ All tasks done
+        if (mask == (1 << n) - 1) {
+            minSessions = Math.min(minSessions, totalSessions);
+            return;
+        }
+
+        // 🚫 Prune: already worse than best found
+        if (totalSessions >= minSessions) return;
+
+        // Memoize: if we've seen this (mask, timeUsed) state with fewer sessions, skip
+        int state = mask * 15 + timeUsed; // encode state
+        if (memo[mask] <= totalSessions) return;
+        memo[mask] = totalSessions;
+
+        // Try assigning each unfinished task
+        for (int i = 0; i < n; i++) {
+            if ((mask & (1 << i)) != 0) continue; // already done
+
+            if (timeUsed + tasks[i] <= sessionTime) {
+                // Fit in current session
+                backtrack(mask | (1 << i), timeUsed + tasks[i], sessions, totalSessions);
+            } else {
+                // Start a new session for this task
+                backtrack(mask | (1 << i), tasks[i], sessions + 1, totalSessions + 1);
+            }
+        }
+    }
+}
+```
+
+---
+
+### Solution 2 — DP + Bitmask (Optimal)
+
+```java
+class Solution {
+    public int minSessions(int[] tasks, int sessionTime) {
+        int n = tasks.length;
+        // dp[mask] = minimum time used in the LAST session
+        //            to complete exactly the tasks in mask
+        int[] dp = new int[1 << n];
+        Arrays.fill(dp, Integer.MAX_VALUE);
+        dp[0] = 0;
+
+        // sessions[mask] = min sessions needed
+        int[] sessions = new int[1 << n];
+        Arrays.fill(sessions, Integer.MAX_VALUE);
+        sessions[0] = 1;
+
+        for (int mask = 0; mask < (1 << n); mask++) {
+            if (sessions[mask] == Integer.MAX_VALUE) continue;
+
+            for (int i = 0; i < n; i++) {
+                if ((mask & (1 << i)) != 0) continue; // already done
+
+                int next = mask | (1 << i);
+                int newTime = dp[mask] + tasks[i];
+
+                if (newTime <= sessionTime) {
+                    // Fit in current session
+                    if (sessions[mask] < sessions[next] ||
+                       (sessions[mask] == sessions[next] && newTime < dp[next])) {
+                        sessions[next] = sessions[mask];
+                        dp[next] = newTime;
+                    }
+                } else {
+                    // New session
+                    if (sessions[mask] + 1 < sessions[next]) {
+                        sessions[next] = sessions[mask] + 1;
+                        dp[next] = tasks[i];
+                    }
+                }
+            }
+        }
+        return sessions[(1 << n) - 1];
+    }
+}
+```
+
+---
+
+### 🔍 Dry Run — LC 1986 `tasks=[1,2,3], sessionTime=3`
+
+```
+Backtracking trace (one path):
+Session 1: assign task[0]=1 → timeUsed=1
+           assign task[1]=2 → timeUsed=3 ✅ fits
+Session 2: assign task[2]=3 → timeUsed=3 ✅ fits
+→ 2 sessions total
+
+Another path:
+Session 1: assign task[2]=3 → timeUsed=3
+Session 2: assign task[0]=1, task[1]=2 → timeUsed=3
+→ also 2 sessions
+
+minSessions = 2 ✅
+```
+
+---
+---
+
+# 📊 Summary Table
+
+| Problem | Key Technique | Trick |
+|---|---|---|
+| LC 78 — Subsets | Backtracking / Pick-Skip / Bitmask | Collect at **every node**, not just leaf |
+| LC 401 — Binary Watch | Bit count enumeration | `Integer.bitCount(h) + Integer.bitCount(m) == num` |
+| LC 90 — Subsets II | Backtracking + sort + skip | `i > start && nums[i]==nums[i-1]` → skip |
+| LC 77 — Combinations | Backtracking with size constraint | Prune: `i <= n - (k - current.size()) + 1` |
+| LC 2044 — Max OR Subsets | Backtracking OR accumulation | Pre-compute maxOR = OR of all elements |
+| LC 1986 — Work Sessions | Backtracking + bitmask + pruning | Prune when `sessions >= minSessions` |
+
+---
+
+**Ready. Send `Pattern Summary` for Step 4, or send the next pattern name.** 🚀

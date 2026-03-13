@@ -1,0 +1,40 @@
+# Dynamic Programming — All Important Patterns
+
+| # | Pattern Name | ⭐ Priority |
+|---|---|---|
+| 1 | **1D Linear DP** (Climbing Stairs, House Robber) | ⭐⭐⭐⭐⭐ |
+| 2 | **Knapsack (0/1 Knapsack)** | ⭐⭐⭐⭐⭐ |
+| 3 | **Unbounded Knapsack** | ⭐⭐⭐⭐⭐ |
+| 4 | **Longest Common Subsequence (LCS)** | ⭐⭐⭐⭐⭐ |
+| 5 | **Longest Increasing Subsequence (LIS)** | ⭐⭐⭐⭐⭐ |
+| 6 | **Substring / Subarray DP** | ⭐⭐⭐⭐⭐ |
+| 7 | **Matrix Chain / Interval DP** | ⭐⭐⭐⭐ |
+| 8 | **Grid / 2D DP** | ⭐⭐⭐⭐⭐ |
+| 9 | **DP on Trees** | ⭐⭐⭐⭐ |
+| 10 | **DP on Strings (Edit Distance family)** | ⭐⭐⭐⭐⭐ |
+| 11 | **Partition DP** | ⭐⭐⭐⭐ |
+| 12 | **State Machine / Stock Problems** | ⭐⭐⭐⭐⭐ |
+| 13 | **Bitmask DP** | ⭐⭐⭐ |
+| 14 | **Digit DP** | ⭐⭐⭐ |
+| 15 | **DP with Binary Search (Optimized LIS etc.)** | ⭐⭐⭐⭐ |
+| 16 | **Counting DP** (Ways to reach / partition) | ⭐⭐⭐⭐ |
+| 17 | **Game Theory DP** (Minimax, Stone Game) | ⭐⭐⭐ |
+| 18 | **DP on Graphs / Shortest Path DP** | ⭐⭐⭐ |
+
+---
+
+### Quick Legend
+| Stars | Meaning |
+|---|---|
+| ⭐⭐⭐⭐⭐ | Must know — appears in almost every interview |
+| ⭐⭐⭐⭐ | High value — FAANG favourite |
+| ⭐⭐⭐ | Good to know — appears in harder rounds |
+
+---
+
+**Recommended order to study:**
+> 1D DP → Grid DP → Knapsack → LCS/LIS → Strings → Partition → State Machine → Interval → Trees → Bitmask → Digit
+
+---
+
+Send the **pattern name** (e.g. `1D Linear DP`) and I'll go deep on it with Step 2. 🚀

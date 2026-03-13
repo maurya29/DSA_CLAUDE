@@ -1,0 +1,1049 @@
+# 🌳 LCA — All Solutions
+
+---
+
+# 🟢 LC 235 — Lowest Common Ancestor of a BST
+
+## Intuition
+Use BST property — no need to search both sides. If both p and q are smaller than root → LCA is in left subtree. If both larger → right subtree. Otherwise current node is the split point = LCA.
+
+### Tree used:
+```
+        6
+       / \
+      2   8
+     / \ / \
+    0  4 7  9
+      / \
+     3   5
+
+LCA(2,8)=6, LCA(2,4)=2, LCA(0,5)=2
+```
+
+---
+
+### ✅ Recursive Solution
+```java
+class Solution {
+    public TreeNode lowestCommonAncestor(TreeNode root, TreeNode p, TreeNode q) {
+        if (root == null) return null;
+
+        // Both smaller → LCA in left subtree
+        if (p.val < root.val && q.val < root.val)
+            return lowestCommonAncestor(root.left, p, q);
+
+        // Both larger → LCA in right subtree
+        if (p.val > root.val && q.val > root.val)
+            return lowestCommonAncestor(root.right, p, q);
+
+        // Split point (one left, one right, or one equals root) → LCA found
+        return root;
+    }
+}
+```
+
+### 🔍 Recursive Dry Run — LCA(2, 4)
+```
+lowestCommonAncestor(6, p=2, q=4)
+  2<6 and 4<6 → both smaller → go LEFT
+  lowestCommonAncestor(2, p=2, q=4)
+    2==root.val → neither both smaller nor both larger
+    → SPLIT POINT → return node(2) ✅
+
+LCA(2,4) = node(2)
+(node 2 is ancestor of 4 and equals p itself)
+```
+
+### 🔍 Recursive Dry Run — LCA(2, 8)
+```
+lowestCommonAncestor(6, p=2, q=8)
+  2<6 but 8>6 → different sides
+  → SPLIT POINT → return node(6) ✅
+```
+
+---
+
+### ✅ Iterative Solution
+```java
+class Solution {
+    public TreeNode lowestCommonAncestor(TreeNode root, TreeNode p, TreeNode q) {
+        TreeNode curr = root;
+
+        while (curr != null) {
+            // Both smaller → go left
+            if (p.val < curr.val && q.val < curr.val) {
+                curr = curr.left;
+            }
+            // Both larger → go right
+            else if (p.val > curr.val && q.val > curr.val) {
+                curr = curr.right;
+            }
+            // Split point → LCA found
+            else {
+                return curr;
+            }
+        }
+        return null;
+    }
+}
+```
+
+### 🔍 Iterative Dry Run — LCA(0, 5)
+```
+curr=6: 0<6 and 5<6 → go left
+curr=2: 0<2 and 5>2 → SPLIT → return node(2) ✅
+```
+
+### ⚡ When to prefer which?
+| | Recursive | Iterative |
+|---|---|---|
+| Clarity | ✅ Elegant | Also clean |
+| Space | O(H) call stack | ✅ O(1) |
+| Preferred | For explanation | ✅ For BST (O(1) space) |
+
+---
+---
+
+# 🟢 LC 1971 — Find if Path Exists in Graph
+
+## Intuition
+BFS/DFS from source node — if we can reach the destination, return true. Alternatively use Union-Find: union all edges, then check if source and destination share the same root (are connected).
+
+### Graph used:
+```
+n=6, edges=[[0,1],[0,2],[3,5],[5,4],[4,3]]
+source=0, destination=5
+
+Graph:
+0 — 1
+|
+2
+
+3 — 5 — 4 (cycle)
+
+Path 0→5? NO (disconnected components)
+Expected: false
+```
+
+---
+
+### ✅ BFS Solution (Iterative)
+```java
+class Solution {
+    public boolean validPath(int n, int[][] edges, int source, int destination) {
+        if (source == destination) return true;
+
+        // Build adjacency list
+        List<List<Integer>> adj = new ArrayList<>();
+        for (int i = 0; i < n; i++) adj.add(new ArrayList<>());
+        for (int[] edge : edges) {
+            adj.get(edge[0]).add(edge[1]);
+            adj.get(edge[1]).add(edge[0]);
+        }
+
+        // BFS from source
+        boolean[] visited = new boolean[n];
+        Queue<Integer> queue = new LinkedList<>();
+        queue.offer(source);
+        visited[source] = true;
+
+        while (!queue.isEmpty()) {
+            int node = queue.poll();
+            if (node == destination) return true;
+
+            for (int neighbor : adj.get(node)) {
+                if (!visited[neighbor]) {
+                    visited[neighbor] = true;
+                    queue.offer(neighbor);
+                }
+            }
+        }
+        return false;
+    }
+}
+```
+
+### 🔍 BFS Dry Run
+```
+adj: {0:[1,2], 1:[0], 2:[0], 3:[5,4], 4:[5,3], 5:[3,4]}
+source=0, dest=5
+
+Queue:[0]  visited:[0]
+
+Poll 0: neighbors=1,2
+  Push 1,2   visited:[0,1,2]   Queue:[1,2]
+
+Poll 1: neighbors=0 (visited) → skip   Queue:[2]
+Poll 2: neighbors=0 (visited) → skip   Queue:[]
+
+Queue empty, never reached 5 → return false ✅
+```
+
+---
+
+### ✅ DFS Solution (Recursive)
+```java
+class Solution {
+    public boolean validPath(int n, int[][] edges, int source, int destination) {
+        List<List<Integer>> adj = new ArrayList<>();
+        for (int i = 0; i < n; i++) adj.add(new ArrayList<>());
+        for (int[] edge : edges) {
+            adj.get(edge[0]).add(edge[1]);
+            adj.get(edge[1]).add(edge[0]);
+        }
+
+        boolean[] visited = new boolean[n];
+        return dfs(adj, visited, source, destination);
+    }
+
+    private boolean dfs(List<List<Integer>> adj, boolean[] visited,
+                        int curr, int dest) {
+        if (curr == dest) return true;
+        visited[curr] = true;
+
+        for (int neighbor : adj.get(curr)) {
+            if (!visited[neighbor]) {
+                if (dfs(adj, visited, neighbor, dest)) return true;
+            }
+        }
+        return false;
+    }
+}
+```
+
+---
+
+### ✅ Union-Find Solution (Most Elegant)
+```java
+class Solution {
+    int[] parent, rank;
+
+    public boolean validPath(int n, int[][] edges, int source, int destination) {
+        parent = new int[n];
+        rank   = new int[n];
+        for (int i = 0; i < n; i++) parent[i] = i;  // Each node is its own root
+
+        for (int[] edge : edges) union(edge[0], edge[1]);  // Union all edges
+
+        // Source and destination connected ↔ same root
+        return find(source) == find(destination);
+    }
+
+    private int find(int x) {
+        if (parent[x] != x) parent[x] = find(parent[x]); // Path compression
+        return parent[x];
+    }
+
+    private void union(int x, int y) {
+        int px = find(x), py = find(y);
+        if (px == py) return;
+        // Union by rank
+        if (rank[px] < rank[py]) { int t = px; px = py; py = t; }
+        parent[py] = px;
+        if (rank[px] == rank[py]) rank[px]++;
+    }
+}
+```
+
+### 🔍 Union-Find Dry Run
+```
+n=6, edges=[[0,1],[0,2],[3,5],[5,4],[4,3]]
+Initial parent: [0,1,2,3,4,5]
+
+union(0,1): find(0)=0, find(1)=1 → parent[1]=0  → [0,0,2,3,4,5]
+union(0,2): find(0)=0, find(2)=2 → parent[2]=0  → [0,0,0,3,4,5]
+union(3,5): find(3)=3, find(5)=5 → parent[5]=3  → [0,0,0,3,4,3]
+union(5,4): find(5)=3, find(4)=4 → parent[4]=3  → [0,0,0,3,3,3]
+union(4,3): find(4)=3, find(3)=3 → same root → skip
+
+find(source=0) = 0
+find(dest=5)   = 3
+0 ≠ 3 → return false ✅
+```
+
+---
+---
+
+# 🟢 LC 2236 — Root Equals Sum of Children
+
+## Intuition
+Trivially simple — just check if `root.val == root.left.val + root.right.val`. The problem guarantees the tree has exactly 3 nodes (root, left child, right child).
+
+---
+
+### ✅ Solution (Both recursive and iterative are identical here)
+```java
+class Solution {
+    public boolean checkTree(TreeNode root) {
+        // Tree always has exactly 3 nodes per constraints
+        return root.val == root.left.val + root.right.val;
+    }
+}
+```
+
+### 🔍 Dry Run
+```
+Tree:
+    10
+   /  \
+  4    6
+
+root.val = 10
+root.left.val + root.right.val = 4 + 6 = 10
+10 == 10 → return true ✅
+
+Tree:
+    5
+   / \
+  3   1
+
+5 == 3+1 = 4? → false ✅
+```
+
+> 💡 **Note:** This problem is tagged Easy for a reason — it's testing whether you read constraints carefully. The tree always has exactly 3 nodes, so no recursion or traversal needed.
+
+---
+---
+
+# 🟡 LC 1650 — LCA of Binary Tree III (With Parent Pointers)
+
+## Intuition
+Since nodes have parent pointers, this becomes identical to finding the intersection of two linked lists. Approach 1: collect all ancestors of p in a HashSet, then walk up from q until hitting a node in the set. Approach 2: use two pointers that switch to the other node's start when reaching null (like linked list cycle/intersection).
+
+### Tree used:
+```
+        3
+       / \
+      5   1
+     / \ / \
+    6  2 0  8
+      / \
+     7   4
+
+Node structure: val, left, right, parent
+Find LCA(7, 0)  Expected: 3
+Find LCA(5, 4)  Expected: 5
+```
+
+---
+
+### ✅ Solution 1 — HashSet of Ancestors
+```java
+class Solution {
+    public Node lowestCommonAncestor(Node p, Node q) {
+        Set<Node> ancestors = new HashSet<>();
+
+        // Walk up from p, collect all ancestors
+        Node curr = p;
+        while (curr != null) {
+            ancestors.add(curr);
+            curr = curr.parent;
+        }
+
+        // Walk up from q until we hit a node in p's ancestor set
+        curr = q;
+        while (curr != null) {
+            if (ancestors.contains(curr)) return curr;
+            curr = curr.parent;
+        }
+
+        return null;
+    }
+}
+```
+
+### 🔍 Dry Run — LCA(7, 0)
+```
+Walk up from p=7:
+  7 → 2 → 5 → 3 → null
+  ancestors = {7, 2, 5, 3}
+
+Walk up from q=0:
+  0 → in ancestors? NO
+  1 → in ancestors? NO
+  3 → in ancestors? YES → return node(3) ✅
+```
+
+---
+
+### ✅ Solution 2 — Two Pointer (O(1) space, like linked list intersection)
+```java
+class Solution {
+    public Node lowestCommonAncestor(Node p, Node q) {
+        Node a = p, b = q;
+
+        // When a reaches null, redirect to q's start
+        // When b reaches null, redirect to p's start
+        // They will meet at LCA after at most depth(p)+depth(q) steps
+        while (a != b) {
+            a = (a == null) ? q : a.parent;
+            b = (b == null) ? p : b.parent;
+        }
+        return a;
+    }
+}
+```
+
+### 🔍 Two Pointer Dry Run — LCA(7, 0)
+```
+Depths: 7 is at depth 3, 0 is at depth 2
+
+a starts at 7, b starts at 0
+
+Step 1: a=7→parent=2,    b=0→parent=1
+Step 2: a=2→parent=5,    b=1→parent=3
+Step 3: a=5→parent=3,    b=3→parent=null
+Step 4: a=3→parent=null, b=null→redirect to p(7)
+Step 5: a=null→redirect to q(0), b=7→parent=2
+Step 6: a=0→parent=1,    b=2→parent=5
+Step 7: a=1→parent=3,    b=5→parent=3
+Step 8: a=3, b=3 → a==b → return node(3) ✅
+
+Key insight: Both pointers travel
+  path_from_p_to_root + path_from_q_to_root
+  They must meet at LCA (same total distance traveled)
+```
+
+### ⚡ When to prefer which?
+| | HashSet | Two Pointer |
+|---|---|---|
+| Space | O(H) | ✅ O(1) |
+| Time | O(H) | O(H) |
+| Clarity | ✅ Easier to explain | Clever trick |
+| Interview | Write first | Write as follow-up |
+
+---
+---
+
+# 🟡 LC 1676 — LCA of Binary Tree IV (Multiple Nodes)
+
+## Intuition
+Generalize LCA to a SET of target nodes instead of just two. Same bottom-up DFS logic — if current node is in the target set, return it. If both left and right return non-null, current is LCA. The last node bubbling all the way up is the LCA of all targets.
+
+### Tree used:
+```
+        3
+       / \
+      5   1
+     / \ / \
+    6  2 0  8
+      / \
+     7   4
+
+nodes = {4, 7}     → LCA = 2
+nodes = {4, 7, 6}  → LCA = 5
+nodes = {4, 7, 0}  → LCA = 3
+```
+
+---
+
+### ✅ Recursive Solution
+```java
+class Solution {
+    public TreeNode lowestCommonAncestor(TreeNode root, TreeNode[] nodes) {
+        // Convert array to set for O(1) lookup
+        Set<TreeNode> targetSet = new HashSet<>(Arrays.asList(nodes));
+        return dfs(root, targetSet);
+    }
+
+    private TreeNode dfs(TreeNode node, Set<TreeNode> targetSet) {
+        if (node == null) return null;
+
+        // If current node is a target, return it immediately
+        // (any targets in its subtree are descendants — covered)
+        if (targetSet.contains(node)) return node;
+
+        TreeNode left  = dfs(node.left,  targetSet);
+        TreeNode right = dfs(node.right, targetSet);
+
+        // Both sides found targets → current node is LCA
+        if (left != null && right != null) return node;
+
+        // Bubble up whichever side found targets
+        return left != null ? left : right;
+    }
+}
+```
+
+### 🔍 Recursive Dry Run — nodes={4,7,6}
+```
+targetSet = {4, 7, 6}
+
+dfs(3):
+  dfs(5):
+    dfs(6): 6 in targetSet → return node(6)   LEFT=node(6)
+    dfs(2):
+      dfs(7): 7 in targetSet → return node(7)
+      dfs(4): 4 in targetSet → return node(4)
+      both non-null → return node(2)           RIGHT=node(2)
+    LEFT=6, RIGHT=2, both non-null → return node(5) ✅
+  dfs(1):
+    dfs(0): 0 not target, no children → null
+    dfs(8): 8 not target, no children → null
+    return null
+  LEFT=node(5), RIGHT=null → return node(5)
+
+LCA({4,7,6}) = node(5) ✅
+```
+
+---
+
+### ✅ Iterative Solution (Post-order with stack)
+```java
+class Solution {
+    public TreeNode lowestCommonAncestor(TreeNode root, TreeNode[] nodes) {
+        Set<TreeNode> targetSet = new HashSet<>(Arrays.asList(nodes));
+        Map<TreeNode, TreeNode> resultMap = new HashMap<>();
+
+        // Post-order traversal
+        Stack<TreeNode> stack = new Stack<>();
+        Stack<TreeNode> postOrder = new Stack<>();
+        stack.push(root);
+
+        while (!stack.isEmpty()) {
+            TreeNode node = stack.pop();
+            postOrder.push(node);
+            if (node.left  != null) stack.push(node.left);
+            if (node.right != null) stack.push(node.right);
+        }
+
+        // Process in post-order (children before parents)
+        Map<TreeNode, TreeNode> lcaResult = new HashMap<>();
+
+        while (!postOrder.isEmpty()) {
+            TreeNode node = postOrder.pop();
+
+            TreeNode left  = lcaResult.getOrDefault(node.left,  null);
+            TreeNode right = lcaResult.getOrDefault(node.right, null);
+
+            TreeNode result;
+            if (targetSet.contains(node)) {
+                result = node;
+            } else if (left != null && right != null) {
+                result = node;
+            } else {
+                result = left != null ? left : right;
+            }
+
+            lcaResult.put(node, result);
+        }
+
+        return lcaResult.get(root);
+    }
+}
+```
+
+### 🔍 Iterative Dry Run — nodes={4,7}
+```
+Post-order: 6, 7, 4, 2, 5, 0, 8, 1, 3
+
+Process 6: not target, left=null,right=null → result=null
+Process 7: IN targetSet → result=node(7)
+Process 4: IN targetSet → result=node(4)
+Process 2: not target
+  left=lcaResult[7]=node(7), right=lcaResult[4]=node(4)
+  BOTH non-null → result=node(2)
+Process 5: not target
+  left=lcaResult[6]=null, right=lcaResult[2]=node(2)
+  only right → result=node(2)
+Process 0,8: null results
+Process 1: not target, left=null,right=null → null
+Process 3: not target
+  left=lcaResult[5]=node(2), right=lcaResult[1]=null
+  only left → result=node(2)
+
+lcaResult[root=3] = node(2) ✅
+```
+
+---
+---
+
+# 🟡 LC 1123 — Lowest Common Ancestor of Deepest Leaves
+
+## Intuition
+At each node, find the depth of the deepest leaf in left and right subtrees. If both depths are equal → current node is the LCA of the deepest leaves at this level. If one side is deeper → the LCA lives in that subtree. Return (LCA candidate, depth) pair bottom-up.
+
+### Tree used:
+```
+        3
+       / \
+      5   1
+     / \ / \
+    6  2 0  8
+      / \
+     7   4
+
+Deepest leaves: 7 and 4 (depth 3)
+LCA(7,4) = node(2) ✅
+```
+
+---
+
+### ✅ Recursive Solution (Return Pair)
+```java
+class Solution {
+    public TreeNode lcaDeepestLeaves(TreeNode root) {
+        return dfs(root)[0]; // [0]=LCA node, [1] used as depth (via wrapper)
+    }
+
+    // Returns int[2]: result[0]=LCA as TreeNode (stored in array for simplicity)
+    // Better: use a helper class
+    TreeNode lcaResult;
+
+    public TreeNode lcaDeepestLeavesClean(TreeNode root) {
+        getDepth(root);
+        return lcaResult;
+    }
+
+    // Returns max depth of deepest leaf in this subtree
+    private int getDepth(TreeNode node) {
+        if (node == null) return 0;
+
+        int leftDepth  = getDepth(node.left);
+        int rightDepth = getDepth(node.right);
+
+        if (leftDepth == rightDepth) {
+            // Both subtrees have equal deepest leaves
+            // → current node is LCA of deepest leaves at this subtree
+            lcaResult = node;
+        }
+        // Return the deeper side's depth + 1 for current level
+        return Math.max(leftDepth, rightDepth) + 1;
+    }
+}
+```
+
+### ✅ Cleaner Version with Pair class
+```java
+class Solution {
+    record Pair(TreeNode node, int depth) {}
+
+    public TreeNode lcaDeepestLeaves(TreeNode root) {
+        return dfs(root).node();
+    }
+
+    private Pair dfs(TreeNode node) {
+        if (node == null) return new Pair(null, 0);
+
+        Pair left  = dfs(node.left);
+        Pair right = dfs(node.right);
+
+        if (left.depth() == right.depth()) {
+            // Equal depth → current node is LCA of deepest leaves here
+            return new Pair(node, left.depth() + 1);
+        } else if (left.depth() > right.depth()) {
+            // Left is deeper → LCA lives in left subtree
+            return new Pair(left.node(), left.depth() + 1);
+        } else {
+            // Right is deeper → LCA lives in right subtree
+            return new Pair(right.node(), right.depth() + 1);
+        }
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+dfs(3)
+  dfs(5)
+    dfs(6)
+      dfs(null)=Pair(null,0), dfs(null)=Pair(null,0)
+      left.depth==right.depth(0==0) → LCA=node(6)
+      return Pair(node(6), 1)
+    dfs(2)
+      dfs(7)
+        both null → LCA=node(7), return Pair(node(7),1)
+      dfs(4)
+        both null → LCA=node(4), return Pair(node(4),1)
+      left.depth==right.depth(1==1) → LCA=node(2)
+      return Pair(node(2), 2)
+    left=Pair(6,1), right=Pair(2,2)
+    right.depth(2) > left.depth(1) → LCA from right
+    return Pair(node(2), 3)
+  dfs(1)
+    dfs(0): return Pair(node(0),1)
+    dfs(8): return Pair(node(8),1)
+    left.depth==right.depth(1==1) → LCA=node(1)
+    return Pair(node(1), 2)
+
+  Back at dfs(3):
+  left=Pair(node(2),3), right=Pair(node(1),2)
+  left.depth(3) > right.depth(2) → LCA from left
+  return Pair(node(2), 4)
+
+Result: node(2) ✅
+```
+
+---
+
+### ✅ Iterative Solution (Post-order + depth tracking)
+```java
+class Solution {
+    public TreeNode lcaDeepestLeaves(TreeNode root) {
+        // Build post-order sequence
+        Stack<TreeNode> stack = new Stack<>();
+        Stack<TreeNode> postOrder = new Stack<>();
+        stack.push(root);
+        while (!stack.isEmpty()) {
+            TreeNode node = stack.pop();
+            postOrder.push(node);
+            if (node.left  != null) stack.push(node.left);
+            if (node.right != null) stack.push(node.right);
+        }
+
+        // Process post-order: track (lcaCandidate, depth) per node
+        Map<TreeNode, int[]> info = new HashMap<>(); // int[]{depth, lcaIsThis?}
+        Map<TreeNode, TreeNode> lcaMap   = new HashMap<>();
+        Map<TreeNode, Integer>  depthMap = new HashMap<>();
+
+        while (!postOrder.isEmpty()) {
+            TreeNode node = postOrder.pop();
+
+            int leftDepth  = depthMap.getOrDefault(node.left,  0);
+            int rightDepth = depthMap.getOrDefault(node.right, 0);
+            TreeNode leftLCA  = lcaMap.getOrDefault(node.left,  node.left);
+            TreeNode rightLCA = lcaMap.getOrDefault(node.right, node.right);
+
+            if (leftDepth == rightDepth) {
+                lcaMap.put(node, node);
+            } else if (leftDepth > rightDepth) {
+                lcaMap.put(node, leftLCA);
+            } else {
+                lcaMap.put(node, rightLCA);
+            }
+
+            depthMap.put(node, Math.max(leftDepth, rightDepth) + 1);
+        }
+
+        return lcaMap.get(root);
+    }
+}
+```
+
+---
+---
+
+# 🔴 LC 1483 — Kth Ancestor of a Tree Node
+
+## Intuition
+Binary Lifting — preprocess the tree so `up[node][j]` stores the 2^j-th ancestor of each node. To find k-th ancestor, decompose k into powers of 2 (binary representation) and jump accordingly. Preprocessing is O(N log N), each query is O(log N).
+
+### Tree used:
+```
+n=7, parent=[-1,0,0,1,1,2,2]
+
+Tree:
+        0
+       / \
+      1   2
+     / \ / \
+    3  4 5  6
+
+up[3][0]=1 (direct parent)
+up[3][1]=0 (2nd ancestor = parent of parent)
+up[3][2]=-1 (4th ancestor = doesn't exist)
+
+Query: getKthAncestor(3, 1) = 1
+Query: getKthAncestor(3, 2) = 0
+Query: getKthAncestor(3, 3) = -1 (doesn't exist)
+```
+
+---
+
+### ✅ Solution (Binary Lifting)
+```java
+class TreeAncestor {
+    private int[][] up;     // up[node][j] = 2^j-th ancestor
+    private int LOG = 16;   // log2(50000) ≈ 16
+
+    public TreeAncestor(int n, int[] parent) {
+        up = new int[n][LOG];
+
+        // Initialize all ancestors to -1 (doesn't exist)
+        for (int[] row : up) Arrays.fill(row, -1);
+
+        // up[i][0] = direct parent
+        for (int i = 0; i < n; i++) up[i][0] = parent[i];
+
+        // Fill up table: up[i][j] = up[up[i][j-1]][j-1]
+        // (2^j-th ancestor = 2^(j-1)-th ancestor of 2^(j-1)-th ancestor)
+        for (int j = 1; j < LOG; j++) {
+            for (int i = 0; i < n; i++) {
+                if (up[i][j-1] != -1) {
+                    up[i][j] = up[up[i][j-1]][j-1];
+                }
+            }
+        }
+    }
+
+    public int getKthAncestor(int node, int k) {
+        // Decompose k in binary, jump by powers of 2
+        for (int j = 0; j < LOG; j++) {
+            if (((k >> j) & 1) == 1) {          // j-th bit of k is set
+                node = up[node][j];              // Jump 2^j steps
+                if (node == -1) return -1;       // Went out of bounds
+            }
+        }
+        return node;
+    }
+}
+```
+
+### 🔍 Preprocessing Dry Run
+```
+n=7, parent=[-1,0,0,1,1,2,2]
+
+up[][0] (direct parents):
+  up[0][0]=-1  (root has no parent)
+  up[1][0]=0
+  up[2][0]=0
+  up[3][0]=1
+  up[4][0]=1
+  up[5][0]=2
+  up[6][0]=2
+
+up[][1] (2nd ancestors = parent's parent):
+  up[0][1]=-1  (up[-1] invalid)
+  up[1][1]=up[up[1][0]][0]=up[0][0]=-1
+  up[2][1]=up[up[2][0]][0]=up[0][0]=-1
+  up[3][1]=up[up[3][0]][0]=up[1][0]=0
+  up[4][1]=up[up[4][0]][0]=up[1][0]=0
+  up[5][1]=up[up[5][0]][0]=up[2][0]=0
+  up[6][1]=up[up[6][0]][0]=up[2][0]=0
+
+up[][2] (4th ancestors):
+  all = -1 (tree only has depth 3)
+```
+
+### 🔍 Query Dry Run
+```
+getKthAncestor(node=3, k=1)
+  k=1 = binary 001
+  j=0: bit set → node = up[3][0] = 1
+  j=1: bit not set → skip
+  return 1 ✅
+
+getKthAncestor(node=3, k=2)
+  k=2 = binary 010
+  j=0: bit not set → skip
+  j=1: bit set → node = up[3][1] = 0
+  return 0 ✅
+
+getKthAncestor(node=3, k=3)
+  k=3 = binary 011
+  j=0: bit set → node = up[3][0] = 1
+  j=1: bit set → node = up[1][1] = -1
+  node==-1 → return -1 ✅
+```
+
+---
+
+### ✅ Naive Solution (for comparison — TLE on large inputs)
+```java
+class TreeAncestor {
+    private int[] parent;
+
+    public TreeAncestor(int n, int[] parent) {
+        this.parent = parent;
+    }
+
+    public int getKthAncestor(int node, int k) {
+        // Walk up k steps — O(k) per query
+        int curr = node;
+        for (int i = 0; i < k; i++) {
+            if (curr == -1) return -1;
+            curr = parent[curr];
+        }
+        return curr;
+    }
+}
+```
+
+> ⚠️ **Naive is O(k) per query** — TLEs when k and n are both 50000. Binary Lifting is O(log N) per query. Always use Binary Lifting for this problem.
+
+---
+---
+
+# 🔴 LC 2846 — Minimum Edge Weight Equilibrium Queries
+
+## Intuition
+For each query (u, v, w): find LCA(u,v). Count edges of weight w on path u→v. Total edges on path = depth[u]+depth[v]-2*depth[LCA]. Edges NOT of weight w must be replaced → answer = (path_length - count_of_w_edges). Use Binary Lifting for LCA + prefix count arrays `cnt[node][w]` = count of edges with weight w from root to node.
+
+### Graph used:
+```
+n=7, edges (u,v,weight):
+1-0: w=1
+1-2: w=2
+3-1: w=1
+4-1: w=2
+0-5: w=2
+0-6: w=1
+
+Query (0,3,1): path 0→1→3
+  Path length=2, edges of w=1: (1-0)=1, (3-1)=1 → count=2
+  Replacements = 2-2 = 0
+
+Query (0,3,2): path 0→1→3
+  Path length=2, edges of w=2: none
+  Replacements = 2-0 = 2
+```
+
+---
+
+### ✅ Solution (Binary Lifting LCA + Prefix Counts)
+```java
+class Solution {
+    static final int LOG = 16;
+    static final int MAX_W = 26; // weights 1..26
+
+    int[][]   up;        // Binary lifting table
+    int[][]   cnt;       // cnt[node][w] = count of weight-w edges root→node
+    int[]     depth;
+    List<int[]>[] adj;   // adj[u] = list of [v, weight]
+
+    @SuppressWarnings("unchecked")
+    public int[] minOperationsQueries(int n, int[][] edges, int[][] queries) {
+        // Build adjacency list
+        adj = new List[n];
+        for (int i = 0; i < n; i++) adj[i] = new ArrayList<>();
+        for (int[] e : edges) {
+            adj[e[0]].add(new int[]{e[1], e[2]});
+            adj[e[1]].add(new int[]{e[0], e[2]});
+        }
+
+        // Initialize arrays
+        up    = new int[n][LOG];
+        cnt   = new int[n][MAX_W + 1];
+        depth = new int[n];
+        for (int[] row : up) Arrays.fill(row, -1);
+
+        // BFS to set parent, depth, and prefix weight counts
+        boolean[] visited = new boolean[n];
+        Queue<Integer> queue = new LinkedList<>();
+        queue.offer(0);
+        visited[0] = true;
+        up[0][0] = 0;                               // Root's parent = itself
+
+        while (!queue.isEmpty()) {
+            int u = queue.poll();
+            for (int[] next : adj[u]) {
+                int v = next[0], w = next[1];
+                if (!visited[v]) {
+                    visited[v] = true;
+                    up[v][0] = u;                   // Direct parent
+                    depth[v] = depth[u] + 1;
+
+                    // Copy parent's counts + add this edge's weight
+                    cnt[v] = Arrays.copyOf(cnt[u], MAX_W + 1);
+                    cnt[v][w]++;
+
+                    queue.offer(v);
+                }
+            }
+        }
+
+        // Fill binary lifting table
+        for (int j = 1; j < LOG; j++)
+            for (int i = 0; i < n; i++)
+                up[i][j] = up[up[i][j-1]][j-1];
+
+        // Answer queries
+        int[] result = new int[queries.length];
+        for (int i = 0; i < queries.length; i++) {
+            int u = queries[i][0], v = queries[i][1], w = queries[i][2];
+            int lca = findLCA(u, v);
+
+            // Total edges on path u→lca→v
+            int pathLen = depth[u] + depth[v] - 2 * depth[lca];
+
+            // Count edges of weight w on this path
+            int wCount = cnt[u][w] + cnt[v][w] - 2 * cnt[lca][w];
+
+            // Replacements needed = edges NOT of weight w
+            result[i] = pathLen - wCount;
+        }
+        return result;
+    }
+
+    private int findLCA(int u, int v) {
+        // Bring u and v to same depth
+        if (depth[u] < depth[v]) { int t = u; u = v; v = t; }
+        int diff = depth[u] - depth[v];
+
+        // Lift u up by diff steps
+        for (int j = 0; j < LOG; j++)
+            if (((diff >> j) & 1) == 1)
+                u = up[u][j];
+
+        if (u == v) return u;                       // One is ancestor of other
+
+        // Lift both until they meet
+        for (int j = LOG - 1; j >= 0; j--)
+            if (up[u][j] != up[v][j]) {
+                u = up[u][j];
+                v = up[v][j];
+            }
+
+        return up[u][0];                            // Parent of current u = LCA
+    }
+}
+```
+
+### 🔍 Dry Run — Query(0, 3, w=1)
+```
+Tree built via BFS from root=0:
+  depth: [0, 1, 2, 2, 2, 1, 1]
+  
+  cnt[0] = [0,0,0,...] (root, no edges above)
+  cnt[1] = [0,1,0,...] (edge 0-1, w=1)
+  cnt[2] = [0,1,1,...] (edge 1-2, w=2, inherits cnt[1])
+  cnt[3] = [0,2,0,...] (edge 1-3, w=1, inherits cnt[1])
+  cnt[4] = [0,1,1,...] (edge 1-4, w=2, inherits cnt[1])
+  cnt[5] = [0,0,1,...] (edge 0-5, w=2, inherits cnt[0])
+  cnt[6] = [0,1,0,...] (edge 0-6, w=1, inherits cnt[0])
+
+Query(u=0, v=3, w=1):
+  LCA(0, 3):
+    depth[0]=0, depth[3]=2
+    diff=2 → lift v=3 up 2 steps → up[3][0]=1, up[1][0]=0
+    u=0, v lifted to 0 → u==v → LCA=0
+
+  pathLen = depth[0]+depth[3]-2*depth[0] = 0+2-0 = 2
+  wCount  = cnt[0][1]+cnt[3][1]-2*cnt[0][1]
+          = 0 + 2 - 2*0 = 2
+
+  result = pathLen - wCount = 2 - 2 = 0 ✅
+  (all edges already weight 1, no replacements needed)
+
+Query(u=0, v=3, w=2):
+  LCA=0, pathLen=2
+  wCount = cnt[0][2]+cnt[3][2]-2*cnt[0][2] = 0+0-0 = 0
+  result = 2 - 0 = 2 ✅
+  (need to replace both edges to weight 2)
+```
+
+---
+---
+
+# 📊 Final Summary Table
+
+| Problem | Key Technique | Golden Trick |
+|---|---|---|
+| LC 235 — BST LCA | BST property navigation | Both same side → recurse; split → return root |
+| LC 1971 — Path Exists | BFS/DFS/Union-Find | Union-Find: same root = connected |
+| LC 2236 — Root Sum | Direct check | Guaranteed 3-node tree → one line solution |
+| LC 1650 — LCA with Parents | HashSet / Two Pointer | Two pointer: switch to other node when null (linked list trick) |
+| LC 1676 — LCA Multiple Nodes | Set + standard LCA DFS | Return immediately if node in targetSet (subtree is covered) |
+| LC 1123 — LCA Deepest Leaves | Return (node, depth) pair | Equal depths → current node is LCA; deeper side → recurse there |
+| LC 1483 — Kth Ancestor | Binary Lifting | `up[i][j]=up[up[i][j-1]][j-1]`; jump by binary bits of k |
+| LC 2846 — Edge Weight Queries | Binary Lifting + prefix counts | `cnt[u][w]+cnt[v][w]-2*cnt[lca][w]` = weight-w edges on path |
+
+---
+
+## 💡 3 Golden Rules for LCA
+
+> **Rule 1 (Binary Tree):** If you find p on one side and q on the other → current node IS the LCA. If both on same side → bubble up that non-null result. Return immediately if root equals p or q.
+>
+> **Rule 2 (BST):** You never need to search both sides. Both values smaller → go left. Both larger → go right. Split point → that's your LCA. This gives O(H) with O(1) space iteratively.
+>
+> **Rule 3 (Advanced):** For k-th ancestor or fast repeated LCA queries → Binary Lifting. Preprocess in O(N log N), answer each query in O(log N). Combine with prefix arrays to count edge properties on any root-to-node path.

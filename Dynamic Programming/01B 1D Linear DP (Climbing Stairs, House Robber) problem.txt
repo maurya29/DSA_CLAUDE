@@ -1,0 +1,756 @@
+# Java Solutions — All 8 Problems
+
+---
+
+## 🟢 EASY PROBLEMS
+
+---
+
+## 1. Climbing Stairs — LC 70
+
+### 💡 Intuition
+To reach step `i`, you either came from step `i-1` (took 1 step) or step `i-2` (took 2 steps).
+So total ways = ways to reach `i-1` + ways to reach `i-2`. Pure Fibonacci pattern.
+
+### Recursive Solution
+```java
+class ClimbingStairs {
+
+    // RECURSIVE (Top-Down with Memoization)
+    int[] memo;
+    
+    public int climbStairs(int n) {
+        memo = new int[n + 1];
+        Arrays.fill(memo, -1);
+        return solve(n);
+    }
+    
+    private int solve(int n) {
+        if (n <= 1) return 1;           // base case: 1 way to be at 0 or 1
+        if (memo[n] != -1) return memo[n];
+        memo[n] = solve(n - 1) + solve(n - 2);
+        return memo[n];
+    }
+}
+```
+
+### Iterative Solution
+```java
+class ClimbingStairs {
+
+    // ITERATIVE (Bottom-Up)
+    public int climbStairs(int n) {
+        if (n <= 1) return 1;
+        
+        int[] dp = new int[n + 1];
+        dp[0] = 1;   // 1 way to stand at ground
+        dp[1] = 1;   // 1 way to reach step 1
+        
+        for (int i = 2; i <= n; i++) {
+            dp[i] = dp[i - 1] + dp[i - 2];
+        }
+        return dp[n];
+    }
+    
+    // SPACE OPTIMIZED O(1)
+    public int climbStairsOptimized(int n) {
+        if (n <= 1) return 1;
+        int prev2 = 1, prev1 = 1;
+        
+        for (int i = 2; i <= n; i++) {
+            int curr = prev1 + prev2;
+            prev2 = prev1;
+            prev1 = curr;
+        }
+        return prev1;
+    }
+}
+```
+
+### 🔍 Dry Run (n = 5)
+```
+dp[0] = 1
+dp[1] = 1
+dp[2] = dp[1] + dp[0] = 1 + 1 = 2
+dp[3] = dp[2] + dp[1] = 2 + 1 = 3
+dp[4] = dp[3] + dp[2] = 3 + 2 = 5
+dp[5] = dp[4] + dp[3] = 5 + 3 = 8
+
+Answer = 8 ✅
+```
+
+---
+
+## 2. Min Cost Climbing Stairs — LC 746
+
+### 💡 Intuition
+At each stair `i`, you pay `cost[i]` and can jump 1 or 2 steps.
+`dp[i]` = min cost to LEAVE stair `i`. Answer = min(dp[n-1], dp[n-2]) since you can start from 0 or 1.
+
+### Recursive Solution
+```java
+class MinCostClimbing {
+
+    // RECURSIVE (Top-Down with Memoization)
+    int[] memo;
+    
+    public int minCostClimbingStairs(int[] cost) {
+        int n = cost.length;
+        memo = new int[n];
+        Arrays.fill(memo, -1);
+        // can start from index 0 or 1
+        return Math.min(solve(cost, n - 1), solve(cost, n - 2));
+    }
+    
+    private int solve(int[] cost, int i) {
+        if (i < 0) return 0;
+        if (i == 0) return cost[0];
+        if (i == 1) return cost[1];
+        if (memo[i] != -1) return memo[i];
+        
+        memo[i] = cost[i] + Math.min(solve(cost, i - 1), solve(cost, i - 2));
+        return memo[i];
+    }
+}
+```
+
+### Iterative Solution
+```java
+class MinCostClimbing {
+
+    // ITERATIVE (Bottom-Up)
+    public int minCostClimbingStairs(int[] cost) {
+        int n = cost.length;
+        int[] dp = new int[n];
+        
+        dp[0] = cost[0];
+        dp[1] = cost[1];
+        
+        for (int i = 2; i < n; i++) {
+            dp[i] = cost[i] + Math.min(dp[i - 1], dp[i - 2]);
+        }
+        // top is beyond last index, reach from n-1 or n-2
+        return Math.min(dp[n - 1], dp[n - 2]);
+    }
+    
+    // SPACE OPTIMIZED O(1)
+    public int minCostOptimized(int[] cost) {
+        int prev2 = cost[0];
+        int prev1 = cost[1];
+        
+        for (int i = 2; i < cost.length; i++) {
+            int curr = cost[i] + Math.min(prev1, prev2);
+            prev2 = prev1;
+            prev1 = curr;
+        }
+        return Math.min(prev1, prev2);
+    }
+}
+```
+
+### 🔍 Dry Run (cost = [10, 15, 20])
+```
+dp[0] = 10
+dp[1] = 15
+dp[2] = cost[2] + min(dp[1], dp[0])
+      = 20 + min(15, 10)
+      = 20 + 10 = 30
+
+Answer = min(dp[2], dp[1]) = min(30, 15) = 15 ✅
+
+Path: Start at step 1 → pay 15 → jump 2 steps → TOP
+```
+
+---
+
+## 3. Fibonacci Number — LC 509
+
+### 💡 Intuition
+Classic definition: `F(n) = F(n-1) + F(n-2)`.
+Base cases are F(0) = 0, F(1) = 1. Every 1D DP is a variation of this.
+
+### Recursive Solution
+```java
+class Fibonacci {
+
+    // RECURSIVE with Memoization
+    int[] memo;
+    
+    public int fib(int n) {
+        memo = new int[n + 1];
+        Arrays.fill(memo, -1);
+        return solve(n);
+    }
+    
+    private int solve(int n) {
+        if (n == 0) return 0;
+        if (n == 1) return 1;
+        if (memo[n] != -1) return memo[n];
+        memo[n] = solve(n - 1) + solve(n - 2);
+        return memo[n];
+    }
+}
+```
+
+### Iterative Solution
+```java
+class Fibonacci {
+
+    // ITERATIVE (Bottom-Up)
+    public int fib(int n) {
+        if (n == 0) return 0;
+        if (n == 1) return 1;
+        
+        int[] dp = new int[n + 1];
+        dp[0] = 0;
+        dp[1] = 1;
+        
+        for (int i = 2; i <= n; i++) {
+            dp[i] = dp[i - 1] + dp[i - 2];
+        }
+        return dp[n];
+    }
+    
+    // SPACE OPTIMIZED O(1)
+    public int fibOptimized(int n) {
+        if (n <= 1) return n;
+        int prev2 = 0, prev1 = 1;
+        
+        for (int i = 2; i <= n; i++) {
+            int curr = prev1 + prev2;
+            prev2 = prev1;
+            prev1 = curr;
+        }
+        return prev1;
+    }
+}
+```
+
+### 🔍 Dry Run (n = 6)
+```
+i:   0  1  2  3  4  5  6
+dp: [0, 1, 1, 2, 3, 5, 8]
+
+dp[2] = 0+1 = 1
+dp[3] = 1+1 = 2
+dp[4] = 2+1 = 3   ← wait: dp[3]+dp[2]=2+1=3 ✓
+dp[5] = 3+2 = 5
+dp[6] = 5+3 = 8
+
+Answer = 8 ✅
+```
+
+---
+---
+
+## 🟡 MEDIUM PROBLEMS
+
+---
+
+## 4. House Robber — LC 198
+
+### 💡 Intuition
+At each house `i`, you have 2 choices: **rob it** (add `nums[i]` + `dp[i-2]`) or **skip it** (take `dp[i-1]`).
+`dp[i]` = max money robbing from house 0 to house i. Can't rob adjacent houses.
+
+### Recursive Solution
+```java
+class HouseRobber {
+
+    // RECURSIVE (Top-Down with Memoization)
+    int[] memo;
+    
+    public int rob(int[] nums) {
+        memo = new int[nums.length];
+        Arrays.fill(memo, -1);
+        return solve(nums, nums.length - 1);
+    }
+    
+    private int solve(int[] nums, int i) {
+        if (i < 0) return 0;
+        if (i == 0) return nums[0];
+        if (memo[i] != -1) return memo[i];
+        
+        int take = nums[i] + solve(nums, i - 2);   // rob current
+        int skip = solve(nums, i - 1);              // skip current
+        
+        memo[i] = Math.max(take, skip);
+        return memo[i];
+    }
+}
+```
+
+### Iterative Solution
+```java
+class HouseRobber {
+
+    // ITERATIVE (Bottom-Up)
+    public int rob(int[] nums) {
+        int n = nums.length;
+        if (n == 1) return nums[0];
+        
+        int[] dp = new int[n];
+        dp[0] = nums[0];
+        dp[1] = Math.max(nums[0], nums[1]);
+        
+        for (int i = 2; i < n; i++) {
+            int take = nums[i] + dp[i - 2];   // rob house i
+            int skip = dp[i - 1];              // skip house i
+            dp[i] = Math.max(take, skip);
+        }
+        return dp[n - 1];
+    }
+    
+    // SPACE OPTIMIZED O(1)
+    public int robOptimized(int[] nums) {
+        int n = nums.length;
+        if (n == 1) return nums[0];
+        
+        int prev2 = nums[0];
+        int prev1 = Math.max(nums[0], nums[1]);
+        
+        for (int i = 2; i < n; i++) {
+            int curr = Math.max(prev1, prev2 + nums[i]);
+            prev2 = prev1;
+            prev1 = curr;
+        }
+        return prev1;
+    }
+}
+```
+
+### 🔍 Dry Run (nums = [2, 7, 9, 3, 1])
+```
+dp[0] = 2
+dp[1] = max(2, 7)          = 7
+dp[2] = max(dp[1], dp[0]+9) = max(7, 11)  = 11   ← rob house 2
+dp[3] = max(dp[2], dp[1]+3) = max(11, 10) = 11   ← skip house 3
+dp[4] = max(dp[3], dp[2]+1) = max(11, 12) = 12   ← rob house 4
+
+ House:  0    1    2    3    4
+ nums:  [2,   7,   9,   3,   1]
+ dp:    [2,   7,  11,  11,  12]
+
+Answer = 12 ✅  (Rob houses 0, 2, 4 → 2+9+1=12)
+```
+
+---
+
+## 5. House Robber II — LC 213
+
+### 💡 Intuition
+Houses are in a **circle** — first and last are adjacent so can't rob both.
+Key insight: **Run House Robber twice** — once on `[0..n-2]`, once on `[1..n-1]`, take the max.
+
+### Recursive Solution
+```java
+class HouseRobberII {
+
+    public int rob(int[] nums) {
+        int n = nums.length;
+        if (n == 1) return nums[0];
+        if (n == 2) return Math.max(nums[0], nums[1]);
+        
+        // Case 1: rob houses 0 to n-2 (exclude last)
+        // Case 2: rob houses 1 to n-1 (exclude first)
+        return Math.max(
+            robRange(nums, 0, n - 2),
+            robRange(nums, 1, n - 1)
+        );
+    }
+    
+    // Recursive helper with memo
+    private int robRange(int[] nums, int start, int end) {
+        int[] memo = new int[nums.length];
+        Arrays.fill(memo, -1);
+        return solve(nums, end, start, memo);
+    }
+    
+    private int solve(int[] nums, int i, int start, int[] memo) {
+        if (i < start) return 0;
+        if (i == start) return nums[start];
+        if (memo[i] != -1) return memo[i];
+        
+        int take = nums[i] + solve(nums, i - 2, start, memo);
+        int skip = solve(nums, i - 1, start, memo);
+        
+        memo[i] = Math.max(take, skip);
+        return memo[i];
+    }
+}
+```
+
+### Iterative Solution
+```java
+class HouseRobberII {
+
+    public int rob(int[] nums) {
+        int n = nums.length;
+        if (n == 1) return nums[0];
+        if (n == 2) return Math.max(nums[0], nums[1]);
+        
+        return Math.max(
+            robRange(nums, 0, n - 2),   // exclude last house
+            robRange(nums, 1, n - 1)    // exclude first house
+        );
+    }
+    
+    private int robRange(int[] nums, int start, int end) {
+        int prev2 = nums[start];
+        int prev1 = Math.max(nums[start], nums[start + 1]);
+        
+        for (int i = start + 2; i <= end; i++) {
+            int curr = Math.max(prev1, prev2 + nums[i]);
+            prev2 = prev1;
+            prev1 = curr;
+        }
+        return prev1;
+    }
+}
+```
+
+### 🔍 Dry Run (nums = [2, 3, 2])
+```
+n = 3
+
+Case 1: robRange(0, 1) → houses [2, 3]
+  prev2=2, prev1=max(2,3)=3
+  Result = 3
+
+Case 2: robRange(1, 2) → houses [3, 2]
+  prev2=3, prev1=max(3,2)=3
+  Result = 3
+
+Answer = max(3, 3) = 3 ✅
+(Can't rob both house 0 and house 2 since they're circular neighbors)
+```
+
+---
+
+## 6. Jump Game II — LC 45
+
+### 💡 Intuition
+Greedy beats pure DP here but DP approach: `dp[i]` = min jumps to reach index `i`.
+For each position `j`, it can reach `j+1` to `j+nums[j]` — update those positions with `dp[j]+1`.
+
+### Recursive Solution
+```java
+class JumpGameII {
+
+    // RECURSIVE (Top-Down)
+    int[] memo;
+    
+    public int jump(int[] nums) {
+        memo = new int[nums.length];
+        Arrays.fill(memo, Integer.MAX_VALUE);
+        memo[0] = 0;
+        return solve(nums, nums.length - 1);
+    }
+    
+    private int solve(int[] nums, int i) {
+        if (i == 0) return 0;
+        if (memo[i] != Integer.MAX_VALUE) return memo[i];
+        
+        int minJumps = Integer.MAX_VALUE;
+        for (int j = 0; j < i; j++) {
+            // if j can reach i
+            if (j + nums[j] >= i) {
+                int res = solve(nums, j);
+                if (res != Integer.MAX_VALUE) {
+                    minJumps = Math.min(minJumps, res + 1);
+                }
+            }
+        }
+        memo[i] = minJumps;
+        return memo[i];
+    }
+}
+```
+
+### Iterative (Greedy DP) Solution
+```java
+class JumpGameII {
+
+    // ITERATIVE — Greedy is optimal O(n)
+    public int jump(int[] nums) {
+        int jumps = 0;
+        int currentEnd = 0;   // boundary of current jump
+        int farthest = 0;     // farthest we can reach so far
+        
+        for (int i = 0; i < nums.length - 1; i++) {
+            farthest = Math.max(farthest, i + nums[i]);
+            
+            if (i == currentEnd) {      // must jump here
+                jumps++;
+                currentEnd = farthest;  // extend boundary
+            }
+        }
+        return jumps;
+    }
+    
+    // ITERATIVE — Pure DP O(n²)
+    public int jumpDP(int[] nums) {
+        int n = nums.length;
+        int[] dp = new int[n];
+        Arrays.fill(dp, Integer.MAX_VALUE);
+        dp[0] = 0;
+        
+        for (int i = 1; i < n; i++) {
+            for (int j = 0; j < i; j++) {
+                if (j + nums[j] >= i && dp[j] != Integer.MAX_VALUE) {
+                    dp[i] = Math.min(dp[i], dp[j] + 1);
+                }
+            }
+        }
+        return dp[n - 1];
+    }
+}
+```
+
+### 🔍 Dry Run (nums = [2,3,1,1,4])
+```
+Greedy approach:
+
+i=0: farthest = max(0, 0+2)=2, i==currentEnd(0) → jumps=1, currentEnd=2
+i=1: farthest = max(2, 1+3)=4
+i=2: farthest = max(4, 2+1)=4, i==currentEnd(2) → jumps=2, currentEnd=4
+i=3: farthest = max(4, 3+1)=4
+Loop ends (i < n-1 = 4)
+
+Answer = 2 ✅
+Path: index 0 → index 1 → index 4
+```
+
+---
+---
+
+## 🔴 HARD PROBLEMS
+
+---
+
+## 7. Jump Game VII — LC 1871
+
+### 💡 Intuition
+From index `i` (which is `'0'`), you can jump to any `'0'` in range `[i+minJump, i+maxJump]`.
+Use a **prefix sum** to check if any reachable position in the window was reachable — this avoids O(n²).
+
+### Recursive Solution
+```java
+class JumpGameVII {
+
+    // RECURSIVE with Memoization
+    Boolean[] memo;
+    int minJump, maxJump;
+    String s;
+    
+    public boolean canReach(String s, int minJump, int maxJump) {
+        this.s = s;
+        this.minJump = minJump;
+        this.maxJump = maxJump;
+        memo = new Boolean[s.length()];
+        return solve(0);
+    }
+    
+    private boolean solve(int i) {
+        if (i == s.length() - 1) return true;
+        if (memo[i] != null) return memo[i];
+        
+        for (int j = i + minJump; j <= Math.min(i + maxJump, s.length() - 1); j++) {
+            if (s.charAt(j) == '0' && solve(j)) {
+                return memo[i] = true;
+            }
+        }
+        return memo[i] = false;
+    }
+}
+```
+
+### Iterative (Prefix Sum DP) Solution
+```java
+class JumpGameVII {
+
+    // ITERATIVE with prefix sum — O(n)
+    public boolean canReach(String s, int minJump, int maxJump) {
+        int n = s.length();
+        if (s.charAt(n - 1) == '1') return false;
+        
+        // dp[i] = true if index i is reachable
+        boolean[] dp = new boolean[n];
+        dp[0] = true;
+        
+        // prefix[i] = number of reachable positions in [0..i]
+        int[] prefix = new int[n + 1];
+        prefix[1] = 1;
+        
+        for (int i = 1; i < n; i++) {
+            if (s.charAt(i) == '0') {
+                // window that can jump TO i: [i-maxJump, i-minJump]
+                int lo = Math.max(0, i - maxJump);
+                int hi = i - minJump;
+                
+                if (hi >= 0) {
+                    // any reachable position in [lo..hi]?
+                    int reachableInWindow = prefix[hi + 1] - prefix[lo];
+                    if (reachableInWindow > 0) {
+                        dp[i] = true;
+                    }
+                }
+            }
+            prefix[i + 1] = prefix[i] + (dp[i] ? 1 : 0);
+        }
+        return dp[n - 1];
+    }
+}
+```
+
+### 🔍 Dry Run (s="011010", minJump=2, maxJump=3)
+```
+s:    0  1  1  0  1  0
+idx:  0  1  2  3  4  5
+
+dp[0]=true (start)
+i=1: s[1]='1' → skip
+i=2: s[2]='1' → skip
+i=3: s[3]='0', window=[0,1] → prefix[2]-prefix[0]=1>0 → dp[3]=true
+i=4: s[4]='1' → skip
+i=5: s[5]='0', window=[2,3] → prefix[4]-prefix[2]=1>0 → dp[5]=true
+
+Answer = true ✅
+Path: 0 → 3 → 5
+```
+
+---
+
+## 8. Minimum Cost to Cut a Stick — LC 1547
+
+### 💡 Intuition
+This is **Interval DP**. Add `0` and `n` to cuts array, sort it.
+`dp[i][j]` = min cost to make all cuts between `cuts[i]` and `cuts[j]`.
+Cost of a cut = length of current piece = `cuts[j] - cuts[i]`.
+
+### Recursive Solution
+```java
+class MinCostCut {
+
+    // RECURSIVE (Top-Down) — Most intuitive
+    int[] cuts;
+    int[][] memo;
+    
+    public int minCost(int n, int[] cuts) {
+        // add boundaries 0 and n, sort
+        int m = cuts.length;
+        int[] c = new int[m + 2];
+        c[0] = 0;
+        c[m + 1] = n;
+        for (int i = 0; i < m; i++) c[i + 1] = cuts[i];
+        Arrays.sort(c);
+        
+        this.cuts = c;
+        int len = c.length;
+        memo = new int[len][len];
+        for (int[] row : memo) Arrays.fill(row, -1);
+        
+        return solve(0, len - 1);
+    }
+    
+    private int solve(int i, int j) {
+        if (j - i <= 1) return 0;   // no cuts possible between adjacent
+        if (memo[i][j] != -1) return memo[i][j];
+        
+        int min = Integer.MAX_VALUE;
+        for (int k = i + 1; k < j; k++) {
+            // cut at position k
+            int cost = cuts[j] - cuts[i]          // current stick length
+                     + solve(i, k)                // left part
+                     + solve(k, j);               // right part
+            min = Math.min(min, cost);
+        }
+        return memo[i][j] = min;
+    }
+}
+```
+
+### Iterative Solution
+```java
+class MinCostCut {
+
+    // ITERATIVE (Bottom-Up Interval DP)
+    public int minCost(int n, int[] cuts) {
+        int m = cuts.length;
+        int[] c = new int[m + 2];
+        c[0] = 0;
+        c[m + 1] = n;
+        for (int i = 0; i < m; i++) c[i + 1] = cuts[i];
+        Arrays.sort(c);
+        
+        int len = c.length;
+        int[][] dp = new int[len][len];
+        
+        // fill by increasing interval length
+        for (int gap = 2; gap < len; gap++) {
+            for (int i = 0; i + gap < len; i++) {
+                int j = i + gap;
+                dp[i][j] = Integer.MAX_VALUE;
+                for (int k = i + 1; k < j; k++) {
+                    int cost = c[j] - c[i] + dp[i][k] + dp[k][j];
+                    dp[i][j] = Math.min(dp[i][j], cost);
+                }
+            }
+        }
+        return dp[0][len - 1];
+    }
+}
+```
+
+### 🔍 Dry Run (n=7, cuts=[1,3,4])
+```
+After adding boundaries + sorting:
+c = [0, 1, 3, 4, 7]
+idx:  0  1  2  3  4
+
+dp[i][j] = min cost for cuts between c[i] and c[j]
+
+gap=2:
+dp[0][2]: cut at k=1 → (c[2]-c[0]) + 0 + 0 = 3
+dp[1][3]: cut at k=2 → (c[3]-c[1]) + 0 + 0 = 3
+dp[2][4]: cut at k=3 → (c[4]-c[2]) + 0 + 0 = 4
+
+gap=3:
+dp[0][3]: 
+  k=1: (4-0)+dp[0][1]+dp[1][3] = 4+0+3 = 7
+  k=2: (4-0)+dp[0][2]+dp[2][3] = 4+3+0 = 7
+  min = 7
+
+dp[1][4]:
+  k=2: (7-1)+dp[1][2]+dp[2][4] = 6+0+4 = 10
+  k=3: (7-1)+dp[1][3]+dp[3][4] = 6+3+0 = 9
+  min = 9
+
+gap=4:
+dp[0][4]:
+  k=1: (7-0)+dp[0][1]+dp[1][4] = 7+0+9  = 16
+  k=2: (7-0)+dp[0][2]+dp[2][4] = 7+3+4  = 14
+  k=3: (7-0)+dp[0][3]+dp[3][4] = 7+7+0  = 14
+  min = 14
+
+Answer = 14 ✅
+```
+
+---
+
+## 📊 Final Summary Table
+
+| Problem | Key Technique | Trick |
+|---|---|---|
+| **Climbing Stairs** | Fibonacci DP | `dp[i] = dp[i-1] + dp[i-2]` |
+| **Min Cost Climbing Stairs** | Min Fibonacci DP | Answer is `min(dp[n-1], dp[n-2])` not just `dp[n-1]` |
+| **Fibonacci Number** | Pure recurrence | The base template for ALL 1D DP |
+| **House Robber** | Take/Skip decision | `dp[i] = max(dp[i-1], dp[i-2] + nums[i])` |
+| **House Robber II** | Circular → Linear trick | Split into 2 linear runs, exclude first or last |
+| **Jump Game II** | Greedy DP / BFS-like | Track `currentEnd` boundary — jump only when forced |
+| **Jump Game VII** | Prefix Sum + DP | Use prefix sum to check reachable window in O(1) |
+| **Min Cost to Cut Stick** | Interval DP | Add boundaries 0 and n, iterate by gap size |
+
+---
+
+> ✅ Say **"Pattern Summary"** (Step 4) for the golden template + priority ranking + one rule to rule them all! 🚀

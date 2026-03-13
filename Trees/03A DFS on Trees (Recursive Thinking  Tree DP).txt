@@ -1,0 +1,316 @@
+# 🌳 Pattern 3 — DFS on Trees (Recursive Thinking / Tree DP)
+
+---
+
+## 1. Core Idea
+
+> **DFS on Trees = Trust the recursion.**
+> At every node, ask: *"What does my left subtree give me? What does my right subtree give me? What do I return to my parent?"*
+> This single mental model solves 80% of all tree problems.
+
+```
+The Recursive Contract:
+┌─────────────────────────────────────────────┐
+│  1. Define what your function RETURNS       │
+│  2. Trust left/right calls give you that    │
+│  3. Combine left + right to build answer    │
+│  4. Return result to YOUR parent            │
+└─────────────────────────────────────────────┘
+```
+
+### Two Modes of DFS:
+
+```
+MODE 1: Return value UP (bottom-up)
+─────────────────────────────────
+Children compute → pass result to parent
+Used for: height, diameter, max path sum
+
+        root          ← combines left+right results
+       /    \
+    left    right     ← each returns something to root
+    
+MODE 2: Pass value DOWN (top-down)
+──────────────────────────────────
+Parent passes context to children
+Used for: path sum, good nodes, node depth
+
+        root          ← passes accumulated value down
+       /    \
+    left    right     ← receive value from parent
+```
+
+---
+
+## 🧠 How to Recognize These Problems
+
+| Clue in Problem | DFS Strategy |
+|---|---|
+| "height / depth of tree" | Return height bottom-up |
+| "diameter / longest path" | At each node: left height + right height |
+| "max/min path sum" | Tree DP: pass max gain upward |
+| "count good nodes" | Pass max value seen so far downward |
+| "same tree / symmetric" | Compare two nodes simultaneously |
+| "balanced tree" | Return -1 as sentinel for unbalanced |
+| "all root-to-leaf paths" | Backtracking DFS with path list |
+| "any-to-any path" | At each node: consider it as path root |
+| "transform tree" | Return new node structure upward |
+
+---
+
+## 📌 Key Variants
+
+---
+
+### Variant 1 — Height of Tree (Pure Bottom-Up)
+
+```
+        1
+       / \
+      2   3
+     / \
+    4   5
+
+At node 4: max(left=0, right=0) + 1 = 1
+At node 5: max(left=0, right=0) + 1 = 1
+At node 2: max(left=1, right=1) + 1 = 2
+At node 3: max(left=0, right=0) + 1 = 1
+At node 1: max(left=2, right=1) + 1 = 3
+
+Height = 3 ✅
+```
+
+---
+
+### Variant 2 — Diameter (At Each Node = Left Height + Right Height)
+
+```
+        1
+       / \
+      2   3
+     / \
+    4   5
+
+Key insight: diameter through a node = 
+             leftHeight + rightHeight
+
+At node 2: left=1(node4) + right=1(node5) = 2
+At node 1: left=2(subtree2) + right=1(node3) = 3
+
+Global max diameter tracked separately
+Answer = 3 ✅ (path: 4→2→5 or 4→2→1→3)
+```
+
+---
+
+### Variant 3 — Tree DP (Max Path Sum — Any Node to Any Node)
+
+```
+        -10
+        /  \
+       9   20
+           / \
+          15   7
+
+At node 15: max gain = 15
+At node 7:  max gain = 7
+At node 20: 
+  leftGain  = max(15, 0) = 15   ← 0 means "don't take this path"
+  rightGain = max(7, 0)  = 7
+  pathThrough20 = 20 + 15 + 7 = 42   ← update global max
+  return 20 + max(15, 7) = 35         ← return ONLY one side to parent
+
+At node 9: max gain = 9
+At node -10:
+  leftGain  = max(9, 0)  = 9
+  rightGain = max(35, 0) = 35
+  pathThrough(-10) = -10 + 9 + 35 = 34  ← update global max
+  
+Global max = 42 ✅
+```
+
+---
+
+### Variant 4 — Top-Down (Pass State Downward)
+
+```
+Count "Good Nodes" — node X is good if no node 
+on path root→X has value greater than X
+
+        3
+       / \
+      1   4
+     /   / \
+    3   1   5
+
+Pass maxSoFar downward:
+
+root(3): maxSoFar=3, 3>=3 → good! count=1
+  left(1): maxSoFar=3, 1<3 → not good
+    left(3): maxSoFar=3, 3>=3 → good! count=2
+  right(4): maxSoFar=3, 4>=3 → good! count=3
+    left(1): maxSoFar=4, 1<4 → not good
+    right(5): maxSoFar=4, 5>=4 → good! count=4
+
+Answer = 4 ✅
+```
+
+---
+
+### Variant 5 — Backtracking DFS (Collect All Paths)
+
+```
+Find all root-to-leaf paths that sum to target=22
+
+        5
+       / \
+      4   8
+     /   / \
+   11   13   4
+   / \        \
+  7   2        1
+
+DFS with running sum:
+Path 5→4→11→7: sum=27 ≠ 22
+Path 5→4→11→2: sum=22 ✅ ADD
+Path 5→8→13:   sum=26 ≠ 22
+Path 5→8→4→1:  sum=18 ≠ 22
+
+Key: add node to path, recurse, REMOVE node (backtrack)
+```
+
+---
+
+### Variant 6 — Transform Tree (Return New Structure)
+
+```
+Invert Binary Tree:
+        4                    4
+       / \        →         / \
+      2   7                7   2
+     / \ / \              / \ / \
+    1  3 6  9            9  6 3  1
+
+At each node: swap left and right children
+Bottom-up: leaf nodes swap (trivially)
+           parents swap after children are swapped
+```
+
+---
+
+## 🏆 Golden Template in Java
+
+```java
+// ─────────────────────────────────────────────────
+// TEMPLATE 1: BOTTOM-UP (return value to parent)
+// ─────────────────────────────────────────────────
+int dfsBottomUp(TreeNode root) {
+    if (root == null) return BASE_VALUE; // 0 for height, null for others
+
+    int left  = dfsBottomUp(root.left);  // Trust left result
+    int right = dfsBottomUp(root.right); // Trust right result
+
+    // Update global answer if needed (diameter, max path, etc.)
+    globalAns = Math.max(globalAns, left + right + root.val);
+
+    // Return something meaningful to parent
+    return Math.max(left, right) + 1;
+}
+
+// ─────────────────────────────────────────────────
+// TEMPLATE 2: TOP-DOWN (pass state to children)
+// ─────────────────────────────────────────────────
+void dfsTopDown(TreeNode root, int stateFromParent) {
+    if (root == null) return;
+
+    // Use state passed from parent + current node
+    int newState = compute(stateFromParent, root.val);
+
+    // Update answer if at leaf or condition met
+    if (root.left == null && root.right == null) {
+        updateAnswer(newState);
+        return;
+    }
+
+    dfsTopDown(root.left,  newState); // Pass new state down
+    dfsTopDown(root.right, newState);
+}
+
+// ─────────────────────────────────────────────────
+// TEMPLATE 3: BACKTRACKING (collect paths)
+// ─────────────────────────────────────────────────
+void dfsBacktrack(TreeNode root, List<Integer> path, int remaining) {
+    if (root == null) return;
+
+    path.add(root.val);            // Choose
+    remaining -= root.val;
+
+    if (root.left == null && root.right == null && remaining == 0) {
+        result.add(new ArrayList<>(path)); // Found valid path
+    } else {
+        dfsBacktrack(root.left,  path, remaining); // Explore left
+        dfsBacktrack(root.right, path, remaining); // Explore right
+    }
+
+    path.remove(path.size() - 1); // Unchoose (backtrack)
+}
+
+// ─────────────────────────────────────────────────
+// TEMPLATE 4: TREE DP (global answer + local return)
+// ─────────────────────────────────────────────────
+int globalMax = Integer.MIN_VALUE;
+
+int treeDP(TreeNode root) {
+    if (root == null) return 0;
+
+    // Get max gain from each side (ignore negative paths with max(..., 0))
+    int leftGain  = Math.max(treeDP(root.left),  0);
+    int rightGain = Math.max(treeDP(root.right), 0);
+
+    // Price of path through current node
+    int priceThrough = root.val + leftGain + rightGain;
+    globalMax = Math.max(globalMax, priceThrough); // Update global
+
+    // Return max single-path gain to parent (can only go ONE direction)
+    return root.val + Math.max(leftGain, rightGain);
+}
+```
+
+---
+
+## 📋 Key Rules to Remember
+
+| Rule | Why It Matters |
+|---|---|
+| **Define return value clearly first** | Determines everything else in your DFS |
+| **Base case: null returns neutral value** | 0 for sum/height, true for boolean, null for node |
+| **Global answer ≠ return value** | e.g., diameter uses both sides but returns only one |
+| **Use max(..., 0) to ignore negative paths** | Core Tree DP trick for path sum problems |
+| **Backtracking: add → recurse → remove** | Always undo path choice after recursion |
+| **Top-down: pass accumulator downward** | Parent's context flows to children |
+| **Bottom-up: combine children upward** | Children's results flow to parent |
+| **Sentinel value trick (-1 for invalid)** | Used in balanced tree to short-circuit early |
+| **At leaf: left==null && right==null** | Standard leaf detection pattern |
+| **Two-pointer DFS: pass two nodes** | Used in symmetric tree, same tree comparisons |
+
+---
+
+## 🏋️ Practice Problems
+
+### 🟢 Easy
+- **LC 104** — Maximum Depth of Binary Tree
+- **LC 226** — Invert Binary Tree
+- **LC 572** — Subtree of Another Tree
+
+### 🟡 Medium
+- **LC 236** — Lowest Common Ancestor of Binary Tree
+- **LC 437** — Path Sum III
+- **LC 1448** — Count Good Nodes in Binary Tree
+
+### 🔴 Hard
+- **LC 124** — Binary Tree Maximum Path Sum
+- **LC 968** — Binary Tree Cameras
+
+---
+
+> ✅ Say **"Solve DFS on Trees"** to get full Java solutions (recursive + iterative) with dry runs for all 8 problems above.

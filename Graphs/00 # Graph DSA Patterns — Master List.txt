@@ -1,0 +1,30 @@
+# Graph DSA Patterns — Master List
+
+| # | Pattern Name | ⭐ Priority |
+|---|---|---|
+| 1 | **Graph Representation & Traversal (BFS/DFS)** | ⭐⭐⭐⭐⭐ |
+| 2 | **Connected Components** | ⭐⭐⭐⭐⭐ |
+| 3 | **Cycle Detection** | ⭐⭐⭐⭐⭐ |
+| 4 | **Topological Sort** | ⭐⭐⭐⭐⭐ |
+| 5 | **Shortest Path (BFS / Dijkstra / Bellman-Ford)** | ⭐⭐⭐⭐⭐ |
+| 6 | **Union-Find (Disjoint Set Union)** | ⭐⭐⭐⭐⭐ |
+| 7 | **Bipartite / Graph Coloring** | ⭐⭐⭐⭐ |
+| 8 | **Minimum Spanning Tree (Kruskal / Prim)** | ⭐⭐⭐⭐ |
+| 9 | **Multi-Source BFS** | ⭐⭐⭐⭐ |
+| 10 | **0-1 BFS** | ⭐⭐⭐⭐ |
+| 11 | **Flood Fill / Island Problems** | ⭐⭐⭐⭐ |
+| 12 | **Matrix as Graph (Grid BFS/DFS)** | ⭐⭐⭐⭐ |
+| 13 | **Strongly Connected Components (Kosaraju / Tarjan)** | ⭐⭐⭐ |
+| 14 | **Bridges & Articulation Points** | ⭐⭐⭐ |
+| 15 | **Eulerian Path / Circuit** | ⭐⭐⭐ |
+| 16 | **Hamiltonian Path (Backtracking on Graph)** | ⭐⭐⭐ |
+| 17 | **Shortest Path in DAG (DP + Topo Sort)** | ⭐⭐⭐ |
+| 18 | **Graph DP / Memoized DFS on Graph** | ⭐⭐⭐ |
+| 19 | **Bidirectional BFS** | ⭐⭐⭐ |
+| 20 | **A\* Search** | ⭐⭐ |
+
+---
+
+> ✅ **Recommended order:** Follow the table top-to-bottom — each pattern builds on the previous one.
+> 
+> **Send the pattern name when ready** (e.g., `Graph Representation & Traversal (BFS/DFS)`) and I'll begin Step 2.

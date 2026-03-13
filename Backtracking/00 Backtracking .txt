@@ -1,0 +1,25 @@
+# Backtracking DSA Patterns — Master List
+
+| # | Pattern Name | ⭐ Priority |
+|---|---|---|
+| 1 | **Subsets / Power Set** | ⭐⭐⭐⭐⭐ |
+| 2 | **Permutations** | ⭐⭐⭐⭐⭐ |
+| 3 | **Combinations / Combination Sum** | ⭐⭐⭐⭐⭐ |
+| 4 | **N-Queens / Board Placement** | ⭐⭐⭐⭐ |
+| 5 | **Palindrome Partitioning** | ⭐⭐⭐⭐ |
+| 6 | **Word Search / Grid Path** | ⭐⭐⭐⭐ |
+| 7 | **Letter Case Permutation / String Backtracking** | ⭐⭐⭐ |
+| 8 | **Sudoku Solver / Constraint Satisfaction** | ⭐⭐⭐⭐ |
+| 9 | **Expression Add Operators** | ⭐⭐⭐ |
+| 10 | **Generate Parentheses** | ⭐⭐⭐⭐ |
+
+---
+
+### Quick Priority Guide
+- 🔴 **Must Know (5⭐):** Subsets, Permutations, Combinations
+- 🟠 **High Value (4⭐):** N-Queens, Palindrome Partitioning, Word Search, Generate Parentheses
+- 🟡 **Good to Know (3⭐):** Letter Case, Sudoku, Expression Operators
+
+---
+
+**Ready. Send the pattern name to begin Step 2.** 🚀

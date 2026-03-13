@@ -1,0 +1,760 @@
+# Step 3 — Java Solutions: Permutations Pattern
+
+---
+
+## 🟢 LC 46 — Permutations
+
+### Intuition
+At each step, pick any **unused** element and place it in the current position. Use a `used[]` boolean array to track which elements are already in the current path. Collect result only at leaf nodes when `current.size() == nums.length`.
+
+---
+
+### Solution 1 — Backtracking with `used[]` (Recursive)
+
+```java
+class Solution {
+    public List<List<Integer>> permute(int[] nums) {
+        List<List<Integer>> result = new ArrayList<>();
+        backtrack(nums, new boolean[nums.length], new ArrayList<>(), result);
+        return result;
+    }
+
+    private void backtrack(int[] nums, boolean[] used,
+                           List<Integer> current,
+                           List<List<Integer>> result) {
+        // ✅ Leaf: all elements placed
+        if (current.size() == nums.length) {
+            result.add(new ArrayList<>(current));
+            return;
+        }
+
+        for (int i = 0; i < nums.length; i++) {
+            if (used[i]) continue;          // 🚫 skip used elements
+
+            used[i] = true;                 // ➕ choose
+            current.add(nums[i]);
+
+            backtrack(nums, used, current, result); // 🔽 explore
+
+            used[i] = false;                // ➖ un-choose
+            current.remove(current.size() - 1);
+        }
+    }
+}
+```
+
+---
+
+### Solution 2 — Swap-Based Backtracking (In-Place, No Extra Space)
+
+```java
+class Solution {
+    public List<List<Integer>> permute(int[] nums) {
+        List<List<Integer>> result = new ArrayList<>();
+        permute(nums, 0, result);
+        return result;
+    }
+
+    private void permute(int[] nums, int start, List<List<Integer>> result) {
+        // ✅ Leaf: all positions filled
+        if (start == nums.length) {
+            List<Integer> perm = new ArrayList<>();
+            for (int n : nums) perm.add(n);
+            result.add(perm);
+            return;
+        }
+
+        for (int i = start; i < nums.length; i++) {
+            swap(nums, start, i);           // ➕ fix nums[i] at position 'start'
+            permute(nums, start + 1, result); // 🔽 explore
+            swap(nums, start, i);           // ➖ restore
+        }
+    }
+
+    private void swap(int[] nums, int i, int j) {
+        int temp = nums[i];
+        nums[i] = nums[j];
+        nums[j] = temp;
+    }
+}
+```
+
+---
+
+### Solution 3 — Iterative (Insert at Every Position)
+
+```java
+class Solution {
+    public List<List<Integer>> permute(int[] nums) {
+        List<List<Integer>> result = new ArrayList<>();
+        result.add(new ArrayList<>());     // start with empty permutation
+
+        for (int num : nums) {
+            List<List<Integer>> newResult = new ArrayList<>();
+
+            for (List<Integer> perm : result) {
+                // Insert 'num' at every position in existing permutation
+                for (int i = 0; i <= perm.size(); i++) {
+                    List<Integer> newPerm = new ArrayList<>(perm);
+                    newPerm.add(i, num);   // insert at position i
+                    newResult.add(newPerm);
+                }
+            }
+            result = newResult;
+        }
+        return result;
+    }
+}
+```
+
+---
+
+### 🔍 Dry Run — LC 46 `nums = [1, 2, 3]`
+
+```
+backtrack(used=[F,F,F], current=[])
+  i=0: use 1 → backtrack(used=[T,F,F], current=[1])
+         i=1: use 2 → backtrack(used=[T,T,F], current=[1,2])
+                i=2: use 3 → backtrack(used=[T,T,T], current=[1,2,3])
+                       ✅ add [1,2,3]
+                     unuse 3
+              unuse 2
+         i=2: use 3 → backtrack(used=[T,F,T], current=[1,3])
+                i=1: use 2 → backtrack(current=[1,3,2])
+                       ✅ add [1,3,2]
+              unuse 3
+       unuse 1
+  i=1: use 2 → backtrack(current=[2])
+         i=0: use 1 → [2,1,3] ✅
+         i=2: use 3 → [2,3,1] ✅
+       unuse 2
+  i=2: use 3 → backtrack(current=[3])
+         i=0: use 1 → [3,1,2] ✅
+         i=1: use 2 → [3,2,1] ✅
+
+Result: [[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]] ✅  (3!=6)
+```
+
+---
+---
+
+## 🟢 LC 1920 — Build Array from Permutation
+
+### Intuition
+`ans[i] = nums[nums[i]]` — straightforward index chaining. The O(1) space trick encodes both old and new values in the same array using modular arithmetic.
+
+---
+
+### Solution 1 — Simple O(n) Space
+
+```java
+class Solution {
+    public int[] buildArray(int[] nums) {
+        int n = nums.length;
+        int[] ans = new int[n];
+
+        for (int i = 0; i < n; i++) {
+            ans[i] = nums[nums[i]];   // ans[i] = nums[nums[i]]
+        }
+        return ans;
+    }
+}
+```
+
+---
+
+### Solution 2 — O(1) Space (In-Place Encoding Trick)
+
+```java
+class Solution {
+    public int[] buildArray(int[] nums) {
+        int n = nums.length;
+        // Encode: nums[i] = nums[i] + n * (nums[nums[i]] % n)
+        // Old value = nums[i] % n
+        // New value = nums[i] / n
+
+        // Step 1: Encode new value into existing array
+        for (int i = 0; i < n; i++) {
+            nums[i] += n * (nums[nums[i]] % n);
+        }
+
+        // Step 2: Extract new values
+        for (int i = 0; i < n; i++) {
+            nums[i] /= n;
+        }
+        return nums;
+    }
+}
+```
+
+---
+
+### 🔍 Dry Run — LC 1920 `nums = [0, 2, 1, 5, 3, 4]`
+
+```
+Simple approach:
+ans[0] = nums[nums[0]] = nums[0] = 0
+ans[1] = nums[nums[1]] = nums[2] = 1
+ans[2] = nums[nums[2]] = nums[1] = 2
+ans[3] = nums[nums[3]] = nums[5] = 4
+ans[4] = nums[nums[4]] = nums[3] = 5
+ans[5] = nums[nums[5]] = nums[4] = 3
+
+Result: [0, 1, 2, 4, 5, 3] ✅
+```
+
+---
+---
+
+## 🟡 LC 47 — Permutations II (With Duplicates)
+
+### Intuition
+Sort first so duplicates are adjacent. Use `used[]` array. The key pruning condition `nums[i]==nums[i-1] && !used[i-1]` ensures we only use a duplicate element **after** its predecessor has been used at this level, preventing duplicate permutations.
+
+---
+
+### Solution 1 — Backtracking + Sort + Skip (Recursive)
+
+```java
+class Solution {
+    public List<List<Integer>> permuteUnique(int[] nums) {
+        Arrays.sort(nums);  // ⚠️ Sort first — groups duplicates
+        List<List<Integer>> result = new ArrayList<>();
+        backtrack(nums, new boolean[nums.length], new ArrayList<>(), result);
+        return result;
+    }
+
+    private void backtrack(int[] nums, boolean[] used,
+                           List<Integer> current,
+                           List<List<Integer>> result) {
+        if (current.size() == nums.length) {
+            result.add(new ArrayList<>(current));
+            return;
+        }
+
+        for (int i = 0; i < nums.length; i++) {
+            if (used[i]) continue;
+
+            // 🚫 Skip duplicate: same value as previous AND previous not used
+            // This means: use duplicates in order (left to right)
+            if (i > 0 && nums[i] == nums[i - 1] && !used[i - 1]) continue;
+
+            used[i] = true;
+            current.add(nums[i]);
+
+            backtrack(nums, used, current, result);
+
+            used[i] = false;
+            current.remove(current.size() - 1);
+        }
+    }
+}
+```
+
+---
+
+### Solution 2 — Swap-Based with HashSet (Alternative)
+
+```java
+class Solution {
+    public List<List<Integer>> permuteUnique(int[] nums) {
+        List<List<Integer>> result = new ArrayList<>();
+        permute(nums, 0, result);
+        return result;
+    }
+
+    private void permute(int[] nums, int start, List<List<Integer>> result) {
+        if (start == nums.length) {
+            List<Integer> perm = new ArrayList<>();
+            for (int n : nums) perm.add(n);
+            result.add(perm);
+            return;
+        }
+
+        Set<Integer> seen = new HashSet<>(); // track swapped values at this level
+        for (int i = start; i < nums.length; i++) {
+            if (seen.contains(nums[i])) continue; // 🚫 skip duplicate swap
+            seen.add(nums[i]);
+
+            swap(nums, start, i);
+            permute(nums, start + 1, result);
+            swap(nums, start, i);
+        }
+    }
+
+    private void swap(int[] nums, int i, int j) {
+        int temp = nums[i]; nums[i] = nums[j]; nums[j] = temp;
+    }
+}
+```
+
+---
+
+### 🔍 Dry Run — LC 47 `nums = [1, 1, 2]`
+
+```
+After sort: [1, 1, 2]   used = [F, F, F]
+
+backtrack(current=[])
+  i=0: nums[0]=1, used[0]=F → pick
+    backtrack(current=[1], used=[T,F,F])
+      i=1: nums[1]=1, used[1]=F → pick
+        backtrack(current=[1,1], used=[T,T,F])
+          i=2: pick 2 → ✅ add [1,1,2]
+      i=2: nums[2]=2, used[2]=F → pick
+        backtrack(current=[1,2], used=[T,F,T])
+          i=1: pick 1 → ✅ add [1,2,1]
+
+  i=1: nums[1]=1 == nums[0]=1 AND !used[0]=false → 🚫 SKIP
+
+  i=2: nums[2]=2, used[2]=F → pick
+    backtrack(current=[2], used=[F,F,T])
+      i=0: pick 1 → backtrack(current=[2,1])
+        i=1: nums[1]=1==nums[0]=1 AND !used[0] → 🚫 SKIP
+        i=2: used → skip
+      Hmm, let me re-trace...
+      i=0: pick nums[0]=1, used=[T,F,T], current=[2,1]
+        i=1: nums[1]=1==nums[0]=1, !used[0]? used[0]=T → condition FALSE → pick
+          current=[2,1,1] ✅ add [2,1,1]
+      i=1: nums[1]=1==nums[0]=1, !used[0]? used[0]=F → 🚫 SKIP
+
+Result: [[1,1,2], [1,2,1], [2,1,1]] ✅  (3 unique, not 3!=6)
+```
+
+---
+
+### 💡 Why `!used[i-1]` Works
+
+```
+nums = [1a, 1b, 2]  (treating duplicates as distinct for explanation)
+
+ALLOWED path:   use 1a first, then 1b  →  [1a, 1b, 2] ✅
+BLOCKED path:   use 1b first (1a unused) → would create same result → 🚫 SKIP
+
+Rule: "Among duplicates, always use the leftmost one first"
+      !used[i-1] means "previous duplicate is NOT in current path"
+      → we're trying to start with the later duplicate → skip it
+```
+
+---
+---
+
+## 🟡 LC 31 — Next Permutation
+
+### Intuition
+Find the rightmost "descent" (where order drops), then swap with the smallest element to its right that's larger, then reverse the suffix. This gives the lexicographically next arrangement in-place.
+
+---
+
+### Solution — Three-Step Algorithm (Iterative)
+
+```java
+class Solution {
+    public void nextPermutation(int[] nums) {
+        int n = nums.length;
+
+        // Step 1: Find rightmost index i where nums[i] < nums[i+1]
+        // (rightmost "ascending pair" from the right)
+        int i = n - 2;
+        while (i >= 0 && nums[i] >= nums[i + 1]) {
+            i--;
+        }
+
+        if (i >= 0) {
+            // Step 2: Find rightmost index j where nums[j] > nums[i]
+            int j = n - 1;
+            while (nums[j] <= nums[i]) {
+                j--;
+            }
+            // Step 3: Swap nums[i] and nums[j]
+            swap(nums, i, j);
+        }
+
+        // Step 4: Reverse suffix starting at i+1
+        // (if i == -1, entire array is reversed → wraps to first permutation)
+        reverse(nums, i + 1, n - 1);
+    }
+
+    private void swap(int[] nums, int i, int j) {
+        int temp = nums[i]; nums[i] = nums[j]; nums[j] = temp;
+    }
+
+    private void reverse(int[] nums, int left, int right) {
+        while (left < right) {
+            swap(nums, left++, right--);
+        }
+    }
+}
+```
+
+---
+
+### 🔍 Dry Run — LC 31
+
+```
+Example 1: nums = [1, 3, 5, 4, 2]
+
+Step 1: Find rightmost i where nums[i] < nums[i+1]
+  i=3: nums[3]=4 > nums[4]=2  → no
+  i=2: nums[2]=5 > nums[3]=4  → no
+  i=1: nums[1]=3 < nums[2]=5  → YES! i=1
+
+Step 2: Find rightmost j where nums[j] > nums[i]=3
+  j=4: nums[4]=2 ≤ 3  → no
+  j=3: nums[3]=4 > 3  → YES! j=3
+
+Step 3: Swap nums[1] and nums[3]
+  [1, 3, 5, 4, 2] → [1, 4, 5, 3, 2]
+
+Step 4: Reverse suffix from i+1=2 to end
+  Reverse [5, 3, 2] → [2, 3, 5]
+  Final: [1, 4, 2, 3, 5] ✅
+
+Example 2: nums = [3, 2, 1]  (last permutation)
+  Step 1: i stays at -1 (no ascending pair found)
+  Step 4: Reverse entire array → [1, 2, 3] ✅ (wraps to first)
+```
+
+---
+---
+
+## 🟡 LC 567 — Permutation in String
+
+### Intuition
+A permutation of `s1` exists in `s2` if any window of `s2` with length `len(s1)` has the **same character frequencies**. Use a sliding window of fixed size with two frequency arrays — when they match, a permutation exists.
+
+---
+
+### Solution 1 — Sliding Window with Frequency Array
+
+```java
+class Solution {
+    public boolean checkInclusion(String s1, String s2) {
+        if (s1.length() > s2.length()) return false;
+
+        int[] freq1 = new int[26];
+        int[] freq2 = new int[26];
+
+        // Build frequency for s1 and first window of s2
+        for (int i = 0; i < s1.length(); i++) {
+            freq1[s1.charAt(i) - 'a']++;
+            freq2[s2.charAt(i) - 'a']++;
+        }
+
+        if (Arrays.equals(freq1, freq2)) return true;
+
+        // Slide window across s2
+        for (int i = s1.length(); i < s2.length(); i++) {
+            freq2[s2.charAt(i) - 'a']++;              // add new char
+            freq2[s2.charAt(i - s1.length()) - 'a']--; // remove old char
+            if (Arrays.equals(freq1, freq2)) return true;
+        }
+        return false;
+    }
+}
+```
+
+---
+
+### Solution 2 — Sliding Window with Match Counter (Optimized)
+
+```java
+class Solution {
+    public boolean checkInclusion(String s1, String s2) {
+        if (s1.length() > s2.length()) return false;
+
+        int[] freq = new int[26];
+        // Positive = needed from s1, Negative = excess in window
+        for (char c : s1.toCharArray()) freq[c - 'a']++;
+
+        int required = s1.length(); // chars still needed to match
+
+        for (int i = 0; i < s2.length(); i++) {
+            // Add right character
+            int right = s2.charAt(i) - 'a';
+            if (freq[right] > 0) required--;   // this char was needed
+            freq[right]--;
+
+            // Remove left character (when window exceeds s1 length)
+            if (i >= s1.length()) {
+                int left = s2.charAt(i - s1.length()) - 'a';
+                if (freq[left] >= 0) required++; // losing a needed char
+                freq[left]++;
+            }
+
+            if (required == 0) return true;
+        }
+        return false;
+    }
+}
+```
+
+---
+
+### 🔍 Dry Run — LC 567 `s1="ab", s2="eidbaooo"`
+
+```
+freq1 = [a:1, b:1]
+Initial window "ei": freq2 = [e:1, i:1] ≠ freq1
+
+Slide:
+  i=2: add 'd' → window "eid"→"idb"... 
+  
+Let me use Solution 2's match counter:
+freq = [a:1, b:1, ...others:0]  required=2
+
+i=0, right='e': freq[e]=0 → not needed, freq[e]=-1, required=2
+i=1, right='i': freq[i]=0 → not needed, freq[i]=-1, required=2
+i=2, right='d': freq[d]=0 → not needed, freq[d]=-1
+     left='e' (i-2=0): freq[e]=-1 → freq[e]<0, don't increment required, freq[e]=0
+     required=2
+i=3, right='b': freq[b]=1>0 → required=1, freq[b]=0
+     left='i': freq[i]=-1 → freq[i]=0, required=1
+i=4, right='a': freq[a]=1>0 → required=0, freq[a]=0
+     left='d': freq[d]=-1 → freq[d]=0
+     required=0 → return true ✅
+
+Window "ba" is a permutation of "ab" ✅
+```
+
+---
+---
+
+## 🔴 LC 60 — Kth Permutation
+
+### Intuition
+Instead of generating all `n!` permutations, use **factorial number system** to directly compute the k-th permutation. At each position, determine which digit belongs there by dividing `k-1` by `(n-1)!`. This is O(n²) instead of O(n × n!).
+
+---
+
+### Solution 1 — Factorial Math (Direct Computation)
+
+```java
+class Solution {
+    public String getPermutation(int n, int k) {
+        // Build factorial array: fact[i] = i!
+        int[] fact = new int[n];
+        fact[0] = 1;
+        for (int i = 1; i < n; i++) {
+            fact[i] = fact[i - 1] * i;
+        }
+
+        // Build list of available digits [1, 2, ..., n]
+        List<Integer> digits = new ArrayList<>();
+        for (int i = 1; i <= n; i++) digits.add(i);
+
+        StringBuilder sb = new StringBuilder();
+        k--; // Convert to 0-indexed
+
+        for (int i = n - 1; i >= 0; i--) {
+            // Which digit goes at current position?
+            int idx = k / fact[i];
+            sb.append(digits.get(idx));
+            digits.remove(idx);  // remove used digit
+            k %= fact[i];        // update k for remaining positions
+        }
+
+        return sb.toString();
+    }
+}
+```
+
+---
+
+### Solution 2 — Backtracking (Generate Until k-th) — TLE for large n but conceptually clear
+
+```java
+class Solution {
+    private int k;
+    private String result;
+
+    public String getPermutation(int n, int k) {
+        this.k = k;
+        this.result = "";
+        boolean[] used = new boolean[n + 1];
+        backtrack(n, used, new StringBuilder());
+        return result;
+    }
+
+    private void backtrack(int n, boolean[] used, StringBuilder current) {
+        if (current.length() == n) {
+            k--;
+            if (k == 0) result = current.toString();
+            return;
+        }
+
+        for (int i = 1; i <= n; i++) {
+            if (used[i] || k <= 0) continue;
+            used[i] = true;
+            current.append(i);
+
+            backtrack(n, used, current);
+
+            used[i] = false;
+            current.deleteCharAt(current.length() - 1);
+        }
+    }
+}
+```
+
+---
+
+### 🔍 Dry Run — LC 60 `n=4, k=9`
+
+```
+fact = [1, 1, 2, 6]   digits = [1, 2, 3, 4]
+k = 9 - 1 = 8  (0-indexed)
+
+Position 0 (i=3): block size = fact[3] = 6
+  idx = 8 / 6 = 1  → pick digits[1] = 2
+  k = 8 % 6 = 2
+  digits = [1, 3, 4]
+
+Position 1 (i=2): block size = fact[2] = 2
+  idx = 2 / 2 = 1  → pick digits[1] = 3
+  k = 2 % 2 = 0
+  digits = [1, 4]
+
+Position 2 (i=1): block size = fact[1] = 1
+  idx = 0 / 1 = 0  → pick digits[0] = 1
+  k = 0 % 1 = 0
+  digits = [4]
+
+Position 3 (i=0): block size = fact[0] = 1
+  idx = 0 / 1 = 0  → pick digits[0] = 4
+  digits = []
+
+Result: "2314" ✅
+
+Verification: All 4! = 24 permutations of [1,2,3,4]:
+Perms starting with 1: 6  (k=1..6)
+Perms starting with 2: 6  (k=7..12) → k=9 is 3rd in this group
+  Starting 2,1: 2  (k=7,8)
+  Starting 2,3: 2  (k=9,10) → k=9 is 1st here
+    2,3,1,4 → k=9 ✅
+Wait: "2314" = 2,3,1,4 ✅
+```
+
+---
+---
+
+## 🔴 LC 267 — Palindrome Permutation II
+
+### Intuition
+A palindrome permutation is only possible if at most one character has an odd frequency. Build the first half using characters with freq/2 counts, generate all permutations of that half, then mirror each half (adding odd char in middle if exists) to form full palindromes.
+
+---
+
+### Solution — Backtracking on Half String
+
+```java
+class Solution {
+    public List<String> generatePalindromes(String s) {
+        List<String> result = new ArrayList<>();
+
+        // Step 1: Count character frequencies
+        int[] freq = new int[26];
+        for (char c : s.toCharArray()) freq[c - 'a']++;
+
+        // Step 2: Find odd character (at most 1 allowed)
+        String middle = "";
+        StringBuilder halfBuilder = new StringBuilder();
+
+        for (int i = 0; i < 26; i++) {
+            if (freq[i] % 2 == 1) {
+                middle += (char)('a' + i); // odd char goes in middle
+            }
+            // Add freq[i]/2 copies to the half
+            for (int j = 0; j < freq[i] / 2; j++) {
+                halfBuilder.append((char)('a' + i));
+            }
+        }
+
+        // Step 3: If more than one odd character → impossible
+        if (middle.length() > 1) return result;
+
+        // Step 4: Generate all permutations of the half
+        char[] half = halfBuilder.toString().toCharArray();
+        Arrays.sort(half); // sort for dedup
+        String mid = middle;
+        backtrack(half, new boolean[half.length], new StringBuilder(), mid, result);
+
+        return result;
+    }
+
+    private void backtrack(char[] half, boolean[] used,
+                           StringBuilder current, String middle,
+                           List<String> result) {
+        // ✅ Leaf: permutation of half complete
+        if (current.length() == half.length) {
+            // Build palindrome: half + middle + reverse(half)
+            StringBuilder palindrome = new StringBuilder(current);
+            palindrome.append(middle);
+            palindrome.append(current.reverse());
+            result.add(palindrome.toString());
+            current.reverse(); // restore current (we reversed it)
+            return;
+        }
+
+        for (int i = 0; i < half.length; i++) {
+            if (used[i]) continue;
+            // 🚫 Skip duplicates at same level
+            if (i > 0 && half[i] == half[i - 1] && !used[i - 1]) continue;
+
+            used[i] = true;
+            current.append(half[i]);
+
+            backtrack(half, used, current, middle, result);
+
+            used[i] = false;
+            current.deleteCharAt(current.length() - 1);
+        }
+    }
+}
+```
+
+---
+
+### 🔍 Dry Run — LC 267 `s = "aabb"`
+
+```
+freq = [a:2, b:2]
+middle = ""  (no odd frequencies)
+half = ['a', 'b']  (one of each)
+
+All permutations of half:
+  [a, b] → "ab" + "" + "ba" = "abba" ✅
+  [b, a] → "ba" + "" + "ab" = "baab" ✅
+
+Result: ["abba", "baab"] ✅
+
+---
+s = "aab"
+freq = [a:2, b:1]
+middle = "b"  (b has odd count=1)
+half = ['a']
+
+Permutations of half:
+  [a] → "a" + "b" + "a" = "aba" ✅
+
+Result: ["aba"] ✅
+```
+
+---
+---
+
+# 📊 Summary Table
+
+| Problem | Key Technique | Trick |
+|---|---|---|
+| LC 46 — Permutations | Backtracking + `used[]` OR swap-in-place | Collect at **leaf only** (size==n); swap-based saves space |
+| LC 1920 — Build Array | Direct index mapping | `ans[i] = nums[nums[i]]`; encode trick for O(1) space |
+| LC 47 — Permutations II | Backtracking + sort + `!used[i-1]` | `nums[i]==nums[i-1] && !used[i-1]` → skip duplicate branches |
+| LC 31 — Next Permutation | Three-step in-place algorithm | Find dip → swap with next larger → reverse suffix |
+| LC 567 — Permutation in String | Sliding window + freq array | Fixed window size = `s1.length()`; match counter avoids full array compare |
+| LC 60 — Kth Permutation | Factorial number system | `k / (n-1)!` picks digit at each position; O(n²) vs O(n×n!) |
+| LC 267 — Palindrome Permutation II | Permute half + mirror | Odd-freq char → middle; permute only half to avoid full duplicates |
+
+---
+
+**Ready. Send `Pattern Summary` for Step 4, or send the next pattern name.** 🚀

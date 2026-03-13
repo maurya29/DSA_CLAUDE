@@ -1,0 +1,409 @@
+# 🌳 Pattern 7 — Path Problems (Root-to-Leaf / Any Path)
+
+---
+
+## 1. Core Idea
+
+> **Path problems = DFS with a running state carried from root downward, or a global answer updated at each node considering paths through it.**
+> Two fundamentally different types: **Root-to-Leaf** (state flows down, answer at leaf) and **Any-Path** (every node is a potential path midpoint, global answer updated bottom-up).
+
+```
+The Path Problem Contract:
+┌─────────────────────────────────────────────────────────┐
+│  ROOT-TO-LEAF:                                          │
+│  1. Carry state (sum, path, xor) from root DOWN         │
+│  2. At leaf → check condition, update answer            │
+│  3. Backtrack after returning from children             │
+│                                                         │
+│  ANY-PATH (through any node):                           │
+│  1. Get max contribution from LEFT child                │
+│  2. Get max contribution from RIGHT child               │
+│  3. Update GLOBAL answer: left + node + right           │
+│  4. Return to parent: node + max(left, right)           │
+│     ↑ Can only extend ONE direction to parent           │
+└─────────────────────────────────────────────────────────┘
+
+KEY DIFFERENCE:
+Root-to-Leaf → path must START at root, END at leaf
+Any-Path     → path can start and end ANYWHERE
+```
+
+---
+
+## 🧠 How to Recognize Path Problems
+
+| Clue in Problem | Pattern |
+|---|---|
+| "root to leaf", "all paths" | Root-to-leaf DFS + backtrack |
+| "path sum equals target" | Root-to-leaf with running sum |
+| "max/min path sum" | Any-path Tree DP |
+| "print all paths" | Root-to-leaf + backtracking |
+| "path exists with sum" | Root-to-leaf boolean DFS |
+| "sum of path numbers" | Root-to-leaf with number building |
+| "count paths with sum" | Prefix sum + HashMap (any path) |
+| "longest path", "diameter" | Any-path with height combination |
+| "binary number from root" | Root-to-leaf bit manipulation |
+| "pseudo-palindromic paths" | Root-to-leaf with XOR bitmask |
+
+---
+
+## 🌲 Tree Used for ALL Dry Runs
+
+```
+            5
+           / \
+          4   8
+         /   / \
+        11  13   4
+       /  \       \
+      7    2       1
+
+Paths root-to-leaf:
+  5→4→11→7  = 27
+  5→4→11→2  = 22 ✅ (target=22)
+  5→8→13    = 26
+  5→8→4→1   = 18
+```
+
+---
+
+## 📌 Variant 1 — Path Sum Exists (Boolean)
+
+```
+Target = 22, does any root-to-leaf path sum equal 22?
+
+DFS carrying REMAINING sum downward:
+
+start: remaining = 22
+At 5:  remaining = 22-5  = 17
+At 4:  remaining = 17-4  = 13
+At 11: remaining = 13-11 = 2
+At 7:  remaining = 2-7   = -5 → leaf, -5≠0 → NO
+At 2:  remaining = 2-2   = 0  → leaf, 0==0  → YES ✅
+
+Trick: subtract node value from target
+       at leaf check if remaining == 0
+```
+
+---
+
+## 📌 Variant 2 — All Root-to-Leaf Paths with Target Sum
+
+```
+Collect all paths where sum = 22
+
+BACKTRACKING pattern:
+  path = []
+  
+  Visit 5: path=[5],   remaining=17
+  Visit 4: path=[5,4], remaining=13
+  Visit 11:path=[5,4,11], remaining=2
+  Visit 7: path=[5,4,11,7], remaining=-5
+    leaf, ≠0 → backtrack, remove 7
+  Visit 2: path=[5,4,11,2], remaining=0
+    leaf, ==0 → ADD [5,4,11,2] to result ✅
+    backtrack, remove 2
+  Backtrack 11, remove 11
+  ...
+  
+  KEY: path.add() before recurse
+       path.remove(last) after recurse
+```
+
+---
+
+## 📌 Variant 3 — Sum of All Root-to-Leaf Numbers
+
+```
+Each root-to-leaf path forms a number:
+5→4→11→7  = 5411 (build: prev*10 + curr)
+5→4→11→2  = 5412
+5→8→13    = 5813... wait, 13 is a 2-digit node val
+
+Actually for this variant use single digit trees:
+
+        1
+       / \
+      2   3
+
+Paths: 1→2=12, 1→3=13
+Sum = 12+13 = 25
+
+Building number: currentNum = parentNum*10 + node.val
+At 1: num=1
+At 2: num=1*10+2=12 → leaf → add 12
+At 3: num=1*10+3=13 → leaf → add 13
+Total=25 ✅
+```
+
+---
+
+## 📌 Variant 4 — Any Path Maximum Sum (Tree DP)
+
+```
+        -10
+        /  \
+       9   20
+           / \
+          15   7
+
+At each node: gain from each child = max(childResult, 0)
+              (ignore negative paths by taking max with 0)
+
+At 15: leftGain=0, rightGain=0
+  pathThrough=15, globalMax=15
+  return 15
+
+At 7:  return 7, globalMax=15
+
+At 20: leftGain=15, rightGain=7
+  pathThrough=20+15+7=42 ← globalMax=42 ✅
+  return 20+max(15,7)=35  ← only ONE direction up
+
+At 9:  return 9
+
+At -10: leftGain=max(9,0)=9, rightGain=max(35,0)=35
+  pathThrough=-10+9+35=34 < 42
+  return -10+35=25
+
+Answer=42 ✅
+```
+
+---
+
+## 📌 Variant 5 — Path Sum III (Any Node to Any Node, Count)
+
+```
+Count paths summing to target (any start, any end, must go downward)
+
+Use PREFIX SUM technique:
+  HashMap<prefixSum, count>
+  At each node: check if (currSum - target) exists in map
+  
+        10
+       /  \
+      5   -3
+     / \    \
+    3   2   11
+   / \   \
+  3  -2   1
+
+target=8
+
+Running prefix sums (root to current):
+  At 10: sum=10, check (10-8=2)→NO,  map={0:1,10:1}
+  At 5:  sum=15, check (15-8=7)→NO,  map={...,15:1}
+  At 3:  sum=18, check (18-8=10)→YES! count=1 (path 5→3)
+  ...
+
+BACKTRACK: remove prefix sum when leaving node
+```
+
+---
+
+## 📌 Variant 6 — Binary Tree Paths (Collect String Paths)
+
+```
+        1
+       / \
+      2   3
+       \
+        5
+
+All paths as strings:
+  "1->2->5"
+  "1->3"
+
+DFS carrying current path string:
+  At leaf: add path to result
+  Not leaf: append "->child.val" and recurse
+```
+
+---
+
+## 📌 Variant 7 — Pseudo-Palindromic Paths (XOR Bitmask)
+
+```
+A path is pseudo-palindromic if at most ONE digit has odd frequency
+(can rearrange to form palindrome)
+
+XOR trick: XOR digit into bitmask when you visit, XOR out when you leave
+At leaf: check if bitmask==0 (all even) OR bitmask is power of 2 (one odd)
+
+        2
+       / \
+      3   1
+     / \   \
+    3   1   1
+
+Path 2→3→3: digits={2:1, 3:2} → bitmask=00000100 (only 2 has odd count)
+  bitmask is power of 2 → pseudo-palindromic ✅ (can form 323 or 232)
+  
+Path 2→1→1: digits={2:1,1:2} → bitmask=00000100
+  power of 2 → pseudo-palindromic ✅
+
+XOR in = set bit, XOR out when same bit = clear bit (backtrack!)
+```
+
+---
+
+## 🏆 Golden Templates in Java
+
+### ✅ Template 1 — Path Sum Exists (Boolean)
+```java
+boolean hasPathSum(TreeNode root, int target) {
+    if (root == null) return false;
+    target -= root.val;                           // Subtract current node
+    if (root.left == null && root.right == null)  // At leaf
+        return target == 0;                       // Check if target met
+    return hasPathSum(root.left, target) ||
+           hasPathSum(root.right, target);
+}
+```
+
+---
+
+### ✅ Template 2 — All Paths with Target (Backtracking)
+```java
+void dfs(TreeNode node, int remaining, List<Integer> path,
+         List<List<Integer>> result) {
+    if (node == null) return;
+
+    path.add(node.val);                           // CHOOSE
+    remaining -= node.val;
+
+    if (node.left == null && node.right == null && remaining == 0) {
+        result.add(new ArrayList<>(path));        // Found valid path
+    } else {
+        dfs(node.left,  remaining, path, result); // EXPLORE left
+        dfs(node.right, remaining, path, result); // EXPLORE right
+    }
+
+    path.remove(path.size() - 1);                // UNCHOOSE (backtrack)
+}
+```
+
+---
+
+### ✅ Template 3 — Sum of Root-to-Leaf Numbers
+```java
+int sumNumbers(TreeNode root, int currentNum) {
+    if (root == null) return 0;
+    currentNum = currentNum * 10 + root.val;      // Build number
+
+    if (root.left == null && root.right == null)  // At leaf
+        return currentNum;                        // Return complete number
+
+    return sumNumbers(root.left,  currentNum) +
+           sumNumbers(root.right, currentNum);
+}
+```
+
+---
+
+### ✅ Template 4 — Any Path Maximum Sum (Tree DP)
+```java
+int globalMax = Integer.MIN_VALUE;
+
+int maxGain(TreeNode node) {
+    if (node == null) return 0;
+
+    int leftGain  = Math.max(maxGain(node.left),  0); // Ignore negatives
+    int rightGain = Math.max(maxGain(node.right), 0);
+
+    globalMax = Math.max(globalMax,
+                node.val + leftGain + rightGain);  // Path THROUGH this node
+
+    return node.val + Math.max(leftGain, rightGain); // Return ONE direction
+}
+```
+
+---
+
+### ✅ Template 5 — Count Paths with Sum (Prefix Sum)
+```java
+int pathSum(TreeNode root, int target) {
+    Map<Long, Integer> prefixCount = new HashMap<>();
+    prefixCount.put(0L, 1);                       // Empty path
+    return dfs(root, 0L, target, prefixCount);
+}
+
+int dfs(TreeNode node, long currSum, int target,
+        Map<Long, Integer> prefixCount) {
+    if (node == null) return 0;
+
+    currSum += node.val;
+    int count = prefixCount.getOrDefault(currSum - target, 0);
+
+    prefixCount.merge(currSum, 1, Integer::sum);  // Add current prefix
+
+    count += dfs(node.left,  currSum, target, prefixCount);
+    count += dfs(node.right, currSum, target, prefixCount);
+
+    prefixCount.merge(currSum, -1, Integer::sum); // BACKTRACK
+
+    return count;
+}
+```
+
+---
+
+### ✅ Template 6 — XOR Bitmask for Digit Paths
+```java
+void dfs(TreeNode node, int mask, int[] count) {
+    if (node == null) return;
+
+    mask ^= (1 << node.val);                      // Toggle bit for this digit
+
+    if (node.left == null && node.right == null) {
+        // Check: mask==0 (all even) or power of 2 (one odd digit)
+        if (mask == 0 || (mask & (mask - 1)) == 0)
+            count[0]++;
+        return;
+    }
+
+    dfs(node.left,  mask, count);
+    dfs(node.right, mask, count);
+    // No explicit backtrack needed — mask is passed by value ✅
+}
+```
+
+---
+
+## 📋 Key Rules to Remember
+
+| Rule | Why It Matters |
+|---|---|
+| **Root-to-leaf: check leaf condition explicitly** | `left==null && right==null` — don't process null children as leaves |
+| **Backtrack after recursion** | `path.remove(last)` restores path for sibling exploration |
+| **Any-path: use max(gain, 0)** | Discard negative subtrees — they hurt the path sum |
+| **Return ONE direction to parent** | A path can't fork — only extend left OR right to parent |
+| **Update global BEFORE returning** | Global uses both sides; return value uses only one |
+| **Prefix sum backtrack** | Decrement map count after recursion — leaving this path |
+| **XOR mask passed by value** | No explicit backtrack needed for primitive types in Java |
+| **Power of 2 check: `n & (n-1) == 0`** | Checks if exactly one bit is set (one odd-frequency digit) |
+| **Build number: `currNum*10 + node.val`** | Accumulates digit-by-digit from root to leaf |
+| **Path count prefix: `prefixCount.put(0L,1)`** | Handles paths starting directly from root |
+
+---
+
+## 🏋️ Practice Problems
+
+### 🟢 Easy
+- **LC 112** — Path Sum
+- **LC 257** — Binary Tree Paths
+- **LC 1022** — Sum of Root to Leaf Binary Numbers
+
+### 🟡 Medium
+- **LC 113** — Path Sum II (all paths)
+- **LC 129** — Sum Root to Leaf Numbers
+- **LC 1457** — Pseudo-Palindromic Paths in a Binary Tree
+
+### 🔴 Hard
+- **LC 124** — Binary Tree Maximum Path Sum *(solved in DFS pattern)*
+- **LC 437** — Path Sum III *(solved in DFS pattern)*
+- **LC 2385** — Amount of Time for Binary Tree to Be Infected
+
+---
+
+> ✅ Say **"Solve Path Problems"** to get full Java solutions (recursive + iterative) with dry runs for all problems above.

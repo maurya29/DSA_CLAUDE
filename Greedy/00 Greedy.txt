@@ -1,0 +1,36 @@
+# Greedy DSA Patterns — Master List
+
+| # | Pattern Name | ⭐ Rating | Priority |
+|---|-------------|----------|----------|
+| 1 | **Interval Scheduling / Meeting Rooms** | ⭐⭐⭐⭐⭐ | Must Know |
+| 2 | **Activity Selection / Greedy Intervals** | ⭐⭐⭐⭐⭐ | Must Know |
+| 3 | **Jump Game / Reachability** | ⭐⭐⭐⭐⭐ | Must Know |
+| 4 | **Task Scheduling / CPU Scheduling** | ⭐⭐⭐⭐⭐ | Must Know |
+| 5 | **Greedy on Strings (Subsequence / Removal)** | ⭐⭐⭐⭐⭐ | Must Know |
+| 6 | **Huffman / Minimum Cost Greedy (Heap-based)** | ⭐⭐⭐⭐ | High |
+| 7 | **Gas Station / Circular Array Greedy** | ⭐⭐⭐⭐ | High |
+| 8 | **Two Pointer Greedy (Containers, Trapping)** | ⭐⭐⭐⭐ | High |
+| 9 | **Greedy on Arrays (Assign / Distribute)** | ⭐⭐⭐⭐ | High |
+| 10 | **Candy / Monotone Greedy** | ⭐⭐⭐⭐ | High |
+| 11 | **Minimum Spanning Tree Greedy (Kruskal/Prim)** | ⭐⭐⭐⭐ | High |
+| 12 | **Greedy Sorting Tricks (Custom Comparator)** | ⭐⭐⭐⭐ | High |
+| 13 | **Partition / Split Greedy** | ⭐⭐⭐ | Medium |
+| 14 | **Buy & Sell Stock Variants** | ⭐⭐⭐⭐⭐ | Must Know |
+| 15 | **Minimum Number of Arrows / Coverage** | ⭐⭐⭐⭐ | High |
+
+---
+
+## Quick Tier Guide
+
+**🔴 Tier 1 — Appear in 80% of interviews**
+→ Patterns 1, 2, 3, 4, 5, 14
+
+**🟡 Tier 2 — Appear in 50% of interviews**
+→ Patterns 6, 7, 8, 9, 10, 12, 15
+
+**🟢 Tier 3 — Good to know**
+→ Patterns 11, 13
+
+---
+
+> ✅ Ready! Send me a pattern name (e.g., `Interval Scheduling / Meeting Rooms`) and I'll do the full Step 2 breakdown.

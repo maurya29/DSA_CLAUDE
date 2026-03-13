@@ -1,0 +1,46 @@
+# 🌳 Trie DSA Patterns — Master List
+
+Here are all important Trie patterns ranked by priority:
+
+---
+
+## ⭐⭐⭐⭐⭐ Must Know
+| # | Pattern Name |
+|---|---|
+| 1 | **Basic Trie Build & Search** (insert, search, startsWith) |
+| 2 | **Word Search / Prefix Matching** |
+| 3 | **Auto-Complete / Prefix Suggestions** |
+
+---
+
+## ⭐⭐⭐⭐ High Priority
+| # | Pattern Name |
+|---|---|
+| 4 | **Word Dictionary with Wildcards** (Regex-style search) |
+| 5 | **Maximum XOR using Trie** (Bitwise Trie) |
+| 6 | **Word Search II on Grid** (Trie + DFS/Backtracking) |
+
+---
+
+## ⭐⭐⭐ Medium Priority
+| # | Pattern Name |
+|---|---|
+| 7 | **Replace Words / Prefix Replacement** |
+| 8 | **Count Words / Frequency Trie** |
+| 9 | **Longest Common Prefix** |
+| 10 | **Palindrome Pairs using Trie** |
+
+---
+
+## ⭐⭐ Good to Know
+| # | Pattern Name |
+|---|---|
+| 11 | **Stream of Characters / Suffix Trie** |
+| 12 | **Concatenated Words using Trie** |
+| 13 | **Short Encoding of Words** |
+
+---
+
+> ✅ **13 patterns total** — ordered from foundational to advanced.
+> 
+> Send the pattern name (e.g. `Basic Trie Build & Search`) to begin **Step 2**.

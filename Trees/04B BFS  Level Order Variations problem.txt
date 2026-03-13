@@ -1,0 +1,877 @@
+# 🌳 BFS Level Order Variations — All Solutions
+
+---
+
+# 🟢 LC 199 — Binary Tree Right Side View
+
+## Intuition
+BFS level order — the last node polled in each level's inner loop is visible from the right side. Simply capture `node.val` when `i == size - 1`.
+
+### Tree used:
+```
+        1
+       / \
+      2   3
+       \   \
+        5   4
+
+Right Side View = [1, 3, 4]
+```
+
+---
+
+### ✅ Iterative Solution (BFS)
+```java
+class Solution {
+    public List<Integer> rightSideView(TreeNode root) {
+        List<Integer> result = new ArrayList<>();
+        if (root == null) return result;
+
+        Queue<TreeNode> queue = new LinkedList<>();
+        queue.offer(root);
+
+        while (!queue.isEmpty()) {
+            int size = queue.size();            // Level boundary
+
+            for (int i = 0; i < size; i++) {
+                TreeNode node = queue.poll();
+
+                // Last node in this level = rightmost visible node
+                if (i == size - 1) result.add(node.val);
+
+                if (node.left  != null) queue.offer(node.left);
+                if (node.right != null) queue.offer(node.right);
+            }
+        }
+        return result;
+    }
+}
+```
+
+### 🔍 Iterative Dry Run
+```
+Queue:[1]
+
+Level 0: size=1
+  i=0: poll(1), i==size-1 → add 1   push 2,3
+  result:[1]
+
+Level 1: size=2
+  i=0: poll(2), not last   push 5
+  i=1: poll(3), i==size-1 → add 3   push 4
+  result:[1,3]
+
+Level 2: size=2
+  i=0: poll(5), not last
+  i=1: poll(4), i==size-1 → add 4
+  result:[1,3,4] ✅
+```
+
+---
+
+### ✅ Recursive Solution (DFS — Right child first)
+```java
+class Solution {
+    public List<Integer> rightSideView(TreeNode root) {
+        List<Integer> result = new ArrayList<>();
+        dfs(root, 0, result);
+        return result;
+    }
+
+    // Visit RIGHT child before LEFT child
+    // First node seen at each depth = rightmost node
+    private void dfs(TreeNode node, int depth, List<Integer> result) {
+        if (node == null) return;
+
+        // First time visiting this depth level
+        if (depth == result.size()) result.add(node.val);
+
+        dfs(node.right, depth + 1, result); // Right first → rightmost seen first
+        dfs(node.left,  depth + 1, result);
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+dfs(1, depth=0)
+  result.size()==0==depth → add 1    result:[1]
+  dfs(3, depth=1)
+    result.size()==1==depth → add 3  result:[1,3]
+    dfs(4, depth=2)
+      result.size()==2==depth → add 4 result:[1,3,4]
+      dfs(null)=return, dfs(null)=return
+    dfs(null)=return
+  dfs(2, depth=1)
+    result.size()==2 != depth(1) → skip (3 already recorded)
+    dfs(5, depth=2)
+      result.size()==3 != depth(2) → skip (4 already recorded)
+
+Result:[1,3,4] ✅
+```
+
+### ⚡ When to prefer which?
+| | BFS Iterative | DFS Recursive |
+|---|---|---|
+| Intuition | ✅ Direct — last of level | Clever — right-first DFS |
+| Interview clarity | ✅ Easier to explain | Impressive trick |
+| Left side view | Change `i==0` | Visit left child first |
+
+---
+---
+
+# 🟢 LC 637 — Average of Levels in Binary Tree
+
+## Intuition
+Standard BFS level order. While processing each level, accumulate the sum of all node values, then divide by the level size to get the average. Use `double` to avoid integer division.
+
+### Tree used:
+```
+        3
+       / \
+      9  20
+         / \
+        15   7
+
+Level 0: avg = 3/1    = 3.0
+Level 1: avg = 29/2   = 14.5
+Level 2: avg = 22/2   = 11.0
+```
+
+---
+
+### ✅ Iterative Solution (BFS)
+```java
+class Solution {
+    public List<Double> averageOfLevels(TreeNode root) {
+        List<Double> result = new ArrayList<>();
+        if (root == null) return result;
+
+        Queue<TreeNode> queue = new LinkedList<>();
+        queue.offer(root);
+
+        while (!queue.isEmpty()) {
+            int size = queue.size();
+            double sum = 0;                        // Reset sum per level
+
+            for (int i = 0; i < size; i++) {
+                TreeNode node = queue.poll();
+                sum += node.val;                   // Accumulate level sum
+
+                if (node.left  != null) queue.offer(node.left);
+                if (node.right != null) queue.offer(node.right);
+            }
+
+            result.add(sum / size);                // Average for this level
+        }
+        return result;
+    }
+}
+```
+
+### 🔍 Iterative Dry Run
+```
+Queue:[3]
+
+Level 0: size=1, sum=0
+  poll(3)  → sum=3
+  push 9,20
+  avg = 3/1 = 3.0       result:[3.0]
+
+Level 1: size=2, sum=0
+  poll(9)  → sum=9
+  poll(20) → sum=29
+  push 15,7
+  avg = 29/2 = 14.5     result:[3.0, 14.5]
+
+Level 2: size=2, sum=0
+  poll(15) → sum=15
+  poll(7)  → sum=22
+  avg = 22/2 = 11.0     result:[3.0, 14.5, 11.0] ✅
+```
+
+---
+
+### ✅ Recursive Solution (DFS with sum + count arrays)
+```java
+class Solution {
+    public List<Double> averageOfLevels(TreeNode root) {
+        List<Double> sums   = new ArrayList<>();
+        List<Integer> counts = new ArrayList<>();
+        dfs(root, 0, sums, counts);
+
+        List<Double> result = new ArrayList<>();
+        for (int i = 0; i < sums.size(); i++) {
+            result.add(sums.get(i) / counts.get(i)); // avg = sum / count
+        }
+        return result;
+    }
+
+    private void dfs(TreeNode node, int depth,
+                     List<Double> sums, List<Integer> counts) {
+        if (node == null) return;
+
+        if (depth == sums.size()) {       // First visit to this level
+            sums.add(0.0);
+            counts.add(0);
+        }
+
+        sums.set(depth, sums.get(depth) + node.val);       // Add to level sum
+        counts.set(depth, counts.get(depth) + 1);           // Count nodes
+
+        dfs(node.left,  depth + 1, sums, counts);
+        dfs(node.right, depth + 1, sums, counts);
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+dfs(3, 0)  → sums=[3.0],  counts=[1]
+  dfs(9, 1)  → sums=[3.0, 9.0],   counts=[1,1]
+    dfs(null), dfs(null)
+  dfs(20, 1) → sums=[3.0, 29.0],  counts=[1,2]
+    dfs(15, 2) → sums=[3.0, 29.0, 15.0],  counts=[1,2,1]
+    dfs(7,  2) → sums=[3.0, 29.0, 22.0],  counts=[1,2,2]
+
+averages:
+  level 0: 3.0/1  = 3.0
+  level 1: 29.0/2 = 14.5
+  level 2: 22.0/2 = 11.0
+
+Result: [3.0, 14.5, 11.0] ✅
+```
+
+---
+---
+
+# 🟡 LC 116 — Populating Next Right Pointers in Each Node
+
+## Intuition
+BFS level order — within each level's inner loop, link each node to the next node polled. Track a `prev` pointer; when `prev` exists set `prev.next = current node`. Reset `prev` to null after each level.
+
+### Tree used:
+```
+Before:              After:
+      1                    1 → null
+     / \                  / \
+    2   3                2 → 3 → null
+   / \ / \              / \ / \
+  4  5 6  7            4→5→6→7→null
+```
+
+---
+
+### ✅ Iterative Solution (BFS)
+```java
+class Solution {
+    public Node connect(Node root) {
+        if (root == null) return null;
+
+        Queue<Node> queue = new LinkedList<>();
+        queue.offer(root);
+
+        while (!queue.isEmpty()) {
+            int size = queue.size();
+            Node prev = null;                      // Track previous node in level
+
+            for (int i = 0; i < size; i++) {
+                Node node = queue.poll();
+
+                if (prev != null) prev.next = node; // Link prev → current
+                prev = node;                        // Move prev forward
+
+                if (node.left  != null) queue.offer(node.left);
+                if (node.right != null) queue.offer(node.right);
+            }
+            // prev.next is null by default (last node in level)
+        }
+        return root;
+    }
+}
+```
+
+### 🔍 Iterative Dry Run
+```
+Queue:[1]
+
+Level 0: size=1, prev=null
+  poll(1): prev=null→skip linking. prev=node(1). push 2,3
+  End of level: node(1).next = null ✅
+
+Level 1: size=2, prev=null
+  poll(2): prev=null→skip. prev=node(2). push 4,5
+  poll(3): prev=node(2)→ 2.next=3. prev=node(3). push 6,7
+  End: node(3).next=null ✅
+
+Level 2: size=4, prev=null
+  poll(4): prev=null→skip. prev=node(4)
+  poll(5): prev=node(4)→ 4.next=5. prev=node(5)
+  poll(6): prev=node(5)→ 5.next=6. prev=node(6)
+  poll(7): prev=node(6)→ 6.next=7. prev=node(7)
+  End: node(7).next=null ✅
+
+Result: 1→null, 2→3→null, 4→5→6→7→null ✅
+```
+
+---
+
+### ✅ Recursive Solution (O(1) space — use already-set next pointers)
+```java
+class Solution {
+    public Node connect(Node root) {
+        if (root == null || root.left == null) return root;
+
+        // Connect children of current node
+        root.left.next = root.right;
+
+        // Connect across parent boundary using parent's next pointer
+        if (root.next != null) {
+            root.right.next = root.next.left;
+        }
+
+        // Recurse into children
+        connect(root.left);
+        connect(root.right);
+        return root;
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+connect(1):
+  1.left(2).next = 1.right(3)       → 2→3 ✅
+  1.next==null → skip cross-link
+  connect(2):
+    2.left(4).next = 2.right(5)     → 4→5 ✅
+    2.next=3 → 2.right(5).next = 3.left(6) → 5→6 ✅
+    connect(4): no children → return
+    connect(5): no children → return
+  connect(3):
+    3.left(6).next = 3.right(7)     → 6→7 ✅
+    3.next==null → skip cross-link
+    connect(6): no children → return
+    connect(7): no children → return
+
+Final: 4→5→6→7→null ✅
+```
+
+> ⚠️ **Note:** The O(1) recursive solution only works for **perfect binary trees** (LC 116). For LC 117 (arbitrary trees), use the BFS approach — it works for all tree shapes.
+
+---
+---
+
+# 🟡 LC 994 — Rotting Oranges
+
+## Intuition
+Multi-source BFS — start simultaneously from ALL rotten oranges (push all into queue at once). Each BFS level = 1 minute passing. Spread rot to fresh neighbors each level. Count minutes elapsed. If any fresh orange remains unreachable → return -1.
+
+### Grid used:
+```
+2 1 1
+1 1 0
+0 1 1
+
+2 = rotten, 1 = fresh, 0 = empty
+Expected: 4 minutes
+```
+
+---
+
+### ✅ Iterative Solution (Multi-source BFS)
+```java
+class Solution {
+    public int orangesRotting(int[][] grid) {
+        int rows = grid.length, cols = grid[0].length;
+        Queue<int[]> queue = new LinkedList<>();
+        int freshCount = 0;
+
+        // Step 1: Find all initially rotten oranges + count fresh
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                if (grid[r][c] == 2) queue.offer(new int[]{r, c}); // All rotten → queue
+                if (grid[r][c] == 1) freshCount++;
+            }
+        }
+
+        if (freshCount == 0) return 0;            // No fresh oranges
+
+        // Step 2: BFS spread
+        int minutes = 0;
+        int[][] dirs = {{0,1},{0,-1},{1,0},{-1,0}}; // 4 directions
+
+        while (!queue.isEmpty() && freshCount > 0) {
+            int size = queue.size();               // All currently rotten
+            minutes++;                             // One minute passes
+
+            for (int i = 0; i < size; i++) {
+                int[] pos = queue.poll();
+                int r = pos[0], c = pos[1];
+
+                for (int[] dir : dirs) {
+                    int nr = r + dir[0];
+                    int nc = c + dir[1];
+
+                    // Spread to adjacent fresh orange
+                    if (nr >= 0 && nr < rows && nc >= 0 && nc < cols
+                            && grid[nr][nc] == 1) {
+                        grid[nr][nc] = 2;          // Mark as rotten
+                        freshCount--;
+                        queue.offer(new int[]{nr, nc});
+                    }
+                }
+            }
+        }
+
+        return freshCount == 0 ? minutes : -1;    // -1 if unreachable fresh remain
+    }
+}
+```
+
+### 🔍 Iterative Dry Run
+```
+Grid:              freshCount=8
+2 1 1
+1 1 0
+0 1 1
+
+Initial queue: [(0,0)]  ← only rotten orange
+
+Minute 1: size=1
+  Poll (0,0): spread to (0,1)→rotten, (1,0)→rotten
+  freshCount=6, queue:[(0,1),(1,0)]
+
+Minute 2: size=2
+  Poll (0,1): spread to (0,2)→rotten, (1,1)→rotten
+  Poll (1,0): (1,1) already rotten, no new
+  freshCount=4, queue:[(0,2),(1,1)]
+
+Minute 3: size=2
+  Poll (0,2): no fresh neighbors (right OOB, down=0)
+  Poll (1,1): spread to (2,1)→rotten
+  freshCount=3, queue:[(2,1)]
+
+Minute 4: size=1
+  Poll (2,1): spread to (2,2)→rotten
+  freshCount=2... 
+
+Wait, let me recount. Grid has 8 cells:
+  Fresh: (0,1),(0,2),(1,0),(1,1),(2,1),(2,2) = 6 fresh
+
+Minute 1: rot (0,1),(1,0)           fresh=4
+Minute 2: rot (0,2),(1,1)           fresh=2
+Minute 3: rot (2,1)                 fresh=1
+Minute 4: rot (2,2)                 fresh=0
+
+minutes=4, freshCount=0 → return 4 ✅
+```
+
+---
+
+### ✅ "Recursive-style" Solution (DFS — for comparison)
+```java
+// NOTE: DFS is NOT recommended for this problem
+// It can't handle multi-source spreading correctly
+// BFS is the natural and correct solution here
+// Shown below as simulation only:
+
+class Solution {
+    // Simulate BFS manually using level-by-level DFS
+    // This is equivalent to BFS but written recursively
+    public int orangesRotting(int[][] grid) {
+        int rows = grid.length, cols = grid[0].length;
+        // Track time each cell gets rotted
+        int[][] time = new int[rows][cols];
+
+        // Initialize: find all rotten oranges at time=0
+        boolean changed = true;
+        int minutes = 0;
+
+        while (changed) {
+            changed = false;
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+                    if (grid[r][c] == 2) {
+                        // Try to rot neighbors
+                        changed |= spread(grid, r-1, c, rows, cols);
+                        changed |= spread(grid, r+1, c, rows, cols);
+                        changed |= spread(grid, r, c-1, rows, cols);
+                        changed |= spread(grid, r, c+1, rows, cols);
+                    }
+                }
+            }
+            if (changed) minutes++;
+        }
+
+        // Check if any fresh remain
+        for (int[] row : grid)
+            for (int cell : row)
+                if (cell == 1) return -1;
+
+        return minutes;
+    }
+
+    private boolean spread(int[][] grid, int r, int c, int rows, int cols) {
+        if (r < 0 || r >= rows || c < 0 || c >= cols) return false;
+        if (grid[r][c] != 1) return false;
+        grid[r][c] = 2;
+        return true;
+    }
+}
+```
+
+> ⚠️ **Important:** BFS is the **only correct approach** for this problem. DFS/simulation can give wrong answers because it doesn't guarantee minimum time spreading. Always use multi-source BFS for "spreading" problems.
+
+---
+---
+
+# 🟡 LC 863 — All Nodes Distance K in Binary Tree
+
+## Intuition
+Two-phase approach. Phase 1: DFS to build a parent map (so we can traverse upward). Phase 2: BFS from target node in all 3 directions (left child, right child, parent). Stop when distance = K, collect all nodes at that level.
+
+### Tree used:
+```
+        3
+       / \
+      5   1
+     / \ / \
+    6  2 0  8
+      / \
+     7   4
+
+Target=5, K=2
+Expected: [7, 4, 1]
+```
+
+---
+
+### ✅ Solution (Parent Map DFS + BFS)
+```java
+class Solution {
+    public List<Integer> distanceK(TreeNode root, TreeNode target, int k) {
+        // Phase 1: Build parent map via DFS
+        Map<TreeNode, TreeNode> parentMap = new HashMap<>();
+        buildParentMap(root, null, parentMap);
+
+        // Phase 2: BFS from target in all directions
+        Queue<TreeNode> queue = new LinkedList<>();
+        Set<TreeNode> visited = new HashSet<>();
+        queue.offer(target);
+        visited.add(target);
+        int distance = 0;
+
+        while (!queue.isEmpty()) {
+            if (distance == k) {               // Reached target distance
+                List<Integer> result = new ArrayList<>();
+                for (TreeNode node : queue) result.add(node.val);
+                return result;
+            }
+
+            int size = queue.size();
+            distance++;
+
+            for (int i = 0; i < size; i++) {
+                TreeNode node = queue.poll();
+
+                // Explore: left child, right child, parent
+                if (node.left != null && !visited.contains(node.left)) {
+                    visited.add(node.left);
+                    queue.offer(node.left);
+                }
+                if (node.right != null && !visited.contains(node.right)) {
+                    visited.add(node.right);
+                    queue.offer(node.right);
+                }
+                TreeNode parent = parentMap.get(node);
+                if (parent != null && !visited.contains(parent)) {
+                    visited.add(parent);
+                    queue.offer(parent);
+                }
+            }
+        }
+        return new ArrayList<>();
+    }
+
+    private void buildParentMap(TreeNode node, TreeNode parent,
+                                 Map<TreeNode, TreeNode> parentMap) {
+        if (node == null) return;
+        parentMap.put(node, parent);                    // Map child → parent
+        buildParentMap(node.left,  node, parentMap);
+        buildParentMap(node.right, node, parentMap);
+    }
+}
+```
+
+### 🔍 Dry Run (target=5, k=2)
+```
+Phase 1 - Parent Map:
+  3→null, 5→3, 1→3, 6→5, 2→5, 0→1, 8→1, 7→2, 4→2
+
+Phase 2 - BFS from node(5):
+Queue:[5]  visited:{5}  distance=0
+
+distance=0 != k(2) → expand
+  node(5): 
+    left(6)  → add    visited:{5,6}
+    right(2) → add    visited:{5,6,2}
+    parent(3)→ add    visited:{5,6,2,3}
+  Queue:[6,2,3]  distance=1
+
+distance=1 != k(2) → expand
+  node(6):
+    left=null, right=null
+    parent(5) already visited → skip
+  node(2):
+    left(7)  → add    visited:{...,7}
+    right(4) → add    visited:{...,4}
+    parent(5) already visited → skip
+  node(3):
+    left(5) already visited → skip
+    right(1) → add    visited:{...,1}
+    parent=null → skip
+  Queue:[7,4,1]  distance=2
+
+distance=2 == k(2) → collect queue values
+Result: [7, 4, 1] ✅
+```
+
+---
+
+### ✅ Recursive Solution (DFS-only approach)
+```java
+class Solution {
+    List<Integer> result = new ArrayList<>();
+
+    public List<Integer> distanceK(TreeNode root, TreeNode target, int k) {
+        findDistance(root, target, k);
+        return result;
+    }
+
+    // Returns distance from current node to target (-1 if target not in subtree)
+    private int findDistance(TreeNode node, TreeNode target, int k) {
+        if (node == null) return -1;
+
+        if (node == target) {
+            // Found target: collect all nodes at distance k below it
+            collectAtDistance(node, 0, k);
+            return 1;                          // Distance from target to target's parent
+        }
+
+        int leftDist  = findDistance(node.left,  target, k);
+        int rightDist = findDistance(node.right, target, k);
+
+        if (leftDist != -1) {
+            // Target is in left subtree at leftDist levels below current
+            if (leftDist == k) result.add(node.val);       // Current node is at distance k
+            collectAtDistance(node.right, leftDist + 1, k); // Check right subtree
+            return leftDist + 1;
+        }
+
+        if (rightDist != -1) {
+            if (rightDist == k) result.add(node.val);
+            collectAtDistance(node.left, rightDist + 1, k);
+            return rightDist + 1;
+        }
+
+        return -1; // Target not in this subtree
+    }
+
+    // Collect all nodes exactly 'remain' steps below 'node'
+    private void collectAtDistance(TreeNode node, int curr, int k) {
+        if (node == null) return;
+        if (curr == k) { result.add(node.val); return; }
+        collectAtDistance(node.left,  curr + 1, k);
+        collectAtDistance(node.right, curr + 1, k);
+    }
+}
+```
+
+### 🔍 Recursive Dry Run (target=5, k=2)
+```
+findDistance(3, target=5, k=2)
+  findDistance(5, target=5, k=2)
+    node==target → collectAtDistance(5, 0, 2)
+      curr=0 != 2 → recurse
+      collectAtDistance(6, 1, 2)
+        curr=1 != 2 → recurse
+        collectAtDistance(null,2)=return
+        collectAtDistance(null,2)=return
+        [6 has no children so nothing at depth 2 below 6]
+      collectAtDistance(2, 1, 2)
+        collectAtDistance(7, 2, 2) → curr==k → add 7 ✅
+        collectAtDistance(4, 2, 2) → curr==k → add 4 ✅
+    return 1  [distance from 5 to its parent]
+
+  leftDist=1 (target found in left subtree)
+  leftDist(1) != k(2) → don't add node(3)
+  collectAtDistance(node.right=1, leftDist+1=2, k=2)
+    curr==k → add 1 ✅
+  return leftDist+1=2
+
+Result: [7, 4, 1] ✅
+```
+
+---
+---
+
+# 🔴 LC 1161 — Maximum Level Sum of a Binary Tree
+
+## Intuition
+Standard BFS level order. For each level compute the sum of all node values. Track which level has the maximum sum. Return the 1-indexed level number with the maximum sum (smallest level if tie).
+
+### Tree used:
+```
+            1
+           / \
+          7   0
+         / \   \
+        7  -8   7
+
+Level 1: sum = 1
+Level 2: sum = 7+0    = 7
+Level 3: sum = 7-8+7  = 6
+
+Maximum sum = 7 at level 2
+```
+
+---
+
+### ✅ Iterative Solution (BFS)
+```java
+class Solution {
+    public int maxLevelSum(TreeNode root) {
+        if (root == null) return 0;
+
+        Queue<TreeNode> queue = new LinkedList<>();
+        queue.offer(root);
+
+        int maxSum   = Integer.MIN_VALUE;
+        int maxLevel = 1;
+        int level    = 0;
+
+        while (!queue.isEmpty()) {
+            int size = queue.size();
+            int levelSum = 0;
+            level++;                               // 1-indexed level
+
+            for (int i = 0; i < size; i++) {
+                TreeNode node = queue.poll();
+                levelSum += node.val;              // Accumulate level sum
+
+                if (node.left  != null) queue.offer(node.left);
+                if (node.right != null) queue.offer(node.right);
+            }
+
+            // Update max (strictly greater → smallest level wins ties)
+            if (levelSum > maxSum) {
+                maxSum   = levelSum;
+                maxLevel = level;
+            }
+        }
+        return maxLevel;
+    }
+}
+```
+
+### 🔍 Iterative Dry Run
+```
+Queue:[1]  maxSum=-∞  maxLevel=1
+
+Level 1: size=1, sum=0
+  poll(1) → sum=1. push 7,0
+  1 > -∞ → maxSum=1, maxLevel=1
+
+Level 2: size=2, sum=0
+  poll(7) → sum=7. push 7,-8
+  poll(0) → sum=7. push 7
+  7 > 1 → maxSum=7, maxLevel=2
+
+Level 3: size=3, sum=0
+  poll(7)  → sum=7
+  poll(-8) → sum=-1
+  poll(7)  → sum=6
+  6 > 7? NO → maxSum stays 7, maxLevel stays 2
+
+Return maxLevel = 2 ✅
+```
+
+---
+
+### ✅ Recursive Solution (DFS with level sums array)
+```java
+class Solution {
+    public int maxLevelSum(TreeNode root) {
+        List<Long> levelSums = new ArrayList<>();
+        dfs(root, 0, levelSums);
+
+        int maxLevel = 1;
+        long maxSum  = Long.MIN_VALUE;
+
+        for (int i = 0; i < levelSums.size(); i++) {
+            if (levelSums.get(i) > maxSum) {
+                maxSum  = levelSums.get(i);
+                maxLevel = i + 1;              // 1-indexed
+            }
+        }
+        return maxLevel;
+    }
+
+    private void dfs(TreeNode node, int depth, List<Long> levelSums) {
+        if (node == null) return;
+
+        if (depth == levelSums.size()) {       // First visit to this level
+            levelSums.add(0L);
+        }
+
+        levelSums.set(depth, levelSums.get(depth) + node.val); // Add to level sum
+
+        dfs(node.left,  depth + 1, levelSums);
+        dfs(node.right, depth + 1, levelSums);
+    }
+}
+```
+
+### 🔍 Recursive Dry Run
+```
+dfs(1, 0)   → levelSums=[1]
+  dfs(7, 1) → levelSums=[1, 7]
+    dfs(7, 2)  → levelSums=[1, 7, 7]
+    dfs(-8, 2) → levelSums=[1, 7, -1]
+  dfs(0, 1) → levelSums=[1, 7, -1]
+    dfs(7, 2)  → levelSums=[1, 7, 6]
+
+levelSums = [1, 7, 6]
+
+Find max:
+  i=0: 1 > MIN → max=1, level=1
+  i=1: 7 > 1  → max=7, level=2
+  i=2: 6 > 7? NO
+
+Return level 2 ✅
+```
+
+---
+---
+
+# 📊 Final Summary Table
+
+| Problem | Key Technique | Golden Trick |
+|---|---|---|
+| LC 199 — Right Side View | BFS last per level | `if (i == size-1)` captures rightmost; DFS visits right child first |
+| LC 637 — Level Averages | BFS sum accumulation | `sum / size` after inner loop using `double` |
+| LC 116 — Next Right Pointers | BFS prev linking | `prev.next = node` within level; reset prev each level |
+| LC 994 — Rotting Oranges | Multi-source BFS | Push ALL rotten oranges at start; each BFS wave = 1 minute |
+| LC 863 — Distance K | Parent map + BFS | Build parent map via DFS → BFS in all 3 directions (left/right/up) |
+| LC 1161 — Max Level Sum | BFS level sum | Track `levelSum` per iteration; update max only if `strictly greater` |
+
+---
+
+## 💡 3 Golden Rules for BFS Variations
+
+> **Rule 1:** Every BFS variation shares the same skeleton — the only thing that changes is what you do **inside** the inner loop and what you do **after** the inner loop.
+>
+> **Rule 2:** `int size = queue.size()` taken **before** the inner loop is sacred — it is the only mechanism that separates one level from the next.
+>
+> **Rule 3:** When spreading in multiple directions (rotting oranges, distance K) — always push **all sources simultaneously** into the queue before BFS starts. This guarantees minimum distance calculation.
