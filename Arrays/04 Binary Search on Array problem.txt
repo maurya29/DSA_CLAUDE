@@ -1,0 +1,563 @@
+# Binary Search — Complete Java Solutions
+
+---
+
+## 🟢 Easy #1 — Binary Search (LC 704)
+
+### Intuition
+Classic binary search on a sorted array. Compare target with middle element — if equal return index, if smaller search left half, if larger search right half. Eliminates half the array each step.
+
+### Loop Solution
+```java
+public int search(int[] nums, int target) {
+    int left = 0, right = nums.length - 1;
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        if (nums[mid] == target)      return mid;
+        else if (nums[mid] < target)  left = mid + 1;
+        else                          right = mid - 1;
+    }
+    return -1;
+}
+```
+
+### Recursive Solution
+```java
+public int search(int[] nums, int target) {
+    return helper(nums, target, 0, nums.length - 1);
+}
+private int helper(int[] nums, int target, int left, int right) {
+    if (left > right) return -1;                   // base case: not found
+    int mid = left + (right - left) / 2;
+    if (nums[mid] == target)      return mid;
+    else if (nums[mid] < target)  return helper(nums, target, mid + 1, right);
+    else                          return helper(nums, target, left, mid - 1);
+}
+```
+
+### Dry Run
+```
+nums = [-1,0,3,5,9,12],  target = 9
+
+Step 1: L=0, R=5, mid=2 → nums[2]=3  < 9  → L=3
+Step 2: L=3, R=5, mid=4 → nums[4]=9 == 9  → return 4 ✅
+```
+
+---
+
+## 🟢 Easy #2 — First Bad Version (LC 278)
+
+### Intuition
+Find the FIRST version that is bad — classic left boundary binary search. When we find a bad version, record it but keep searching LEFT. When we find a good version, search RIGHT. The answer is the leftmost bad version.
+
+### Loop Solution
+```java
+public int firstBadVersion(int n) {
+    int left = 1, right = n, result = n;
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        if (isBadVersion(mid)) {
+            result = mid;       // record but keep searching left
+            right = mid - 1;
+        } else {
+            left = mid + 1;
+        }
+    }
+    return result;
+}
+```
+
+### Recursive Solution
+```java
+public int firstBadVersion(int n) {
+    return helper(1, n, n);
+}
+private int helper(int left, int right, int result) {
+    if (left > right) return result;
+    int mid = left + (right - left) / 2;
+    if (isBadVersion(mid)) return helper(left, mid - 1, mid);  // go left, update result
+    else                   return helper(mid + 1, right, result); // go right
+}
+```
+
+### Dry Run
+```
+n = 5,  first bad = 4
+[1, 2, 3, 4, 5]
+ G  G  G  B  B    (G=good, B=bad)
+
+Step 1: L=1,R=5, mid=3 → isBad(3)=false → L=4
+Step 2: L=4,R=5, mid=4 → isBad(4)=true  → result=4, R=3
+Step 3: L=4 > R=3 → STOP
+
+Answer: 4 ✅
+```
+
+---
+
+## 🟢 Easy #3 — Search Insert Position (LC 35)
+
+### Intuition
+Find where target exists OR where it should be inserted. Standard binary search — when target is not found, `left` pointer naturally lands at the correct insertion position because it always points to the first element greater than target.
+
+### Loop Solution
+```java
+public int searchInsert(int[] nums, int target) {
+    int left = 0, right = nums.length - 1;
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        if (nums[mid] == target)      return mid;
+        else if (nums[mid] < target)  left = mid + 1;
+        else                          right = mid - 1;
+    }
+    return left; // insertion position when not found
+}
+```
+
+### Recursive Solution
+```java
+public int searchInsert(int[] nums, int target) {
+    return helper(nums, target, 0, nums.length - 1);
+}
+private int helper(int[] nums, int target, int left, int right) {
+    if (left > right) return left;  // ← returns insertion point
+    int mid = left + (right - left) / 2;
+    if (nums[mid] == target)      return mid;
+    else if (nums[mid] < target)  return helper(nums, target, mid + 1, right);
+    else                          return helper(nums, target, left, mid - 1);
+}
+```
+
+### Dry Run
+```
+nums = [1,3,5,6],  target = 4 (not present)
+
+Step 1: L=0,R=3, mid=1 → nums[1]=3 < 4 → L=2
+Step 2: L=2,R=3, mid=2 → nums[2]=5 > 4 → R=1
+Step 3: L=2 > R=1 → return L=2 ✅
+
+Verify: insert 4 at index 2 → [1,3,4,5,6] ✅
+
+nums = [1,3,5,6],  target = 5 (present)
+Step 1: L=0,R=3, mid=1 → nums[1]=3 < 5 → L=2
+Step 2: L=2,R=3, mid=2 → nums[2]=5 ==5 → return 2 ✅
+```
+
+---
+
+## 🟡 Medium #1 — Search in Rotated Sorted Array (LC 33)
+
+### Intuition
+Even after rotation, one half is always sorted. Check which half is sorted, then check if target falls in that range. If yes → search that half, else → search the other. Handles duplicates edge case by checking both ends.
+
+### Loop Solution
+```java
+public int search(int[] nums, int target) {
+    int left = 0, right = nums.length - 1;
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        if (nums[mid] == target) return mid;
+
+        // Left half is sorted
+        if (nums[left] <= nums[mid]) {
+            if (target >= nums[left] && target < nums[mid])
+                right = mid - 1;  // target in left half
+            else
+                left = mid + 1;   // target in right half
+        }
+        // Right half is sorted
+        else {
+            if (target > nums[mid] && target <= nums[right])
+                left = mid + 1;   // target in right half
+            else
+                right = mid - 1;  // target in left half
+        }
+    }
+    return -1;
+}
+```
+
+### Recursive Solution
+```java
+public int search(int[] nums, int target) {
+    return helper(nums, target, 0, nums.length - 1);
+}
+private int helper(int[] nums, int target, int left, int right) {
+    if (left > right) return -1;
+    int mid = left + (right - left) / 2;
+    if (nums[mid] == target) return mid;
+
+    if (nums[left] <= nums[mid]) {
+        if (target >= nums[left] && target < nums[mid])
+            return helper(nums, target, left, mid - 1);
+        else
+            return helper(nums, target, mid + 1, right);
+    } else {
+        if (target > nums[mid] && target <= nums[right])
+            return helper(nums, target, mid + 1, right);
+        else
+            return helper(nums, target, left, mid - 1);
+    }
+}
+```
+
+### Dry Run
+```
+nums = [4,5,6,7,0,1,2],  target = 0
+
+Step 1: L=0,R=6, mid=3 → nums[3]=7 ≠ 0
+  nums[L=0]=4 <= nums[mid=3]=7 → LEFT half sorted [4..7]
+  target=0 NOT in [4,7] → L=4
+
+Step 2: L=4,R=6, mid=5 → nums[5]=1 ≠ 0
+  nums[L=4]=0 <= nums[mid=5]=1 → LEFT half sorted [0..1]
+  target=0 IS in [0,1) → R=4
+
+Step 3: L=4,R=4, mid=4 → nums[4]=0 == 0 → return 4 ✅
+```
+
+---
+
+## 🟡 Medium #2 — Find Minimum in Rotated Sorted Array (LC 153)
+
+### Intuition
+The minimum is at the rotation point. If `nums[mid] > nums[right]`, minimum is in the RIGHT half (left half is sorted and bigger). Otherwise minimum is in the LEFT half (including mid). Converge until `left == right`.
+
+### Loop Solution
+```java
+public int findMin(int[] nums) {
+    int left = 0, right = nums.length - 1;
+    while (left < right) {                     // ← left < right (not <=)
+        int mid = left + (right - left) / 2;
+        if (nums[mid] > nums[right])
+            left = mid + 1;   // min is in right half
+        else
+            right = mid;      // min is mid or in left half (keep mid!)
+    }
+    return nums[left];         // left == right == minimum index
+}
+```
+
+### Recursive Solution
+```java
+public int findMin(int[] nums) {
+    return helper(nums, 0, nums.length - 1);
+}
+private int helper(int[] nums, int left, int right) {
+    if (left == right) return nums[left];    // converged
+    int mid = left + (right - left) / 2;
+    if (nums[mid] > nums[right])
+        return helper(nums, mid + 1, right); // min in right half
+    else
+        return helper(nums, left, mid);      // min in left half (include mid)
+}
+```
+
+### Dry Run
+```
+nums = [3,4,5,1,2]
+
+Step 1: L=0,R=4, mid=2 → nums[2]=5 > nums[4]=2
+  → min in right half → L=3
+
+Step 2: L=3,R=4, mid=3 → nums[3]=1 <= nums[4]=2
+  → min in left half  → R=3
+
+Step 3: L=3 == R=3 → return nums[3]=1 ✅
+
+nums = [4,5,6,7,0,1,2]
+Step 1: L=0,R=6, mid=3 → nums[3]=7 > nums[6]=2 → L=4
+Step 2: L=4,R=6, mid=5 → nums[5]=1 <= nums[6]=2 → R=5
+Step 3: L=4,R=5, mid=4 → nums[4]=0 <= nums[5]=1 → R=4
+Step 4: L=4 == R=4 → return nums[4]=0 ✅
+```
+
+---
+
+## 🟡 Medium #3 — Koko Eating Bananas (LC 875)
+
+### Intuition
+Binary search on the ANSWER (eating speed). Minimum speed = 1, maximum = max pile size. For each candidate speed `mid`, check if Koko can finish all piles in H hours. Find the smallest speed that works.
+
+### Loop Solution
+```java
+public int minEatingSpeed(int[] piles, int h) {
+    int left = 1, right = 0;
+    for (int pile : piles) right = Math.max(right, pile); // max pile
+
+    while (left < right) {
+        int mid = left + (right - left) / 2;
+        if (canFinish(piles, mid, h))
+            right = mid;      // try slower
+        else
+            left = mid + 1;   // need faster
+    }
+    return left;
+}
+private boolean canFinish(int[] piles, int speed, int h) {
+    int hours = 0;
+    for (int pile : piles)
+        hours += (pile + speed - 1) / speed; // ceil division
+    return hours <= h;
+}
+```
+
+### Recursive Solution
+```java
+public int minEatingSpeed(int[] piles, int h) {
+    int maxPile = 0;
+    for (int p : piles) maxPile = Math.max(maxPile, p);
+    return helper(piles, h, 1, maxPile);
+}
+private int helper(int[] piles, int h, int left, int right) {
+    if (left >= right) return left;
+    int mid = left + (right - left) / 2;
+    if (canFinish(piles, mid, h))
+        return helper(piles, h, left, mid);       // try slower
+    else
+        return helper(piles, h, mid + 1, right);  // need faster
+}
+private boolean canFinish(int[] piles, int speed, int h) {
+    int hours = 0;
+    for (int pile : piles)
+        hours += (pile + speed - 1) / speed;
+    return hours <= h;
+}
+```
+
+### Dry Run
+```
+piles = [3,6,7,11],  h = 8
+Search space: left=1, right=11
+
+Step 1: mid=6
+  hours = ceil(3/6)+ceil(6/6)+ceil(7/6)+ceil(11/6)
+        = 1+1+2+2 = 6 ≤ 8 → canFinish! → R=6
+
+Step 2: L=1,R=6, mid=3
+  hours = ceil(3/3)+ceil(6/3)+ceil(7/3)+ceil(11/3)
+        = 1+2+3+4 = 10 > 8 → can't finish → L=4
+
+Step 3: L=4,R=6, mid=5
+  hours = ceil(3/5)+ceil(6/5)+ceil(7/5)+ceil(11/5)
+        = 1+2+2+3 = 8 ≤ 8 → canFinish! → R=5
+
+Step 4: L=4,R=5, mid=4
+  hours = ceil(3/4)+ceil(6/4)+ceil(7/4)+ceil(11/4)
+        = 1+2+2+3 = 8 ≤ 8 → canFinish! → R=4
+
+Step 5: L=4 == R=4 → return 4 ✅
+```
+
+---
+
+## 🔴 Hard #1 — Median of Two Sorted Arrays (LC 4)
+
+### Intuition
+Binary search on the SMALLER array. Partition both arrays such that left halves combined = right halves combined. Check if partition is valid: `maxLeft1 ≤ minRight2` and `maxLeft2 ≤ minRight1`. Adjust partition until valid. O(log(min(m,n))).
+
+### Loop Solution
+```java
+public double findMedianSortedArrays(int[] nums1, int[] nums2) {
+    // Always binary search on the smaller array
+    if (nums1.length > nums2.length)
+        return findMedianSortedArrays(nums2, nums1);
+
+    int m = nums1.length, n = nums2.length;
+    int left = 0, right = m;
+
+    while (left <= right) {
+        int partition1 = left + (right - left) / 2;
+        int partition2 = (m + n + 1) / 2 - partition1;
+
+        int maxLeft1  = (partition1 == 0) ? Integer.MIN_VALUE : nums1[partition1 - 1];
+        int minRight1 = (partition1 == m) ? Integer.MAX_VALUE : nums1[partition1];
+        int maxLeft2  = (partition2 == 0) ? Integer.MIN_VALUE : nums2[partition2 - 1];
+        int minRight2 = (partition2 == n) ? Integer.MAX_VALUE : nums2[partition2];
+
+        if (maxLeft1 <= minRight2 && maxLeft2 <= minRight1) {
+            // ✅ Correct partition found
+            if ((m + n) % 2 == 0)
+                return (Math.max(maxLeft1, maxLeft2) +
+                        Math.min(minRight1, minRight2)) / 2.0;
+            else
+                return Math.max(maxLeft1, maxLeft2);
+        } else if (maxLeft1 > minRight2) {
+            right = partition1 - 1;  // move left
+        } else {
+            left = partition1 + 1;   // move right
+        }
+    }
+    return 0.0;
+}
+```
+
+### Recursive Solution
+```java
+public double findMedianSortedArrays(int[] nums1, int[] nums2) {
+    if (nums1.length > nums2.length)
+        return findMedianSortedArrays(nums2, nums1);
+    int m = nums1.length, n = nums2.length;
+    return helper(nums1, nums2, 0, m, m, n);
+}
+private double helper(int[] a, int[] b, int left, int right, int m, int n) {
+    int p1 = left + (right - left) / 2;
+    int p2 = (m + n + 1) / 2 - p1;
+
+    int maxL1 = (p1 == 0) ? Integer.MIN_VALUE : a[p1 - 1];
+    int minR1 = (p1 == m) ? Integer.MAX_VALUE : a[p1];
+    int maxL2 = (p2 == 0) ? Integer.MIN_VALUE : b[p2 - 1];
+    int minR2 = (p2 == n) ? Integer.MAX_VALUE : b[p2];
+
+    if (maxL1 <= minR2 && maxL2 <= minR1) {
+        if ((m + n) % 2 == 0)
+            return (Math.max(maxL1, maxL2) + Math.min(minR1, minR2)) / 2.0;
+        else
+            return Math.max(maxL1, maxL2);
+    } else if (maxL1 > minR2)
+        return helper(a, b, left, p1 - 1, m, n);
+    else
+        return helper(a, b, p1 + 1, right, m, n);
+}
+```
+
+### Dry Run
+```
+nums1 = [1,3],  nums2 = [2]
+m=2, n=1,  total=3 (odd) → median is index 1 (0-based)
+
+left=0, right=2
+Step 1: p1=1, p2=(3+1)/2 - 1 = 1
+  maxL1=nums1[0]=1,  minR1=nums1[1]=3
+  maxL2=nums2[0]=2,  minR2=MAX_VALUE
+
+  maxL1=1 <= minR2=MAX ✅
+  maxL2=2 <= minR1=3   ✅  → valid partition!
+
+  (m+n)=3 odd → return max(maxL1,maxL2) = max(1,2) = 2 ✅
+
+Merged array would be [1,2,3], median=2 ✅
+```
+
+---
+
+## 🔴 Hard #2 — Split Array Largest Sum (LC 410)
+
+### Intuition
+Binary search on the ANSWER (the largest sum). Min possible = max element, max possible = total sum. For each candidate `mid`, check if we can split into at most `k` subarrays where each sum ≤ `mid`. Find smallest valid answer.
+
+### Loop Solution
+```java
+public int splitArray(int[] nums, int k) {
+    int left = 0, right = 0;
+    for (int num : nums) {
+        left = Math.max(left, num);   // min = largest single element
+        right += num;                  // max = total sum
+    }
+
+    while (left < right) {
+        int mid = left + (right - left) / 2;
+        if (canSplit(nums, k, mid))
+            right = mid;       // try smaller max sum
+        else
+            left = mid + 1;    // need larger max sum
+    }
+    return left;
+}
+private boolean canSplit(int[] nums, int k, int maxSum) {
+    int pieces = 1, currentSum = 0;
+    for (int num : nums) {
+        if (currentSum + num > maxSum) {
+            pieces++;           // start new subarray
+            currentSum = num;
+            if (pieces > k) return false;
+        } else {
+            currentSum += num;
+        }
+    }
+    return true;
+}
+```
+
+### Recursive Solution
+```java
+public int splitArray(int[] nums, int k) {
+    int left = 0, right = 0;
+    for (int num : nums) { left = Math.max(left, num); right += num; }
+    return helper(nums, k, left, right);
+}
+private int helper(int[] nums, int k, int left, int right) {
+    if (left >= right) return left;
+    int mid = left + (right - left) / 2;
+    if (canSplit(nums, k, mid))
+        return helper(nums, k, left, mid);        // try smaller
+    else
+        return helper(nums, k, mid + 1, right);   // need larger
+}
+private boolean canSplit(int[] nums, int k, int maxSum) {
+    int pieces = 1, currentSum = 0;
+    for (int num : nums) {
+        if (currentSum + num > maxSum) {
+            pieces++;
+            currentSum = num;
+            if (pieces > k) return false;
+        } else {
+            currentSum += num;
+        }
+    }
+    return true;
+}
+```
+
+### Dry Run
+```
+nums = [7,2,5,10,8],  k = 2
+left = max(7,2,5,10,8) = 10
+right = 7+2+5+10+8 = 32
+
+Step 1: mid=21
+  canSplit(k=2, max=21)?
+  [7,2,5] sum=14 ≤ 21 | add 10 → 24 > 21 → new piece
+  [10,8]  sum=18 ≤ 21 | done
+  pieces=2 ≤ k=2 → YES → R=21
+
+Step 2: L=10,R=21, mid=15
+  canSplit(k=2, max=15)?
+  [7,2,5] sum=14 ≤ 15 | add 10 → 24 > 15 → new piece
+  [10,8]  sum=18 > 15 → new piece (3rd!)
+  pieces=3 > k=2 → NO → L=16
+
+Step 3: L=16,R=21, mid=18
+  canSplit(k=2, max=18)?
+  [7,2,5] sum=14 | add 10 → 24 > 18 → new piece
+  [10,8]  sum=18 ≤ 18 | done
+  pieces=2 ≤ k=2 → YES → R=18
+
+Step 4: L=16,R=18, mid=17
+  canSplit(k=2, max=17)?
+  [7,2,5] sum=14 | add 10 → 24 > 17 → new piece
+  [10,8]  sum=18 > 17 → new piece (3rd!)
+  pieces=3 > k=2 → NO → L=18
+
+Step 5: L=18 == R=18 → return 18 ✅
+```
+
+---
+
+## 📊 Summary Table
+
+| Problem | Key Technique | Trick |
+|---|---|---|
+| Binary Search | Classic `left <= right` | Return `mid` when found |
+| First Bad Version | Left boundary search | Record result, keep going `right = mid-1` |
+| Search Insert Position | Classic binary search | Return `left` when not found |
+| Search in Rotated Array | Identify sorted half first | Check if target in sorted range, else other half |
+| Find Minimum in Rotated | Compare `mid` vs `right` | Use `right = mid` (not `mid-1`) to keep minimum |
+| Koko Eating Bananas | Binary search on answer | `canFinish` uses ceil division `(pile+speed-1)/speed` |
+| Median of Two Sorted Arrays | Partition both arrays | Use `Integer.MIN/MAX_VALUE` for edge partitions |
+| Split Array Largest Sum | Binary search on answer | `left=max element`, `right=total sum` |
+
+---
+
+> ✅ All 8 Binary Search problems solved.
+> Type `next` for **Kadane's Algorithm solutions**, or `pattern summary` for Binary Search golden rules recap.

@@ -1,0 +1,188 @@
+# Kadane's Algorithm Pattern
+
+---
+
+## 1. Core Idea
+
+> At every index, make a **local decision**: is it better to **extend** the current subarray or **start fresh** from this element? Keep a running `currentSum` and update `maxSum` at each step.
+
+The key insight: if the current running sum becomes negative → it can only hurt any future subarray → **reset it to 0** (or current element). This gives O(n) for maximum subarray problems.
+
+---
+
+## 2. How to Recognize These Problems
+
+| Signal in Problem | Likely Pattern |
+|---|---|
+| "maximum sum subarray" | Kadane's |
+| "maximum product subarray" | Kadane's (track min too) |
+| "circular subarray maximum sum" | Kadane's (total - min subarray) |
+| "longest subarray / most points" | Kadane's variant |
+| "at least one element must be picked" | Kadane's (no reset to 0) |
+| "contiguous subarray with max/min" | Kadane's |
+| "maximum sum after one deletion" | Kadane's (prefix + suffix) |
+
+---
+
+## 3. Key Variants with Visual Dry Runs
+
+---
+
+### Variant 1 — Classic Maximum Subarray
+*Used for: max sum of any contiguous subarray*
+
+```
+nums = [-2, 1, -3, 4, -1, 2, 1, -5, 4]
+
+index:   0   1   2   3   4   5   6   7   8
+curr:   -2   1  -2   4   3   5   6   1   5
+         ↑   ↑   ↑   ↑
+        <0  1   reset  4   extend...
+max:    -2   1   1   4   4   5   6   6   6
+
+Answer: 6  (subarray [4,-1,2,1]) ✅
+```
+
+---
+
+### Variant 2 — Maximum Product Subarray
+*Used for: product instead of sum (negatives flip sign)*
+
+```
+nums = [2, 3, -2, 4]
+
+Must track BOTH max and min (negative × negative = positive)
+
+i=0: maxP=2,  minP=2
+i=1: maxP=max(3, 2*3, 2*3)=6,  minP=min(3, 2*3, 2*3)=3
+i=2: maxP=max(-2, 6*-2, 3*-2)=max(-2,-12,-6)=-2
+     minP=min(-2, 6*-2, 3*-2)=min(-2,-12,-6)=-12
+i=3: maxP=max(4, -2*4, -12*4)=max(4,-8,-48)=4
+     minP=min(4, -2*4, -12*4)=min(4,-8,-48)=-48
+
+globalMax = max seen = 6 ✅  (subarray [2,3])
+```
+
+---
+
+### Variant 3 — Circular Maximum Subarray
+*Used for: wrap-around subarrays allowed*
+
+```
+nums = [5, -3, 5]
+
+Case 1: Max subarray NOT wrapping around
+  → Classic Kadane → max = 7 ([-3 reset], [5,-3,5]=7)
+
+Case 2: Max subarray WRAPPING around
+  → = totalSum - minSubarray
+  → totalSum = 7
+  → minSubarray = -3 (Kadane for minimum)
+  → wrappedMax = 7 - (-3) = 10  ✅
+
+Answer = max(Case1, Case2) = max(7, 10) = 10
+```
+
+---
+
+### Variant 4 — Maximum Sum with Indices Tracked
+*Used for: return actual subarray, not just sum*
+
+```
+nums = [-2, 1, -3, 4, -1, 2, 1, -5, 4]
+
+Track start, end, tempStart:
+i=0: curr=-2 < 0, reset → tempStart=1
+i=1: curr=1,  max=1  → start=1, end=1
+i=2: curr=-2 < 0 reset → tempStart=3
+i=3: curr=4,  max=4  → start=3, end=3
+i=4: curr=3
+i=5: curr=5
+i=6: curr=6, max=6  → start=3, end=6
+
+Answer: [4,-1,2,1] from index 3 to 6 ✅
+```
+
+---
+
+## 4. Golden Template in Java
+
+```java
+// ✅ TEMPLATE 1 — Classic Kadane (max subarray sum)
+int currentSum = 0, maxSum = Integer.MIN_VALUE;
+for (int num : nums) {
+    currentSum += num;
+    maxSum = Math.max(maxSum, currentSum);
+    if (currentSum < 0) currentSum = 0; // reset if negative
+}
+// Note: use Integer.MIN_VALUE (not 0) to handle all-negative arrays
+
+
+// ✅ TEMPLATE 2 — Kadane (at least one element, no empty subarray)
+int currentSum = nums[0], maxSum = nums[0];
+for (int i = 1; i < nums.length; i++) {
+    currentSum = Math.max(nums[i], currentSum + nums[i]); // extend or restart
+    maxSum = Math.max(maxSum, currentSum);
+}
+
+
+// ✅ TEMPLATE 3 — Maximum Product (track both max and min)
+int maxProd = nums[0], minProd = nums[0], globalMax = nums[0];
+for (int i = 1; i < nums.length; i++) {
+    int tempMax = maxProd;
+    maxProd = Math.max(nums[i], Math.max(tempMax * nums[i], minProd * nums[i]));
+    minProd = Math.min(nums[i], Math.min(tempMax * nums[i], minProd * nums[i]));
+    globalMax = Math.max(globalMax, maxProd);
+}
+
+
+// ✅ TEMPLATE 4 — Circular Kadane
+int maxKadane = kadaneMax(nums);  // standard max
+int minKadane = kadaneMin(nums);  // standard min
+int totalSum  = Arrays.stream(nums).sum();
+// If all negative → circular case = totalSum - totalSum = 0, use maxKadane
+int circularMax = (totalSum == minKadane) ? maxKadane
+                                          : Math.max(maxKadane, totalSum - minKadane);
+```
+
+---
+
+## 5. Key Rules to Remember
+
+| Rule | Detail |
+|---|---|
+| ✅ Init `maxSum = Integer.MIN_VALUE` | Handles all-negative arrays correctly |
+| ✅ Reset `currentSum = 0` when negative | Negative prefix only hurts future subarrays |
+| ✅ Product → track both max AND min | Negative × negative = positive (min can become max) |
+| ✅ Circular = total - minSubarray | Wrap-around sum = everything EXCEPT the minimum middle part |
+| ✅ Circular edge case | If all negatives → `totalSum == minKadane` → return `maxKadane` |
+| ⚠️ `currentSum + num` vs `max(num, currentSum+num)` | Both valid — first resets after loop, second resets inline |
+| ⚠️ Must include at least 1 element | Start `currentSum = nums[0]`, loop from index 1 |
+
+---
+
+## 6. Practice Problems
+
+### 🟢 Easy
+| # | Problem | LeetCode |
+|---|---|---|
+| 1 | Maximum Subarray | LC 53 |
+| 2 | Best Time to Buy and Sell Stock | LC 121 |
+| 3 | Maximum Average Subarray II (fixed K) | LC 643 |
+
+### 🟡 Medium
+| # | Problem | LeetCode |
+|---|---|---|
+| 1 | Maximum Product Subarray | LC 152 |
+| 2 | Maximum Sum Circular Subarray | LC 918 |
+| 3 | Longest Turbulent Subarray | LC 978 |
+
+### 🔴 Hard
+| # | Problem | LeetCode |
+|---|---|---|
+| 1 | Maximum Sum Rectangle in a 2D Matrix | LC 363 |
+| 2 | Maximum Sum of 3 Non-Overlapping Subarrays | LC 689 |
+
+---
+
+> ✅ Pattern explained. **Send `solve`** and I'll write complete Java solutions with dry runs for all 8 problems above.

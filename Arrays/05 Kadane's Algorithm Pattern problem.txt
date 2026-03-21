@@ -1,0 +1,610 @@
+# Kadane's Algorithm — Complete Java Solutions
+
+---
+
+## 🟢 Easy #1 — Maximum Subarray (LC 53)
+
+### Intuition
+At every index decide: extend current subarray or start fresh. If running sum goes negative it can only hurt future subarrays — reset it. Track the maximum sum seen at any point.
+
+### Loop Solution
+```java
+public int maxSubArray(int[] nums) {
+    int currentSum = nums[0], maxSum = nums[0];
+    for (int i = 1; i < nums.length; i++) {
+        currentSum = Math.max(nums[i], currentSum + nums[i]); // extend or restart
+        maxSum = Math.max(maxSum, currentSum);
+    }
+    return maxSum;
+}
+```
+
+### Recursive Solution (Divide & Conquer)
+```java
+public int maxSubArray(int[] nums) {
+    return helper(nums, 0, nums.length - 1);
+}
+private int helper(int[] nums, int left, int right) {
+    if (left == right) return nums[left];           // base case
+
+    int mid = left + (right - left) / 2;
+    int leftMax  = helper(nums, left, mid);         // max in left half
+    int rightMax = helper(nums, mid + 1, right);    // max in right half
+    int crossMax = crossSum(nums, left, mid, right);// max crossing mid
+
+    return Math.max(Math.max(leftMax, rightMax), crossMax);
+}
+private int crossSum(int[] nums, int left, int mid, int right) {
+    // extend LEFT from mid
+    int leftSum = Integer.MIN_VALUE, sum = 0;
+    for (int i = mid; i >= left; i--) {
+        sum += nums[i];
+        leftSum = Math.max(leftSum, sum);
+    }
+    // extend RIGHT from mid+1
+    int rightSum = Integer.MIN_VALUE; sum = 0;
+    for (int i = mid + 1; i <= right; i++) {
+        sum += nums[i];
+        rightSum = Math.max(rightSum, sum);
+    }
+    return leftSum + rightSum;
+}
+```
+
+### Dry Run
+```
+nums = [-2,1,-3,4,-1,2,1,-5,4]
+
+i=1: curr=max(1, -2+1)  = max(1,-1)  = 1   max=1
+i=2: curr=max(-3,1-3)   = max(-3,-2) = -2  max=1
+i=3: curr=max(4,-2+4)   = max(4,2)   = 4   max=4
+i=4: curr=max(-1,4-1)   = max(-1,3)  = 3   max=4
+i=5: curr=max(2,3+2)    = max(2,5)   = 5   max=5
+i=6: curr=max(1,5+1)    = max(1,6)   = 6   max=6  ✅
+i=7: curr=max(-5,6-5)   = max(-5,1)  = 1   max=6
+i=8: curr=max(4,1+4)    = max(4,5)   = 5   max=6
+
+Answer: 6  (subarray [4,-1,2,1]) ✅
+```
+
+---
+
+## 🟢 Easy #2 — Best Time to Buy and Sell Stock (LC 121)
+
+### Intuition
+Kadane's in disguise. Track the minimum price seen so far (best buy day). At each price, compute profit if sold today = `price - minPrice`. Track maximum profit. Never sell before buying — minPrice always updates before profit check.
+
+### Loop Solution
+```java
+public int maxProfit(int[] prices) {
+    int minPrice = Integer.MAX_VALUE, maxProfit = 0;
+    for (int price : prices) {
+        minPrice   = Math.min(minPrice, price);      // best buy day so far
+        maxProfit  = Math.max(maxProfit, price - minPrice); // profit if sold today
+    }
+    return maxProfit;
+}
+```
+
+### Recursive Solution
+```java
+public int maxProfit(int[] prices) {
+    return helper(prices, 1, prices[0], 0);
+}
+private int helper(int[] prices, int i, int minPrice, int maxProfit) {
+    if (i == prices.length) return maxProfit;
+    minPrice  = Math.min(minPrice, prices[i]);
+    maxProfit = Math.max(maxProfit, prices[i] - minPrice);
+    return helper(prices, i + 1, minPrice, maxProfit);
+}
+```
+
+### Dry Run
+```
+prices = [7,1,5,3,6,4]
+
+i=0: minPrice=7,  profit=0
+i=1: minPrice=1,  profit=max(0,1-1)=0
+i=2: minPrice=1,  profit=max(0,5-1)=4
+i=3: minPrice=1,  profit=max(4,3-1)=4
+i=4: minPrice=1,  profit=max(4,6-1)=5  ✅
+i=5: minPrice=1,  profit=max(5,4-1)=5
+
+Answer: 5  (buy at 1, sell at 6) ✅
+```
+
+---
+
+## 🟢 Easy #3 — Maximum Average Subarray I (LC 643)
+
+### Intuition
+Fixed window Kadane variant. Compute first window sum then slide by adding rightmost and removing leftmost element. Divide by K only at the end to avoid floating point inside the loop.
+
+### Loop Solution
+```java
+public double findMaxAverage(int[] nums, int k) {
+    int windowSum = 0;
+    for (int i = 0; i < k; i++) windowSum += nums[i];
+
+    int maxSum = windowSum;
+    for (int i = k; i < nums.length; i++) {
+        windowSum += nums[i] - nums[i - k];        // slide window
+        maxSum = Math.max(maxSum, windowSum);
+    }
+    return (double) maxSum / k;
+}
+```
+
+### Recursive Solution
+```java
+public double findMaxAverage(int[] nums, int k) {
+    int firstSum = 0;
+    for (int i = 0; i < k; i++) firstSum += nums[i];
+    return (double) helper(nums, k, k, firstSum, firstSum) / k;
+}
+private int helper(int[] nums, int k, int i, int windowSum, int maxSum) {
+    if (i == nums.length) return maxSum;
+    windowSum += nums[i] - nums[i - k];
+    maxSum = Math.max(maxSum, windowSum);
+    return helper(nums, k, i + 1, windowSum, maxSum);
+}
+```
+
+### Dry Run
+```
+nums = [1,12,-5,-6,50,3],  k = 4
+
+First window [1,12,-5,-6] → sum = 2,  maxSum = 2
+i=4: sum = 2 + 50 - 1  = 51, maxSum = 51
+i=5: sum = 51 + 3 - 12 = 42, maxSum = 51
+
+Answer: 51.0 / 4 = 12.75 ✅
+```
+
+---
+
+## 🟡 Medium #1 — Maximum Product Subarray (LC 152)
+
+### Intuition
+Unlike sum, a negative number can flip the sign of a product — so the current minimum could become the maximum after multiplying by another negative. Track BOTH max and min products ending at each index. Use a temp variable before updating both.
+
+### Loop Solution
+```java
+public int maxProduct(int[] nums) {
+    int maxProd = nums[0], minProd = nums[0], globalMax = nums[0];
+
+    for (int i = 1; i < nums.length; i++) {
+        int temp = maxProd;   // save before overwriting
+        maxProd = Math.max(nums[i], Math.max(temp * nums[i], minProd * nums[i]));
+        minProd = Math.min(nums[i], Math.min(temp * nums[i], minProd * nums[i]));
+        globalMax = Math.max(globalMax, maxProd);
+    }
+    return globalMax;
+}
+```
+
+### Recursive Solution
+```java
+public int maxProduct(int[] nums) {
+    return helper(nums, 1, nums[0], nums[0], nums[0]);
+}
+private int helper(int[] nums, int i, int maxP, int minP, int globalMax) {
+    if (i == nums.length) return globalMax;
+    int temp = maxP;
+    maxP = Math.max(nums[i], Math.max(temp * nums[i], minP * nums[i]));
+    minP = Math.min(nums[i], Math.min(temp * nums[i], minP * nums[i]));
+    globalMax = Math.max(globalMax, maxP);
+    return helper(nums, i + 1, maxP, minP, globalMax);
+}
+```
+
+### Dry Run
+```
+nums = [2,3,-2,4]
+
+i=0: maxP=2,   minP=2,   global=2
+i=1: temp=2
+  maxP=max(3, 2*3, 2*3)  = max(3,6,6)   = 6
+  minP=min(3, 2*3, 2*3)  = min(3,6,6)   = 3
+  global=6
+i=2: temp=6
+  maxP=max(-2, 6*-2, 3*-2) = max(-2,-12,-6) = -2
+  minP=min(-2, 6*-2, 3*-2) = min(-2,-12,-6) = -12
+  global=6
+i=3: temp=-2
+  maxP=max(4, -2*4, -12*4) = max(4,-8,-48)  = 4
+  minP=min(4, -2*4, -12*4) = min(4,-8,-48)  = -48
+  global=6
+
+Answer: 6  (subarray [2,3]) ✅
+```
+
+---
+
+## 🟡 Medium #2 — Maximum Sum Circular Subarray (LC 918)
+
+### Intuition
+Two cases: max subarray does NOT wrap around (classic Kadane) OR it DOES wrap around (= totalSum - minSubarray). The wrapped max uses everything EXCEPT the minimum middle part. Edge case: if all numbers are negative, totalSum equals minSubarray → return classic Kadane result.
+
+### Loop Solution
+```java
+public int maxSubarraySumCircular(int[] nums) {
+    int totalSum = 0;
+    int currentMax = 0, maxSum = nums[0];
+    int currentMin = 0, minSum = nums[0];
+
+    for (int num : nums) {
+        // Kadane for maximum
+        currentMax = Math.max(num, currentMax + num);
+        maxSum     = Math.max(maxSum, currentMax);
+
+        // Kadane for minimum
+        currentMin = Math.min(num, currentMin + num);
+        minSum     = Math.min(minSum, currentMin);
+
+        totalSum += num;
+    }
+    // If all negatives → minSum == totalSum → circular gives 0 → use maxSum
+    return (totalSum == minSum) ? maxSum
+                                : Math.max(maxSum, totalSum - minSum);
+}
+```
+
+### Recursive Solution
+```java
+public int maxSubarraySumCircular(int[] nums) {
+    int total = 0;
+    for (int n : nums) total += n;
+    int[] res = helper(nums, 1, nums[0], nums[0], nums[0], nums[0], total);
+    return (total == res[1]) ? res[0] : Math.max(res[0], total - res[1]);
+}
+// res[0]=maxSum, res[1]=minSum
+private int[] helper(int[] nums, int i, int curMax, int curMin,
+                     int maxSum, int minSum, int total) {
+    if (i == nums.length) return new int[]{maxSum, minSum};
+    curMax = Math.max(nums[i], curMax + nums[i]);
+    curMin = Math.min(nums[i], curMin + nums[i]);
+    maxSum = Math.max(maxSum, curMax);
+    minSum = Math.min(minSum, curMin);
+    return helper(nums, i + 1, curMax, curMin, maxSum, minSum, total);
+}
+```
+
+### Dry Run
+```
+nums = [5,-3,5]
+totalSum = 7
+
+Kadane MAX:
+i=0: curMax=5,  maxSum=5
+i=1: curMax=max(-3,5-3)=2,  maxSum=5
+i=2: curMax=max(5,2+5)=7,   maxSum=7
+
+Kadane MIN:
+i=0: curMin=5,  minSum=5
+i=1: curMin=min(-3,5-3)=-3, minSum=-3
+i=2: curMin=min(5,-3+5)=2,  minSum=-3
+
+totalSum=7 ≠ minSum=-3
+circularMax = totalSum - minSum = 7-(-3) = 10
+
+Answer: max(7, 10) = 10 ✅
+(wrap-around subarray [5,5] = 10)
+```
+
+---
+
+## 🟡 Medium #3 — Longest Turbulent Subarray (LC 978)
+
+### Intuition
+Turbulent means signs of differences alternate: up-down-up or down-up-down. Extend the current turbulent subarray if the alternation continues. Reset to 2 (just the current pair) if the pattern breaks but adjacent elements differ. Reset to 1 if equal.
+
+### Loop Solution
+```java
+public int maxTurbulenceSize(int[] arr) {
+    int n = arr.length;
+    if (n < 2) return n;
+
+    int maxLen = 1, currLen = 1;
+
+    for (int i = 1; i < n; i++) {
+        int cmp = Integer.compare(arr[i], arr[i - 1]);
+
+        if (cmp == 0) {
+            currLen = 1;    // equal elements → reset fully
+        } else if (i > 1) {
+            int prevCmp = Integer.compare(arr[i-1], arr[i-2]);
+            // turbulent if signs alternate
+            if ((cmp > 0 && prevCmp < 0) || (cmp < 0 && prevCmp > 0))
+                currLen++;
+            else
+                currLen = 2; // new pair starts
+        } else {
+            currLen = 2;     // first pair
+        }
+        maxLen = Math.max(maxLen, currLen);
+    }
+    return maxLen;
+}
+```
+
+### Recursive Solution
+```java
+public int maxTurbulenceSize(int[] arr) {
+    if (arr.length < 2) return arr.length;
+    return helper(arr, 1, 1, 1);
+}
+private int helper(int[] arr, int i, int currLen, int maxLen) {
+    if (i == arr.length) return maxLen;
+    int cmp = Integer.compare(arr[i], arr[i - 1]);
+    int newLen;
+    if (cmp == 0) {
+        newLen = 1;
+    } else if (i > 1) {
+        int prevCmp = Integer.compare(arr[i-1], arr[i-2]);
+        newLen = ((cmp > 0 && prevCmp < 0) || (cmp < 0 && prevCmp > 0))
+                 ? currLen + 1 : 2;
+    } else {
+        newLen = 2;
+    }
+    return helper(arr, i + 1, newLen, Math.max(maxLen, newLen));
+}
+```
+
+### Dry Run
+```
+arr = [9,4,2,10,7,8,8,1,9]
+
+i=1: 4<9  → cmp=-1,                    currLen=2  maxLen=2
+i=2: 2<4  → cmp=-1, prevCmp=-1 same    currLen=2  maxLen=2
+i=3: 10>2 → cmp=+1, prevCmp=-1 DIFF ✅ currLen=3  maxLen=3
+i=4: 7<10 → cmp=-1, prevCmp=+1 DIFF ✅ currLen=4  maxLen=4
+i=5: 8>7  → cmp=+1, prevCmp=-1 DIFF ✅ currLen=5  maxLen=5
+i=6: 8==8 → cmp=0   EQUAL              currLen=1  maxLen=5
+i=7: 1<8  → cmp=-1,                    currLen=2  maxLen=5
+i=8: 9>1  → cmp=+1, prevCmp=-1 DIFF ✅ currLen=3  maxLen=5
+
+Answer: 5  (subarray [2,10,7,8]) ✅
+```
+
+---
+
+## 🔴 Hard #1 — Maximum Sum Rectangle in 2D Matrix (LC 363)
+
+### Intuition
+Fix top and bottom row boundaries. For each pair of rows, compress columns into a 1D array by summing elements between the rows. Apply Kadane's on this 1D array to find max sum rectangle with those row boundaries. O(n² × m).
+
+### Loop Solution
+```java
+public int maxSumSubmatrix(int[][] matrix, int k) {
+    // Note: LC 363 asks for max sum ≤ k (harder variant)
+    // Below solves the general "max sum rectangle" (LC variant)
+    int rows = matrix.length, cols = matrix[0].length;
+    int maxSum = Integer.MIN_VALUE;
+
+    for (int top = 0; top < rows; top++) {
+        int[] colSum = new int[cols];           // compress rows into 1D
+
+        for (int bottom = top; bottom < rows; bottom++) {
+            for (int c = 0; c < cols; c++)
+                colSum[c] += matrix[bottom][c]; // add current row
+
+            // Kadane on colSum
+            int currSum = 0, best = Integer.MIN_VALUE;
+            for (int val : colSum) {
+                currSum = Math.max(val, currSum + val);
+                best = Math.max(best, currSum);
+            }
+            maxSum = Math.max(maxSum, best);
+        }
+    }
+    return maxSum;
+}
+```
+
+### Recursive Solution
+```java
+public int maxSumSubmatrix(int[][] matrix, int k) {
+    int rows = matrix.length, cols = matrix[0].length;
+    int[] result = {Integer.MIN_VALUE};
+    solveTop(matrix, rows, cols, 0, result);
+    return result[0];
+}
+private void solveTop(int[][] mat, int rows, int cols, int top, int[] result) {
+    if (top == rows) return;
+    int[] colSum = new int[cols];
+    solveBottom(mat, rows, cols, top, top, colSum, result);
+    solveTop(mat, rows, cols, top + 1, result);
+}
+private void solveBottom(int[][] mat, int rows, int cols,
+                         int top, int bottom, int[] colSum, int[] result) {
+    if (bottom == rows) return;
+    for (int c = 0; c < cols; c++) colSum[c] += mat[bottom][c];
+
+    // Kadane on colSum
+    int currSum = 0, best = Integer.MIN_VALUE;
+    for (int val : colSum) {
+        currSum = Math.max(val, currSum + val);
+        best = Math.max(best, currSum);
+    }
+    result[0] = Math.max(result[0], best);
+    solveBottom(mat, rows, cols, top, bottom + 1, colSum, result);
+}
+```
+
+### Dry Run
+```
+matrix = [[1, 2,-1,-4,-20],
+          [-8,-3, 4, 2, 1],
+          [ 3, 8,10, 1, 3],
+          [-4,-1, 1, 7,-6]]
+
+Fix top=1, bottom=3 (rows 1,2,3):
+colSum = [-8+3-4, -3+8-1, 4+10+1, 2+1+7, 1+3-6]
+       = [-9,      4,      15,     10,    -2]
+
+Kadane on [-9, 4, 15, 10, -2]:
+curr: -9 → 4 → 19 → 29 → 27
+max = 29
+
+Answer: 29 ✅  (rectangle rows 1-3, cols 1-3)
+```
+
+---
+
+## 🔴 Hard #2 — Maximum Sum of 3 Non-Overlapping Subarrays (LC 689)
+
+### Intuition
+Find 3 non-overlapping subarrays of length K with maximum total sum. Precompute window sums. Then build left[] (best window ending at or before i) and right[] (best window starting at or after i). For each middle window position, combine left + middle + right.
+
+### Loop Solution
+```java
+public int[] maxSumOfThreeSubarrays(int[] nums, int k) {
+    int n = nums.length;
+    int[] windowSum = new int[n - k + 1];
+
+    // Step 1: compute all window sums
+    int sum = 0;
+    for (int i = 0; i < k; i++) sum += nums[i];
+    windowSum[0] = sum;
+    for (int i = 1; i < windowSum.length; i++) {
+        sum += nums[i + k - 1] - nums[i - 1];
+        windowSum[i] = sum;
+    }
+
+    // Step 2: best LEFT window index at each position
+    int[] left = new int[windowSum.length];
+    int bestIdx = 0;
+    for (int i = 0; i < windowSum.length; i++) {
+        if (windowSum[i] > windowSum[bestIdx]) bestIdx = i;
+        left[i] = bestIdx;
+    }
+
+    // Step 3: best RIGHT window index at each position
+    int[] right = new int[windowSum.length];
+    bestIdx = windowSum.length - 1;
+    for (int i = windowSum.length - 1; i >= 0; i--) {
+        if (windowSum[i] >= windowSum[bestIdx]) bestIdx = i;
+        right[i] = bestIdx;
+    }
+
+    // Step 4: try all middle windows, combine left + mid + right
+    int[] result = new int[]{-1, -1, -1};
+    int maxTotal = 0;
+    for (int mid = k; mid < windowSum.length - k; mid++) {
+        int l = left[mid - k], r = right[mid + k];
+        int total = windowSum[l] + windowSum[mid] + windowSum[r];
+        if (total > maxTotal) {
+            maxTotal = total;
+            result = new int[]{l, mid, r};
+        }
+    }
+    return result;
+}
+```
+
+### Recursive Solution
+```java
+public int[] maxSumOfThreeSubarrays(int[] nums, int k) {
+    int n = nums.length;
+    int[] windowSum = buildWindowSum(nums, k, new int[n - k + 1], 0, 0);
+    int[] left  = buildLeft(windowSum,  new int[windowSum.length], 0, 0);
+    int[] right = buildRight(windowSum, new int[windowSum.length],
+                             windowSum.length - 1, windowSum.length - 1);
+    return findBest(windowSum, left, right, k, k,
+                    new int[]{-1,-1,-1}, 0);
+}
+private int[] buildWindowSum(int[] nums, int k, int[] ws, int i, int sum) {
+    if (i == 0) {
+        for (int j = 0; j < k; j++) sum += nums[j];
+        ws[0] = sum;
+        return buildWindowSum(nums, k, ws, 1, sum);
+    }
+    if (i == ws.length) return ws;
+    sum += nums[i + k - 1] - nums[i - 1];
+    ws[i] = sum;
+    return buildWindowSum(nums, k, ws, i + 1, sum);
+}
+private int[] buildLeft(int[] ws, int[] left, int i, int best) {
+    if (i == ws.length) return left;
+    if (ws[i] > ws[best]) best = i;
+    left[i] = best;
+    return buildLeft(ws, left, i + 1, best);
+}
+private int[] buildRight(int[] ws, int[] right, int i, int best) {
+    if (i < 0) return right;
+    if (ws[i] >= ws[best]) best = i;
+    right[i] = best;
+    return buildRight(ws, right, i - 1, best);
+}
+private int[] findBest(int[] ws, int[] left, int[] right,
+                       int k, int mid, int[] res, int maxTotal) {
+    if (mid >= ws.length - k) return res;
+    int l = left[mid - k], r = right[mid + k];
+    int total = ws[l] + ws[mid] + ws[r];
+    if (total > maxTotal) {
+        maxTotal = total;
+        res = new int[]{l, mid, r};
+    }
+    return findBest(ws, left, right, k, mid + 1, res, maxTotal);
+}
+```
+
+### Dry Run
+```
+nums = [1,2,1,2,6,7,5,1],  k = 2
+
+Step 1 — Window sums (size 2):
+[1+2, 2+1, 1+2, 2+6, 6+7, 7+5, 5+1]
+= [3,   3,   3,   8,  13,  12,   6]
+   idx:0   1    2    3    4    5    6
+
+Step 2 — left[] (best window up to index i):
+i=0: best=0 (3)  left=[0,_,_,_,_,_,_]
+i=1: 3 not > 3   left=[0,0,_,_,_,_,_]
+i=2: 3 not > 3   left=[0,0,0,_,_,_,_]
+i=3: 8 > 3       left=[0,0,0,3,_,_,_]
+i=4: 13> 8       left=[0,0,0,3,4,_,_]
+i=5: 12 not >13  left=[0,0,0,3,4,4,_]
+i=6: 6  not >13  left=[0,0,0,3,4,4,4]
+
+Step 3 — right[] (best window from index i):
+i=6: best=6 (6)  right=[_,_,_,_,_,_,6]
+i=5: 12>6        right=[_,_,_,_,_,5,6]
+i=4: 13>12       right=[_,_,_,_,4,5,6]
+i=3: 8  not>13   right=[_,_,_,4,4,5,6]
+i=2: 3  not>13   right=[_,_,4,4,4,5,6]
+i=1: 3  not>13   right=[_,4,4,4,4,5,6]
+i=0: 3  not>13   right=[4,4,4,4,4,5,6]
+
+Step 4 — try all middle windows (mid from k=2 to length-k-1=4):
+mid=2: l=left[0]=0, r=right[4]=4
+  total = ws[0]+ws[2]+ws[4] = 3+3+13 = 19
+mid=3: l=left[1]=0, r=right[5]=5
+  total = ws[0]+ws[3]+ws[5] = 3+8+12 = 23
+mid=4: l=left[2]=0, r=right[6]=6
+  total = ws[0]+ws[4]+ws[6] = 3+13+6 = 22
+
+maxTotal = 23  → result = [0, 3, 5] ✅
+Subarrays: [1,2], [2,6], [7,5]  sums: 3+8+12=23 ✅
+```
+
+---
+
+## 📊 Summary Table
+
+| Problem | Key Technique | Trick |
+|---|---|---|
+| Maximum Subarray | Classic Kadane | `max(num, currSum+num)` to extend or restart |
+| Best Time to Buy/Sell Stock | Track running minimum | `minPrice` before `profit` update in same loop |
+| Maximum Average Subarray | Fixed window slide | Divide by K only at the end |
+| Maximum Product Subarray | Track max AND min | Save `temp=maxProd` before updating both |
+| Maximum Sum Circular | Kadane + total - minSubarray | Edge case: all negative → return `maxKadane` |
+| Longest Turbulent Subarray | Track sign alternation | Reset to 2 (not 1) when pattern breaks |
+| Max Sum Rectangle 2D | Fix rows + Kadane on columns | Compress 2D to 1D by summing column values |
+| 3 Non-Overlapping Subarrays | Precompute left/right best | Sweep middle, combine left + mid + right |
+
+---
+
+> ✅ All 8 Kadane's Algorithm problems solved.
+> Type `next` for **Fast & Slow Pointers pattern**, or `pattern summary` for Kadane's golden rules recap.

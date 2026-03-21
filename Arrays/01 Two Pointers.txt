@@ -1,0 +1,176 @@
+# Two Pointers Pattern
+
+---
+
+## 1. Core Idea
+
+> Use **two index variables** that move through the array — either toward each other, in the same direction, or at different speeds — to avoid the O(n²) brute force of nested loops.
+
+Instead of checking every pair with 2 loops → you smartly move pointers based on a condition → **O(n) time**.
+
+---
+
+## 2. How to Recognize These Problems
+
+Ask yourself these questions:
+
+| Signal in Problem | Likely Pattern |
+|---|---|
+| "sorted array", find pair/triplet | Two Pointers |
+| "remove duplicates / in-place" | Two Pointers |
+| "reverse / palindrome check" | Two Pointers |
+| "two arrays, merge or compare" | Two Pointers (one per array) |
+| "squaring sorted array" | Two Pointers |
+| target sum with two elements | Two Pointers |
+
+---
+
+## 3. Key Variants with Visual Dry Runs
+
+---
+
+### Variant 1 — Opposite Ends (Converging)
+*Used for: pair sum, palindrome, reverse*
+
+```
+arr = [1, 3, 5, 7, 9],  target = 10
+
+L=0  R=4  →  1+9=10 ✅ FOUND
+
+arr = [1, 2, 3, 4, 5]  (reverse)
+L=0  R=4  →  swap(1,5)  →  [5,2,3,4,1]
+L=1  R=3  →  swap(2,4)  →  [5,4,3,2,1]
+L=2  R=2  →  L==R, STOP
+```
+
+---
+
+### Variant 2 — Same Direction (Fast/Slow Write Pointer)
+*Used for: remove duplicates, remove element in-place*
+
+```
+arr = [1,1,2,3,3],  remove duplicates
+
+slow=0, fast=1
+fast=1 → arr[1]==arr[0]? YES → skip
+fast=2 → arr[2]!=arr[0]? YES → slow++, write arr[2] → [1,2,...]
+fast=3 → arr[3]!=arr[2]? YES → slow++, write arr[3] → [1,2,3,...]
+fast=4 → arr[4]==arr[3]? YES → skip
+Result: [1,2,3]  length = slow+1 = 3
+```
+
+---
+
+### Variant 3 — Two Arrays (One Pointer Each)
+*Used for: merge sorted arrays, compare*
+
+```
+A=[1,3,5]   B=[2,4,6]
+i=0, j=0
+A[0]<B[0] → take 1, i++
+A[1]>B[1] → take 2, j++
+...
+Result: [1,2,3,4,5,6]
+```
+
+---
+
+### Variant 4 — Triplet (Fix one + Two Pointers)
+*Used for: 3Sum, closest triplet*
+
+```
+arr = [-4,-1,-1,0,1,2],  target=0
+
+Fix i=0 (-4), L=1, R=5
+  -4 + -1 + 2 = -3 < 0  → L++
+  -4 +  0 + 2 = -2 < 0  → L++
+  -4 +  1 + 2 = -1 < 0  → L++
+  L==R → move to next i
+
+Fix i=1 (-1), L=2, R=5
+  -1 + -1 + 2 = 0 ✅  → record [-1,-1,2]
+```
+
+---
+
+## 4. Golden Template in Java
+
+```java
+// ✅ TEMPLATE 1 — Opposite Ends
+int left = 0, right = arr.length - 1;
+while (left < right) {
+    int sum = arr[left] + arr[right];
+    if (sum == target) {
+        // found answer
+        left++; right--;
+    } else if (sum < target) {
+        left++;
+    } else {
+        right--;
+    }
+}
+
+// ✅ TEMPLATE 2 — Same Direction (write pointer)
+int slow = 0;
+for (int fast = 1; fast < arr.length; fast++) {
+    if (arr[fast] != arr[slow]) {   // condition varies
+        slow++;
+        arr[slow] = arr[fast];
+    }
+}
+// valid array length = slow + 1
+
+// ✅ TEMPLATE 3 — 3Sum (Fix + Two Pointers)
+Arrays.sort(arr);
+for (int i = 0; i < arr.length - 2; i++) {
+    if (i > 0 && arr[i] == arr[i-1]) continue; // skip duplicates
+    int left = i + 1, right = arr.length - 1;
+    while (left < right) {
+        int sum = arr[i] + arr[left] + arr[right];
+        if (sum == 0)      { /* record */ left++; right--; }
+        else if (sum < 0)  { left++; }
+        else               { right--; }
+    }
+}
+```
+
+---
+
+## 5. Key Rules to Remember
+
+| Rule | Detail |
+|---|---|
+| ✅ Sort first | Most opposite-end problems need sorted array |
+| ✅ `left < right` not `<=` | Avoids using same element twice |
+| ✅ Skip duplicates explicitly | After finding answer, do `while(arr[left]==arr[left+1]) left++` |
+| ✅ Write pointer starts at 0 | In same-direction, `slow=0` is your "last valid" index |
+| ✅ Two arrays → separate pointers | Never share a pointer across arrays |
+| ⚠️ Don't sort if order matters | e.g., "remove element" problems — sort would break indices |
+
+---
+
+## 6. Practice Problems
+
+### 🟢 Easy
+| # | Problem | LeetCode |
+|---|---|---|
+| 1 | Two Sum II (sorted array) | LC 167 |
+| 2 | Reverse String | LC 344 |
+| 3 | Remove Duplicates from Sorted Array | LC 26 |
+
+### 🟡 Medium
+| # | Problem | LeetCode |
+|---|---|---|
+| 1 | 3Sum | LC 15 |
+| 2 | Container With Most Water | LC 11 |
+| 3 | Sort Colors (Dutch Flag) | LC 75 |
+
+### 🔴 Hard
+| # | Problem | LeetCode |
+|---|---|---|
+| 1 | Trapping Rain Water | LC 42 |
+| 2 | 4Sum | LC 18 |
+
+---
+
+> ✅ Pattern explained. **Send `solve Two Pointers`** (or just `solve`) and I'll write complete Java solutions with dry runs for all 8 problems above.

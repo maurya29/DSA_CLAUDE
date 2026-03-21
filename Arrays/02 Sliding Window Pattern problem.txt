@@ -1,0 +1,558 @@
+# Sliding Window — Complete Java Solutions
+
+---
+
+## 🟢 Easy #1 — Maximum Average Subarray I (LC 643)
+
+### Intuition
+Fixed window of size K. Compute first window sum, then slide by adding the new right element and removing the old left element. Track maximum sum and divide by K at the end.
+
+### Loop Solution
+```java
+public double findMaxAverage(int[] nums, int k) {
+    double windowSum = 0;
+    for (int i = 0; i < k; i++) windowSum += nums[i]; // first window
+
+    double maxSum = windowSum;
+    for (int right = k; right < nums.length; right++) {
+        windowSum += nums[right] - nums[right - k];    // slide
+        maxSum = Math.max(maxSum, windowSum);
+    }
+    return maxSum / k;
+}
+```
+
+### Recursive Solution
+```java
+public double findMaxAverage(int[] nums, int k) {
+    double firstSum = 0;
+    for (int i = 0; i < k; i++) firstSum += nums[i];
+    return helper(nums, k, k, firstSum, firstSum) / k;
+}
+private double helper(int[] nums, int k, int right, double windowSum, double maxSum) {
+    if (right == nums.length) return maxSum;
+    windowSum += nums[right] - nums[right - k];
+    maxSum = Math.max(maxSum, windowSum);
+    return helper(nums, k, right + 1, windowSum, maxSum);
+}
+```
+
+### Dry Run
+```
+nums = [1,12,-5,-6,50,3],  k = 4
+
+First window [1,12,-5,-6] → sum = 2
+right=4: sum = 2 + 50 - 1  = 51  → max = 51
+right=5: sum = 51 + 3 - 12 = 42  → max = 51
+
+Answer: 51/4 = 12.75 ✅
+```
+
+---
+
+## 🟢 Easy #2 — Maximum Consecutive Ones III (LC 1004)
+
+### Intuition
+Sliding window tracking count of zeros flipped. Expand right freely. When zeros exceed K, shrink from left — if we remove a zero, decrement count. Max window size at any point is the answer.
+
+### Loop Solution
+```java
+public int longestOnes(int[] nums, int k) {
+    int left = 0, zeros = 0, maxLen = 0;
+    for (int right = 0; right < nums.length; right++) {
+        if (nums[right] == 0) zeros++;          // expand: add right
+
+        while (zeros > k) {                     // shrink: invalid window
+            if (nums[left] == 0) zeros--;
+            left++;
+        }
+        maxLen = Math.max(maxLen, right - left + 1);
+    }
+    return maxLen;
+}
+```
+
+### Recursive Solution
+```java
+public int longestOnes(int[] nums, int k) {
+    return helper(nums, k, 0, 0, 0, 0);
+}
+private int helper(int[] nums, int k, int left, int right, int zeros, int maxLen) {
+    if (right == nums.length) return maxLen;
+    if (nums[right] == 0) zeros++;
+    while (zeros > k) {
+        if (nums[left] == 0) zeros--;
+        left++;
+    }
+    maxLen = Math.max(maxLen, right - left + 1);
+    return helper(nums, k, left, right + 1, zeros, maxLen);
+}
+```
+
+### Dry Run
+```
+nums = [1,1,1,0,0,0,1,1,1,1,0],  k = 2
+
+R=0..2: zeros=0, window=[1,1,1]         maxLen=3
+R=3:    zeros=1, window=[1,1,1,0]       maxLen=4
+R=4:    zeros=2, window=[1,1,1,0,0]     maxLen=5
+R=5:    zeros=3 > k=2 → SHRINK
+  L=0: nums[0]=1 → L=1, zeros still 3
+  L=1: nums[1]=1 → L=2, zeros still 3
+  L=2: nums[2]=1 → L=3, zeros still 3
+  L=3: nums[3]=0 → L=4, zeros=2 ✅
+  window=[0,0,1] ... maxLen=5
+R=6..9: window grows → maxLen=6 ✅
+
+Answer: 6
+```
+
+---
+
+## 🟢 Easy #3 — Contains Duplicate II (LC 219)
+
+### Intuition
+Fixed window of size K. Use a HashSet to track elements in the current window. If the new element already exists in the set → duplicate found within K distance. If window exceeds size K, remove leftmost element.
+
+### Loop Solution
+```java
+public boolean containsNearbyDuplicate(int[] nums, int k) {
+    Set<Integer> window = new HashSet<>();
+    for (int right = 0; right < nums.length; right++) {
+        if (window.contains(nums[right])) return true;  // duplicate found
+        window.add(nums[right]);
+        if (window.size() > k)                          // shrink window
+            window.remove(nums[right - k]);
+    }
+    return false;
+}
+```
+
+### Recursive Solution
+```java
+public boolean containsNearbyDuplicate(int[] nums, int k) {
+    return helper(nums, k, 0, new HashSet<>());
+}
+private boolean helper(int[] nums, int k, int right, Set<Integer> window) {
+    if (right == nums.length) return false;
+    if (window.contains(nums[right])) return true;
+    window.add(nums[right]);
+    if (window.size() > k) window.remove(nums[right - k]);
+    return helper(nums, k, right + 1, window);
+}
+```
+
+### Dry Run
+```
+nums = [1,2,3,1,2,3],  k = 2
+
+right=0: window={1}         size=1 ≤ 2
+right=1: window={1,2}       size=2 ≤ 2
+right=2: window={1,2,3}     size=3 > 2 → remove nums[0]=1 → {2,3}
+right=3: nums[3]=1, {2,3} doesn't contain 1 → add → {2,3,1}
+         size=3 > 2 → remove nums[1]=2 → {3,1}
+right=4: nums[4]=2, {3,1} doesn't contain 2 → add → {3,1,2}
+         size=3 > 2 → remove nums[2]=3 → {1,2}
+right=5: nums[5]=3, {1,2} doesn't contain 3 → add → {1,2,3}
+
+return false ✅  (no duplicate within window of 2)
+```
+
+---
+
+## 🟡 Medium #1 — Longest Substring Without Repeating Characters (LC 3)
+
+### Intuition
+Variable window with a HashSet tracking current characters. When we see a duplicate, shrink from the left until the duplicate is removed. The window always contains unique characters — track maximum size throughout.
+
+### Loop Solution
+```java
+public int lengthOfLongestSubstring(String s) {
+    Set<Character> window = new HashSet<>();
+    int left = 0, maxLen = 0;
+    for (int right = 0; right < s.length(); right++) {
+        while (window.contains(s.charAt(right))) {  // shrink till unique
+            window.remove(s.charAt(left));
+            left++;
+        }
+        window.add(s.charAt(right));
+        maxLen = Math.max(maxLen, right - left + 1);
+    }
+    return maxLen;
+}
+```
+
+### Recursive Solution
+```java
+public int lengthOfLongestSubstring(String s) {
+    return helper(s, 0, 0, new HashSet<>(), 0);
+}
+private int helper(String s, int left, int right, Set<Character> window, int maxLen) {
+    if (right == s.length()) return maxLen;
+    while (window.contains(s.charAt(right))) {
+        window.remove(s.charAt(left++));
+    }
+    window.add(s.charAt(right));
+    maxLen = Math.max(maxLen, right - left + 1);
+    return helper(s, left, right + 1, window, maxLen);
+}
+```
+
+### Dry Run
+```
+s = "abcabcbb"
+
+R=0: add 'a' → {a}       maxLen=1
+R=1: add 'b' → {a,b}     maxLen=2
+R=2: add 'c' → {a,b,c}   maxLen=3
+R=3: 'a' in window!
+  remove s[L=0]='a' → {b,c}, L=1
+  add 'a' → {b,c,a}      maxLen=3
+R=4: 'b' in window!
+  remove s[L=1]='b' → {c,a}, L=2
+  add 'b' → {c,a,b}      maxLen=3
+R=5: 'c' in window!
+  remove s[L=2]='c' → {a,b}, L=3
+  add 'c' → {a,b,c}      maxLen=3
+R=6: 'b' in window!
+  remove s[L=3]='a' → {b,c}, L=4
+  remove s[L=4]='b' → {c},   L=5
+  add 'b' → {c,b}        maxLen=3
+R=7: 'b' in window!
+  remove s[L=5]='c' → {b}, L=6
+  remove s[L=6]='b' → {}, L=7
+  add 'b' → {b}          maxLen=3
+
+Answer: 3 ("abc") ✅
+```
+
+---
+
+## 🟡 Medium #2 — Longest Repeating Character Replacement (LC 424)
+
+### Intuition
+Track the frequency of the most common character in the window. If `windowSize - maxFreq > k`, the window needs more than K replacements → shrink left. The key insight: we never need to decrease `maxFreq` — we only care about finding a bigger valid window.
+
+### Loop Solution
+```java
+public int characterReplacement(String s, int k) {
+    int[] freq = new int[26];
+    int left = 0, maxFreq = 0, maxLen = 0;
+
+    for (int right = 0; right < s.length(); right++) {
+        freq[s.charAt(right) - 'A']++;
+        maxFreq = Math.max(maxFreq, freq[s.charAt(right) - 'A']);
+
+        // window invalid: need more than k replacements
+        if ((right - left + 1) - maxFreq > k) {
+            freq[s.charAt(left) - 'A']--;
+            left++;
+        }
+        maxLen = Math.max(maxLen, right - left + 1);
+    }
+    return maxLen;
+}
+```
+
+### Recursive Solution
+```java
+public int characterReplacement(String s, int k) {
+    return helper(s, k, 0, 0, new int[26], 0, 0);
+}
+private int helper(String s, int k, int left, int right, int[] freq, int maxFreq, int maxLen) {
+    if (right == s.length()) return maxLen;
+    freq[s.charAt(right) - 'A']++;
+    maxFreq = Math.max(maxFreq, freq[s.charAt(right) - 'A']);
+    if ((right - left + 1) - maxFreq > k) {
+        freq[s.charAt(left) - 'A']--;
+        left++;
+    }
+    maxLen = Math.max(maxLen, right - left + 1);
+    return helper(s, k, left, right + 1, freq, maxFreq, maxLen);
+}
+```
+
+### Dry Run
+```
+s = "AABABBA",  k = 1
+
+R=0: freq[A]=1, maxFreq=1, window=A      size=1, 1-1=0 ≤ 1 ✅ maxLen=1
+R=1: freq[A]=2, maxFreq=2, window=AA     size=2, 2-2=0 ≤ 1 ✅ maxLen=2
+R=2: freq[B]=1, maxFreq=2, window=AAB    size=3, 3-2=1 ≤ 1 ✅ maxLen=3
+R=3: freq[A]=3, maxFreq=3, window=AABA   size=4, 4-3=1 ≤ 1 ✅ maxLen=4
+R=4: freq[B]=2, maxFreq=3, window=AABAB  size=5, 5-3=2 > 1 ❌
+  → shrink: freq[A]--, L=1  window=ABAB  size=4, 4-3=1 ≤ 1 ✅ maxLen=4
+R=5: freq[B]=3, maxFreq=3, window=ABABB  size=5, 5-3=2 > 1 ❌
+  → shrink: freq[A]--, L=2  window=BABB  size=4, 4-3=1 ≤ 1 ✅ maxLen=4
+R=6: freq[A]=1, maxFreq=3, window=BABBA  size=5, 5-3=2 > 1 ❌
+  → shrink: freq[B]--, L=3  window=ABBA  size=4 ✅ maxLen=4
+
+Answer: 4 ✅
+```
+
+---
+
+## 🟡 Medium #3 — Fruit Into Baskets (LC 904)
+
+### Intuition
+"At most 2 distinct types of fruit" = longest subarray with at most 2 distinct values. Classic variable window with a HashMap counting fruit frequencies. When distinct types exceed 2, shrink from left until valid again.
+
+### Loop Solution
+```java
+public int totalFruit(int[] fruits) {
+    Map<Integer, Integer> basket = new HashMap<>();
+    int left = 0, maxLen = 0;
+
+    for (int right = 0; right < fruits.length; right++) {
+        basket.merge(fruits[right], 1, Integer::sum);   // add fruit
+
+        while (basket.size() > 2) {                     // more than 2 types
+            basket.merge(fruits[left], -1, Integer::sum);
+            if (basket.get(fruits[left]) == 0)
+                basket.remove(fruits[left]);
+            left++;
+        }
+        maxLen = Math.max(maxLen, right - left + 1);
+    }
+    return maxLen;
+}
+```
+
+### Recursive Solution
+```java
+public int totalFruit(int[] fruits) {
+    return helper(fruits, 0, 0, new HashMap<>(), 0);
+}
+private int helper(int[] fruits, int left, int right, Map<Integer,Integer> basket, int maxLen) {
+    if (right == fruits.length) return maxLen;
+    basket.merge(fruits[right], 1, Integer::sum);
+    while (basket.size() > 2) {
+        basket.merge(fruits[left], -1, Integer::sum);
+        if (basket.get(fruits[left]) == 0) basket.remove(fruits[left]);
+        left++;
+    }
+    maxLen = Math.max(maxLen, right - left + 1);
+    return helper(fruits, left, right + 1, basket, maxLen);
+}
+```
+
+### Dry Run
+```
+fruits = [1,2,1,2,3]
+
+R=0: basket={1:1}           size=1 ✅ maxLen=1
+R=1: basket={1:1,2:1}       size=2 ✅ maxLen=2
+R=2: basket={1:2,2:1}       size=2 ✅ maxLen=3
+R=3: basket={1:2,2:2}       size=2 ✅ maxLen=4
+R=4: basket={1:2,2:2,3:1}   size=3 ❌ SHRINK
+  remove fruits[L=0]=1 → {1:1,2:2,3:1} still 3 → L=1
+  remove fruits[L=1]=2 → {1:1,2:1,3:1} still 3 → L=2
+  remove fruits[L=2]=1 → {2:1,3:1}     size=2 ✅ L=3
+  window=[2,3] maxLen=4
+
+Answer: 4 ✅
+```
+
+---
+
+## 🔴 Hard #1 — Minimum Window Substring (LC 76)
+
+### Intuition
+Expand right until all required characters are covered (using a `need` count). Then shrink left to minimize the window while still valid. Track the smallest valid window seen. Two maps: one for target frequency, one for current window frequency.
+
+### Loop Solution
+```java
+public String minWindow(String s, String t) {
+    if (s.length() < t.length()) return "";
+    Map<Character, Integer> need = new HashMap<>();
+    for (char c : t.toCharArray())
+        need.merge(c, 1, Integer::sum);
+
+    int left = 0, matched = 0;
+    int minLen = Integer.MAX_VALUE, minStart = 0;
+    Map<Character, Integer> window = new HashMap<>();
+
+    for (int right = 0; right < s.length(); right++) {
+        char c = s.charAt(right);
+        window.merge(c, 1, Integer::sum);
+
+        // check if this char satisfies a requirement
+        if (need.containsKey(c) && window.get(c).equals(need.get(c)))
+            matched++;
+
+        // shrink while all chars matched
+        while (matched == need.size()) {
+            if (right - left + 1 < minLen) {
+                minLen = right - left + 1;
+                minStart = left;
+            }
+            char leftChar = s.charAt(left);
+            window.merge(leftChar, -1, Integer::sum);
+            if (need.containsKey(leftChar) && window.get(leftChar) < need.get(leftChar))
+                matched--;
+            left++;
+        }
+    }
+    return minLen == Integer.MAX_VALUE ? "" : s.substring(minStart, minStart + minLen);
+}
+```
+
+### Recursive Solution
+```java
+// Recursive over right pointer; inner shrink stays iterative
+public String minWindow(String s, String t) {
+    Map<Character,Integer> need = new HashMap<>();
+    for (char c : t.toCharArray()) need.merge(c, 1, Integer::sum);
+    int[] result = {0, Integer.MAX_VALUE}; // {start, len}
+    helper(s, need, new HashMap<>(), 0, 0, 0, result);
+    return result[1] == Integer.MAX_VALUE ? "" : s.substring(result[0], result[0] + result[1]);
+}
+private void helper(String s, Map<Character,Integer> need,
+                    Map<Character,Integer> window,
+                    int left, int right, int matched, int[] result) {
+    if (right == s.length()) return;
+    char c = s.charAt(right);
+    window.merge(c, 1, Integer::sum);
+    if (need.containsKey(c) && window.get(c).equals(need.get(c))) matched++;
+    while (matched == need.size()) {
+        if (right - left + 1 < result[1]) { result[0] = left; result[1] = right - left + 1; }
+        char lc = s.charAt(left);
+        window.merge(lc, -1, Integer::sum);
+        if (need.containsKey(lc) && window.get(lc) < need.get(lc)) matched--;
+        left++;
+    }
+    helper(s, need, window, left, right + 1, matched, result);
+}
+```
+
+### Dry Run
+```
+s = "ADOBECODEBANC",  t = "ABC"
+need = {A:1, B:1, C:1}
+
+Expand until matched==3:
+R=0 'A': window={A:1} matched=1
+R=1 'D': window={A:1,D:1}
+R=2 'O': window={...,O:1}
+R=3 'B': window={...,B:1} matched=2
+R=4 'E': window={...,E:1}
+R=5 'C': window={...,C:1} matched=3 ✅
+
+Shrink from left:
+L=0 'A': window="ADOBEC" len=6 → minWindow
+  remove A → window{A:0} matched=2 → stop shrinking, L=1
+
+Expand again:
+R=6 'O'..R=9 'A': matched still 2
+R=9 'A': window{A:1} matched=3 ✅
+
+Shrink:
+L=1: remove 'D' → still matched=3, window len=9
+L=2: remove 'O' → still matched=3, window len=8
+...keep shrinking until matched breaks
+Eventually: "BANC" len=4 → new minimum ✅
+
+Answer: "BANC"
+```
+
+---
+
+## 🔴 Hard #2 — Sliding Window Maximum (LC 239)
+
+### Intuition
+Use a **monotonic decreasing deque** (stores indices). The front of the deque always holds the index of the current window's maximum. Before adding a new element, remove all indices from the back whose values are smaller — they can never be the maximum while the new element is in the window.
+
+### Loop Solution
+```java
+public int[] maxSlidingWindow(int[] nums, int k) {
+    int n = nums.length;
+    int[] result = new int[n - k + 1];
+    Deque<Integer> deque = new ArrayDeque<>(); // stores indices
+
+    for (int right = 0; right < n; right++) {
+        // remove indices outside window
+        while (!deque.isEmpty() && deque.peekFirst() < right - k + 1)
+            deque.pollFirst();
+
+        // remove smaller elements from back (they're useless)
+        while (!deque.isEmpty() && nums[deque.peekLast()] < nums[right])
+            deque.pollLast();
+
+        deque.offerLast(right);
+
+        // window is fully formed
+        if (right >= k - 1)
+            result[right - k + 1] = nums[deque.peekFirst()];
+    }
+    return result;
+}
+```
+
+### Recursive Solution
+```java
+public int[] maxSlidingWindow(int[] nums, int k) {
+    int[] result = new int[nums.length - k + 1];
+    Deque<Integer> deque = new ArrayDeque<>();
+    helper(nums, k, 0, deque, result);
+    return result;
+}
+private void helper(int[] nums, int k, int right, Deque<Integer> deque, int[] result) {
+    if (right == nums.length) return;
+    while (!deque.isEmpty() && deque.peekFirst() < right - k + 1)
+        deque.pollFirst();
+    while (!deque.isEmpty() && nums[deque.peekLast()] < nums[right])
+        deque.pollLast();
+    deque.offerLast(right);
+    if (right >= k - 1)
+        result[right - k + 1] = nums[deque.peekFirst()];
+    helper(nums, k, right + 1, deque, result);
+}
+```
+
+### Dry Run
+```
+nums = [1,3,-1,-3,5,3,6,7],  k = 3
+
+right=0: deque=[0]            (not full yet)
+right=1: 3>1 → pop 0, deque=[1]     (not full yet)
+right=2: -1<3, deque=[1,2]   window full!
+  result[0] = nums[1] = 3
+
+right=3: -3<-1, deque=[1,2,3]
+  front=1, 1 >= 3-3+1=1 ✅
+  result[1] = nums[1] = 3
+
+right=4: 5>-3 pop 3, 5>-1 pop 2, 5>3 pop 1, deque=[4]
+  result[2] = nums[4] = 5
+
+right=5: 3<5, deque=[4,5]
+  result[3] = nums[4] = 5
+
+right=6: 6>3 pop 5, 6>5 pop 4, deque=[6]
+  result[4] = nums[6] = 6
+
+right=7: 7>6 pop 6, deque=[7]
+  result[5] = nums[7] = 7
+
+Answer: [3,3,5,5,6,7] ✅
+```
+
+---
+
+## 📊 Summary Table
+
+| Problem | Key Technique | Trick |
+|---|---|---|
+| Max Average Subarray I | Fixed window slide | `sum + nums[right] - nums[right-k]` |
+| Max Consecutive Ones III | Variable window, count zeros | Shrink when `zeros > k` |
+| Contains Duplicate II | Fixed window HashSet | Remove `nums[right-k]` when size exceeds K |
+| Longest No-Repeat Substring | Variable window HashSet | Shrink until duplicate removed |
+| Longest Char Replacement | Variable window, max freq | `windowSize - maxFreq > k` → shrink |
+| Fruit Into Baskets | At most 2 distinct (HashMap) | Same template as K-distinct problems |
+| Minimum Window Substring | Expand then shrink, `matched` count | Shrink **while** valid (minimize) |
+| Sliding Window Maximum | Monotonic decreasing deque | Pop back if smaller, pop front if out of window |
+
+---
+
+> ✅ All 8 Sliding Window problems solved.
+> Type `next` for **Prefix Sum solutions**, or `pattern summary` for Sliding Window golden rules recap.

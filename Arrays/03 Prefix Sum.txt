@@ -1,0 +1,193 @@
+# Prefix Sum Pattern
+
+---
+
+## 1. Core Idea
+
+> Precompute a `prefix[]` array where `prefix[i]` = sum of all elements from index `0` to `i`. Then any **range sum query** `[L, R]` is answered in **O(1)** as `prefix[R] - prefix[L-1]` — instead of looping every time.
+
+The key insight: instead of recomputing subarray sums repeatedly → **precompute once, query in O(1)**.
+
+---
+
+## 2. How to Recognize These Problems
+
+| Signal in Problem | Likely Pattern |
+|---|---|
+| "sum of subarray from index L to R" | Prefix Sum |
+| "number of subarrays with sum = K" | Prefix Sum + HashMap |
+| "find subarray with given sum" | Prefix Sum |
+| "range sum queries (multiple)" | Prefix Sum |
+| "running total / cumulative sum" | Prefix Sum |
+| "subarray sum divisible by K" | Prefix Sum + Modulo |
+| "2D matrix range sum" | 2D Prefix Sum |
+
+---
+
+## 3. Key Variants with Visual Dry Runs
+
+---
+
+### Variant 1 — Basic Range Sum Query
+*Used for: range sum, immutable array queries*
+
+```
+arr   = [1, 2, 3, 4, 5]
+index =  0  1  2  3  4
+
+prefix[0] = 1
+prefix[1] = 1+2 = 3
+prefix[2] = 1+2+3 = 6
+prefix[3] = 1+2+3+4 = 10
+prefix[4] = 1+2+3+4+5 = 15
+
+Query: sum(L=1, R=3)
+= prefix[3] - prefix[0]
+= 10 - 1 = 9 ✅  (2+3+4=9)
+```
+
+---
+
+### Variant 2 — Subarray Sum Equals K (HashMap)
+*Used for: count subarrays with exact sum K*
+
+```
+nums = [1, 2, 3],  k = 3
+
+Track: prefixSum so far, and how many times each sum appeared
+map = {0:1}  ← always seed with 0
+
+i=0: sum=1, need=1-3=-2, map has -2? NO  → map={0:1,1:1}
+i=1: sum=3, need=3-3=0,  map has 0?  YES → count=1, map={0:1,1:1,3:1}
+i=2: sum=6, need=6-3=3,  map has 3?  YES → count=2, map={...,6:1}
+
+Answer: 2  ([1,2] and [3]) ✅
+```
+
+---
+
+### Variant 3 — Subarray Sum Divisible by K
+*Used for: count subarrays where sum % K == 0*
+
+```
+nums = [4,5,0,-2,-3,1],  k = 5
+
+Key insight: if prefix[i] % k == prefix[j] % k
+            then sum(j+1..i) is divisible by k
+
+sum=0:  0%5=0  map={0:1} → count+=map[0]=1 → count=1
+sum=4:  4%5=4  map={0:1,4:1}
+sum=9:  9%5=4  map has 4 → count+=1 → count=2, map={0:1,4:2}
+sum=9:  9%5=4  count+=2 → count=4
+sum=6:  6%5=1  map={...,1:1}
+sum=3:  3%5=3  map={...,3:1}
+sum=4:  4%5=4  count+=2 → count=6
+
+Answer: 6 ✅
+Note: use (sum%k+k)%k to handle negative remainders
+```
+
+---
+
+### Variant 4 — 2D Prefix Sum
+*Used for: sum of any rectangle in a matrix*
+
+```
+matrix = [1,2,3]
+         [4,5,6]
+         [7,8,9]
+
+prefix[i][j] = sum of rectangle from (0,0) to (i,j)
+
+prefix[0][0]=1   prefix[0][1]=3   prefix[0][2]=6
+prefix[1][0]=5   prefix[1][1]=12  prefix[1][2]=21
+prefix[2][0]=12  prefix[2][1]=27  prefix[2][2]=45
+
+Query: sum of rectangle (1,1) to (2,2)
+= prefix[2][2] - prefix[0][2] - prefix[2][0] + prefix[0][0]
+= 45 - 6 - 12 + 1 = 28  (5+6+8+9=28) ✅
+```
+
+---
+
+## 4. Golden Template in Java
+
+```java
+// ✅ TEMPLATE 1 — Build Prefix Sum Array
+int n = arr.length;
+int[] prefix = new int[n + 1];  // +1 to avoid index-1 edge case
+for (int i = 0; i < n; i++)
+    prefix[i + 1] = prefix[i] + arr[i];
+
+// Range sum query [L, R] (0-indexed)
+int rangeSum = prefix[R + 1] - prefix[L];
+
+
+// ✅ TEMPLATE 2 — Count Subarrays with Sum = K (HashMap)
+int count = 0, sum = 0;
+Map<Integer, Integer> map = new HashMap<>();
+map.put(0, 1);  // ← CRITICAL: seed with 0 before loop
+for (int num : nums) {
+    sum += num;
+    count += map.getOrDefault(sum - k, 0); // has (sum-k) appeared before?
+    map.merge(sum, 1, Integer::sum);        // record current prefix sum
+}
+
+
+// ✅ TEMPLATE 3 — 2D Prefix Sum
+int[][] prefix = new int[m + 1][n + 1];
+for (int i = 1; i <= m; i++)
+    for (int j = 1; j <= n; j++)
+        prefix[i][j] = matrix[i-1][j-1]
+                      + prefix[i-1][j]
+                      + prefix[i][j-1]
+                      - prefix[i-1][j-1];  // subtract overlap
+
+// Query: sum of rectangle (r1,c1) to (r2,c2) — 0-indexed on matrix
+int rectSum = prefix[r2+1][c2+1]
+            - prefix[r1][c2+1]
+            - prefix[r2+1][c1]
+            + prefix[r1][c1];
+```
+
+---
+
+## 5. Key Rules to Remember
+
+| Rule | Detail |
+|---|---|
+| ✅ Always seed map with `{0:1}` | Handles subarrays starting from index 0 |
+| ✅ Use `prefix[n+1]` size | Avoids `L-1 = -1` index error |
+| ✅ `rangeSum = prefix[R+1] - prefix[L]` | Standard O(1) query formula |
+| ✅ For mod problems use `(sum%k+k)%k` | Handles negative remainders correctly |
+| ✅ 2D query uses inclusion-exclusion | Add back the double-subtracted corner |
+| ⚠️ Update map AFTER checking | Prevents using same index twice |
+| ⚠️ Prefix sum ≠ Sliding Window | Use prefix when K is exact, sliding when ≤ K |
+
+---
+
+## 6. Practice Problems
+
+### 🟢 Easy
+| # | Problem | LeetCode |
+|---|---|---|
+| 1 | Range Sum Query - Immutable | LC 303 |
+| 2 | Find Pivot Index | LC 724 |
+| 3 | Running Sum of 1D Array | LC 1480 |
+
+### 🟡 Medium
+| # | Problem | LeetCode |
+|---|---|---|
+| 1 | Subarray Sum Equals K | LC 560 |
+| 2 | Product of Array Except Self | LC 238 |
+| 3 | Subarray Sums Divisible by K | LC 974 |
+
+### 🔴 Hard
+| # | Problem | LeetCode |
+|---|---|---|
+| 1 | Count of Range Sum | LC 327 |
+| 2 | Range Sum Query 2D - Immutable | LC 304 |
+
+---
+
+> ✅ Pattern explained. **Send `solve`** and I'll write complete Java solutions with dry runs for all 8 problems above.
