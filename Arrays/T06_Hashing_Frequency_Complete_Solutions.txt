@@ -1,0 +1,2381 @@
+# T06 — Hashing & Frequency: Complete Solutions
+
+**Curriculum:** `MASTER_DSA_CURRICULUM.md`, section C6, locked T06 plan.  **Total:** 33 LeetCode questions across 13 algorithm families (H1–H13).
+
+> **Reference workbook, not practice tracking.** Inclusion of a question in this file does not mark that question as practiced or completed. The master plan records progress separately.
+
+## Table of Contents
+
+- [H1 — Hash-set membership, intersections, differences](#h1--hashset-membership-intersections-differences) — [LC 217](#leetcode-217), [LC 349](#leetcode-349), [LC 2215](#leetcode-2215)
+- [H2 — Nearby values with bounded index distance](#h2--nearby-values-with-bounded-index-distance) — [LC 219](#leetcode-219), [LC 220](#leetcode-220)
+- [H3 — Complement lookups and grouped pair sums](#h3--complement-lookups-and-grouped-pair-sums) — [LC 1](#leetcode-1), [LC 454](#leetcode-454)
+- [H4 — Fixed-alphabet frequency accounting](#h4--fixedalphabet-frequency-accounting) — [LC 242](#leetcode-242), [LC 383](#leetcode-383), [LC 1347](#leetcode-1347), [LC 2085](#leetcode-2085), [LC 387](#leetcode-387)
+- [H5 — Frequency-of-frequency and multiset equivalence](#h5--frequencyoffrequency-and-multiset-equivalence) — [LC 1207](#leetcode-1207), [LC 1657](#leetcode-1657)
+- [H6 — Grouping by canonical content signatures](#h6--grouping-by-canonical-content-signatures) — [LC 49](#leetcode-49), [LC 609](#leetcode-609)
+- [H7 — Consistent bidirectional pattern mapping](#h7--consistent-bidirectional-pattern-mapping) — [LC 205](#leetcode-205), [LC 290](#leetcode-290), [LC 890](#leetcode-890)
+- [H8 — Pair counting with transformed/complementary hash keys](#h8--pair-counting-with-transformedcomplementary-hash-keys) — [LC 1512](#leetcode-1512), [LC 2006](#leetcode-2006), [LC 1010](#leetcode-1010), [LC 1814](#leetcode-1814), [LC 2364](#leetcode-2364)
+- [H9 — Frequency profile, adjacent counts, and span boundaries](#h9--frequency-profile-adjacent-counts-and-span-boundaries) — [LC 1748](#leetcode-1748), [LC 1394](#leetcode-1394), [LC 3005](#leetcode-3005), [LC 594](#leetcode-594), [LC 697](#leetcode-697)
+- [H10 — Set-based consecutive chains](#h10--setbased-consecutive-chains) — [LC 128](#leetcode-128)
+- [H11 — O(1) randomized indexed set](#h11--o1-randomized-indexed-set) — [LC 380](#leetcode-380)
+- [H12 — Canonical normalized compound keys](#h12--canonical-normalized-compound-keys) — [LC 1128](#leetcode-1128)
+- [H13 — Hierarchical string key accumulation](#h13--hierarchical-string-key-accumulation) — [LC 811](#leetcode-811)
+
+---
+
+## Subpattern H1: Hash-set membership, intersections, differences
+
+**When to Apply:**
+
+Use when comparisons require exact equality and element *presence* rather than counts. The order of input values does not matter, duplicates are either detected or collapsed, and average constant-time membership checks are desirable. Invariant: a set represents exactly the distinct values already indexed; comparison with other sets yields intersection or directional difference.
+
+**Basic Java Code Snippet:**
+
+```java
+Set<Integer> indexed = new HashSet<>();
+for (int value : first) indexed.add(value);
+for (int value : second) {
+    if (indexed.contains(value)) {
+        // Value exists in both inputs.
+    }
+}
+```
+
+**Core Logic:**
+
+Insert distinct values once; `contains` answers membership without scanning the original array. Changing whether you act on matches or nonmatches produces intersections or differences.
+
+**Questions Covered:** LC 217, LC 349, LC 2215
+
+
+### LeetCode 217
+
+**Question:**
+
+Given an integer array `nums`, determine whether any integer occurs at least twice. Return `true` as soon as any pair of distinct positions contains equal values; otherwise return `false`. The elements need not be adjacent and may be negative. Only duplicate existence matters, not the location or number of repetitions.
+
+**Examples:**
+
+- `nums = [1,2,3,1]` → `true` (the value `1` appears twice).
+- `nums = [1,2,3,4]` → `false` (every value is distinct).
+- `nums = [1,1,1,3,3,4,3,2,4,2]` → `true` (several values repeat).
+
+**Constraints:**
+
+`1 <= nums.length <= 10^5`; `-10^9 <= nums[i] <= 10^9`.
+
+**Why This Subpattern Applies:**
+
+A `HashSet` stores prior values. `add(x)` returns `false` precisely when `x` was already present, so duplicate detection needs one pass.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public boolean containsDuplicate(int[] nums) {
+        Set<Integer> seen = new HashSet<>();
+        for (int value : nums) {
+            if (!seen.add(value)) return true;
+        }
+        return false;
+    }
+}
+```
+
+**Key Logic:**
+
+`seen` holds all distinct values before the current position. A failed insertion proves an earlier equal value; reaching the end proves all values were unique. Handles negative integers and an array of length one.
+
+**Time Complexity:**
+
+Expected **O(n)**: one expected O(1) set insertion per element.
+
+**Space Complexity:**
+
+**O(n)** auxiliary in the all-distinct case.
+
+---
+
+### LeetCode 349
+
+**Question:**
+
+Given two integer arrays `nums1` and `nums2`, return an array containing every integer that occurs in both arrays. Each common integer must appear **once** in the answer even if it occurs many times in either array. The output order is arbitrary. The task is set intersection, not counting matching positions.
+
+**Examples:**
+
+- `nums1 = [1,2,2,1], nums2 = [2,2]` → `[2]`.
+- `nums1 = [4,9,5], nums2 = [9,4,9,8,4]` → `[9,4]` (any order).
+- `nums1 = [1,2], nums2 = [3,4]` → `[]`.
+
+**Constraints:**
+
+`1 <= nums1.length, nums2.length <= 1000`; `0 <= nums1[i], nums2[i] <= 1000`.
+
+**Why This Subpattern Applies:**
+
+A first set checks cross-array membership; a second set suppresses repeated output from `nums2`. No ordering is required.
+
+**Connection to Previous Solution:**
+
+LC 217 checks `!seen.add(value)` to detect repeated values *within one input*. Here first build a set from `nums1`, then test `first.contains(value)` for values in `nums2` and add matches to a **distinct result set**.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public int[] intersection(int[] nums1, int[] nums2) {
+        Set<Integer> first = new HashSet<>();
+        for (int value : nums1) first.add(value);
+        Set<Integer> common = new HashSet<>();
+        for (int value : nums2) {
+            if (first.contains(value)) common.add(value);
+        }
+        int[] answer = new int[common.size()];
+        int i = 0;
+        for (int value : common) answer[i++] = value;
+        return answer;
+    }
+}
+```
+
+**Key Logic:**
+
+The first set is the membership index; `common` records each matching value only once. Converting the set to an array is allowed because output ordering is unrestricted.
+
+**Time Complexity:**
+
+Expected **O(n + m)**, where `n` and `m` are array lengths.
+
+**Space Complexity:**
+
+**O(n + min(n,m))** auxiliary for the two sets, excluding the answer array; at most O(n+m).
+
+---
+
+### LeetCode 2215
+
+**Question:**
+
+Given integer arrays `nums1` and `nums2`, return a list of exactly two lists. The first contains each **distinct** number appearing in `nums1` but nowhere in `nums2`; the second contains each distinct number appearing in `nums2` but nowhere in `nums1`. Within either list, order does not matter. Shared values appear in neither list.
+
+**Examples:**
+
+- `nums1 = [1,2,3], nums2 = [2,4,6]` → `[[1,3],[4,6]]`.
+- `nums1 = [1,2,3,3], nums2 = [1,1,2,2]` → `[[3],[]]`.
+- `nums1 = [5,5], nums2 = [5]` → `[[],[]]`.
+
+**Constraints:**
+
+`1 <= nums1.length, nums2.length <= 1000`; `-1000 <= nums1[i], nums2[i] <= 1000`.
+
+**Why This Subpattern Applies:**
+
+Both outputs require set membership with duplicates ignored. The two tests are directional (`x` absent from the other set).
+
+**Connection to Previous Solution:**
+
+LC 349 emits values when `first.contains(x)` is true. Replace intersection with **two** set-difference passes: `!second.contains(x)` for first-only values, and `!first.contains(x)` for second-only values.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public List<List<Integer>> findDifference(int[] nums1, int[] nums2) {
+        Set<Integer> first = new HashSet<>();
+        Set<Integer> second = new HashSet<>();
+        for (int value : nums1) first.add(value);
+        for (int value : nums2) second.add(value);
+        List<Integer> onlyFirst = new ArrayList<>();
+        List<Integer> onlySecond = new ArrayList<>();
+        for (int value : first) {
+            if (!second.contains(value)) onlyFirst.add(value);
+        }
+        for (int value : second) {
+            if (!first.contains(value)) onlySecond.add(value);
+        }
+        return Arrays.asList(onlyFirst, onlySecond);
+    }
+}
+```
+
+**Key Logic:**
+
+Iterating sets guarantees distinct output values. Each membership check decides absence from the opposite input; shared values are discarded in both passes.
+
+**Time Complexity:**
+
+Expected **O(n + m)**.
+
+**Space Complexity:**
+
+**O(n + m)** auxiliary for both sets; output contains up to O(n+m) elements.
+
+---
+
+## Subpattern H2: Nearby values with bounded index distance
+
+**When to Apply:**
+
+Use when a pair must satisfy an index-distance bound, perhaps also a numeric-distance bound. Remembering the last index suffices for exact equality; numeric closeness instead requires a sliding window of nearby indices organized by value-range buckets. Invariant: only candidates with legal index distance are retained.
+
+**Basic Java Code Snippet:**
+
+```java
+Map<Integer, Integer> lastSeenAt = new HashMap<>();
+for (int i = 0; i < nums.length; i++) {
+    Integer previous = lastSeenAt.get(nums[i]);
+    if (previous != null && i - previous <= maxDistance) {
+        // Equal values with permitted index distance.
+    }
+    lastSeenAt.put(nums[i], i);
+}
+// For approximate numeric matching, maintain a bounded window of
+// Math.floorDiv((long) value, (long) valueDiff + 1) buckets.
+```
+
+**Core Logic:**
+
+The most recent equal key minimizes its distance to the current index. For approximate values, every legal close pair falls into either the same value bucket or adjacent buckets; remove expired indices as the window advances.
+
+**Questions Covered:** LC 219, LC 220
+
+
+### LeetCode 219
+
+**Question:**
+
+Given an integer array `nums` and an integer `k`, determine whether two **different** indices `i` and `j` exist such that `nums[i] == nums[j]` and `|i-j| <= k`. Return `true` if such a nearby duplicate exists, otherwise `false`. A value repeated only at indices farther than `k` apart does not qualify.
+
+**Examples:**
+
+- `nums = [1,2,3,1], k = 3` → `true` (`1` occurs at indices 0 and 3).
+- `nums = [1,0,1,1], k = 1` → `true` (indices 2 and 3).
+- `nums = [1,2,3,1,2,3], k = 2` → `false` (equal values are three apart).
+
+**Constraints:**
+
+`1 <= nums.length <= 10^5`; `-10^9 <= nums[i] <= 10^9`; `0 <= k <= 10^5`.
+
+**Why This Subpattern Applies:**
+
+A map tracks the latest index of each exact value, enabling constant-time index-distance checks. Earlier occurrences are never closer than the latest occurrence.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public boolean containsNearbyDuplicate(int[] nums, int k) {
+        Map<Integer, Integer> lastIndex = new HashMap<>();
+        for (int i = 0; i < nums.length; i++) {
+            Integer previous = lastIndex.put(nums[i], i);
+            if (previous != null && i - previous <= k) return true;
+        }
+        return false;
+    }
+}
+```
+
+**Key Logic:**
+
+`put` returns the previously stored index, if any, before overwriting it. Testing the gap against the latest previous occurrence is sufficient, including the `k = 0` case (no two distinct indices can qualify).
+
+**Time Complexity:**
+
+Expected **O(n)**.
+
+**Space Complexity:**
+
+**O(u)** auxiliary, where `u` is the number of distinct values (worst-case O(n)).
+
+---
+
+### LeetCode 220
+
+**Question:**
+
+Given `nums`, `indexDiff`, and `valueDiff`, decide whether distinct indices `i` and `j` exist for which `|i-j| <= indexDiff` **and** `|nums[i]-nums[j]| <= valueDiff`. Values may be negative or close to the 32-bit integer limits, so subtraction must not overflow. The numeric comparison is inclusive; index distance zero cannot match two distinct elements.
+
+**Examples:**
+
+- `nums = [1,2,3,1], indexDiff = 3, valueDiff = 0` → `true` (equal `1`s are three apart).
+- `nums = [1,5,9,1,5,9], indexDiff = 2, valueDiff = 3` → `false`.
+- `nums = [-1,-1], indexDiff = 1, valueDiff = 0` → `true`.
+
+**Constraints:**
+
+`2 <= nums.length <= 10^5`; `-10^9 <= nums[i] <= 10^9`; `1 <= indexDiff <= nums.length`; `0 <= valueDiff <= 10^9` (the implementation also handles zero index distance).
+
+**Why This Subpattern Applies:**
+
+Bucket width `valueDiff+1` ensures that two values in the same bucket differ by at most `valueDiff`; eligible values in different buckets can only be in neighboring buckets. Keep only the last `indexDiff` values.
+
+**Connection to Previous Solution:**
+
+LC 219 uses `Map<value,lastIndex>` for **exact equality**. Replace it with `Map<bucketId,number>`; compute `Math.floorDiv((long)number,width)` for negative values, inspect bucket IDs `id-1`, `id`, `id+1`, and remove `nums[i-indexDiff]` after processing each current index.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public boolean containsNearbyAlmostDuplicate(int[] nums, int indexDiff, int valueDiff) {
+        if (indexDiff <= 0 || valueDiff < 0) return false;
+        long width = (long) valueDiff + 1;
+        Map<Long, Long> buckets = new HashMap<>();
+        for (int i = 0; i < nums.length; i++) {
+            long value = nums[i];
+            long bucket = Math.floorDiv(value, width);
+            if (buckets.containsKey(bucket)) return true;
+            Long left = buckets.get(bucket - 1);
+            if (left != null && value - left <= valueDiff) return true;
+            Long right = buckets.get(bucket + 1);
+            if (right != null && right - value <= valueDiff) return true;
+            buckets.put(bucket, value);
+            if (i >= indexDiff) {
+                long expired = Math.floorDiv((long) nums[i - indexDiff], width);
+                buckets.remove(expired);
+            }
+        }
+        return false;
+    }
+}
+```
+
+**Key Logic:**
+
+At index `i`, the buckets initially contain indices `max(0,i-indexDiff)` through `i-1`. A same-bucket match is automatically close; neighboring buckets need explicit difference checks. The expired item is removed **after** checking the current item, so distance exactly `indexDiff` remains permitted. `long` avoids overflow and floor division handles negatives correctly.
+
+**Time Complexity:**
+
+Expected **O(n)**: up to three bucket lookups per element.
+
+**Space Complexity:**
+
+**O(min(n,indexDiff))** auxiliary for active buckets.
+
+---
+
+## Subpattern H3: Complement lookups and grouped pair sums
+
+**When to Apply:**
+
+Use when the necessary partner value is determined algebraically by a target, such as `target - current`. For more than two inputs, group one side's combinations into a sum→count map, then query complements from the other side. Invariant: map entries represent eligible earlier elements or fully enumerated left-side combinations.
+
+**Basic Java Code Snippet:**
+
+```java
+Map<Integer, Integer> priorIndex = new HashMap<>();
+for (int i = 0; i < nums.length; i++) {
+    int required = target - nums[i];
+    if (priorIndex.containsKey(required)) {
+        // A valid earlier partner exists.
+    }
+    priorIndex.put(nums[i], i);
+}
+```
+
+**Core Logic:**
+
+The complement is computed rather than searched by a nested loop. Query before inserting the current element so one index cannot pair with itself.
+
+**Questions Covered:** LC 1, LC 454
+
+
+### LeetCode 1
+
+**Question:**
+
+Given an integer array `nums` and an integer `target`, return the **two distinct indices** of entries whose sum is exactly `target`. Exactly one valid answer exists, and you may return the indices in either order. You cannot use the same array element twice. Values can be negative, repeated, or unsorted.
+
+**Examples:**
+
+- `nums = [2,7,11,15], target = 9` → `[0,1]`.
+- `nums = [3,2,4], target = 6` → `[1,2]`.
+- `nums = [3,3], target = 6` → `[0,1]` (two separate occurrences).
+
+**Constraints:**
+
+`2 <= nums.length <= 10^4`; `-10^9 <= nums[i] <= 10^9`; `-10^9 <= target <= 10^9`; exactly one valid answer exists.
+
+**Why This Subpattern Applies:**
+
+The partner of `nums[i]` must equal `target-nums[i]`. Hashing earlier values makes each complement lookup expected O(1).
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        Map<Integer, Integer> indexByValue = new HashMap<>();
+        for (int i = 0; i < nums.length; i++) {
+            int needed = target - nums[i];
+            Integer other = indexByValue.get(needed);
+            if (other != null) return new int[]{other, i};
+            indexByValue.put(nums[i], i);
+        }
+        return new int[0];
+    }
+}
+```
+
+**Key Logic:**
+
+The map stores only positions strictly before `i`. Complement lookup precedes insertion, preventing self-reuse. Duplicate numeric values are allowed because their indices differ.
+
+**Time Complexity:**
+
+Expected **O(n)**.
+
+**Space Complexity:**
+
+**O(n)** auxiliary for the map, excluding the two-index output.
+
+---
+
+### LeetCode 454
+
+**Question:**
+
+You are given four integer arrays `nums1`, `nums2`, `nums3`, and `nums4`, each of length `n`. Count the number of index quadruples `(i,j,k,l)` with `nums1[i] + nums2[j] + nums3[k] + nums4[l] == 0`. Indices are chosen independently from their respective arrays, so repeated values still represent separate combinations. Return the total number of matching quadruples.
+
+**Examples:**
+
+- `nums1 = [1,2], nums2 = [-2,-1], nums3 = [-1,2], nums4 = [0,2]` → `2`.
+- All four arrays `[0]` → `1`.
+- All four arrays `[0,0]` → `16` (every combination of four indices succeeds).
+
+**Constraints:**
+
+`1 <= n <= 200`; `-2^28 <= nums1[i], nums2[i], nums3[i], nums4[i] <= 2^28`; the answer fits in a signed 32-bit integer.
+
+**Why This Subpattern Applies:**
+
+Split the four-way sum into `(a+b) = -(c+d)`. Store multiplicities of the first pair sums, then query each second pair's complementary sum.
+
+**Connection to Previous Solution:**
+
+LC 1 maps a **single value to an index** and retrieves one partner. Here enumerate `n²` pair sums, map **sum to frequency** (`merge(sum,1,...)`), and for each second-half pair add `frequency[-(c+d)]` to a running count.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public int fourSumCount(int[] nums1, int[] nums2, int[] nums3, int[] nums4) {
+        Map<Integer, Integer> pairCounts = new HashMap<>();
+        for (int a : nums1) {
+            for (int b : nums2) {
+                pairCounts.merge(a + b, 1, Integer::sum);
+            }
+        }
+        int total = 0;
+        for (int c : nums3) {
+            for (int d : nums4) {
+                total += pairCounts.getOrDefault(-(c + d), 0);
+            }
+        }
+        return total;
+    }
+}
+```
+
+**Key Logic:**
+
+Every `nums1/nums2` index pair is represented, including duplicate sums. Each `nums3/nums4` pair contributes as many quadruples as there are complementary left-side pairs. Pair sums fit `int` under stated constraints.
+
+**Time Complexity:**
+
+Expected **O(n²)** time for two double loops.
+
+**Space Complexity:**
+
+**O(n²)** auxiliary for at most `n²` distinct pair sums.
+
+---
+
+## Subpattern H4: Fixed-alphabet frequency accounting
+
+**When to Apply:**
+
+Choose frequency arrays when the alphabet is bounded (for these character questions, lowercase English letters) and character order is irrelevant or only a final position scan matters. Maintain counts of available versus required letters; generalize to string-keyed maps when the elements are whole words. Invariant: each count exactly represents occurrences or remaining supply of a key.
+
+**Basic Java Code Snippet:**
+
+```java
+int[] balance = new int[26];
+for (char c : source.toCharArray()) balance[c - 'a']++;
+for (char c : target.toCharArray()) balance[c - 'a']--;
+// All zero => matching multisets; all nonnegative => sufficient supply.
+```
+
+**Core Logic:**
+
+Map letters to array positions `0..25`. Increments record supply, decrements record demand; choosing zero-balance, nonnegative-balance, or total deficits solves different requirements.
+
+**Questions Covered:** LC 242, LC 383, LC 1347, LC 2085, LC 387
+
+
+### LeetCode 242
+
+**Question:**
+
+Given strings `s` and `t`, determine whether `t` is an anagram of `s`: both must contain exactly the same characters with the same multiplicities, possibly in a different order. Return `false` if their lengths or any letter counts differ. Under the problem constraints, the input contains only lowercase English letters.
+
+**Examples:**
+
+- `s = "anagram", t = "nagaram"` → `true`.
+- `s = "rat", t = "car"` → `false` (`t` lacks `t` and has `c`).
+- `s = "aacc", t = "ccac"` → `false` (multiplicities differ).
+
+**Constraints:**
+
+`1 <= s.length, t.length <= 5 * 10^4`; strings contain lowercase English letters.
+
+**Why This Subpattern Applies:**
+
+Anagram equivalence is character-frequency equality, not position equality. An array of 26 counters is faster and simpler than a general map.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public boolean isAnagram(String s, String t) {
+        if (s.length() != t.length()) return false;
+        int[] count = new int[26];
+        for (int i = 0; i < s.length(); i++) {
+            count[s.charAt(i) - 'a']++;
+            count[t.charAt(i) - 'a']--;
+        }
+        for (int value : count) {
+            if (value != 0) return false;
+        }
+        return true;
+    }
+}
+```
+
+**Key Logic:**
+
+Length equality is necessary. Net counters are zero iff every letter appears equally often; their order is irrelevant. Constant-sized alphabet allows one combined pass and a final 26-element scan.
+
+**Time Complexity:**
+
+**O(n + m + 26) = O(n+m)**; for equal lengths, O(n).
+
+**Space Complexity:**
+
+**O(26) = O(1)** auxiliary.
+
+---
+
+### LeetCode 383
+
+**Question:**
+
+Given strings `ransomNote` and `magazine`, determine whether the letters in the magazine can be used to construct the ransom note. Each occurrence of a magazine character may be used at most once; surplus magazine characters are allowed. Return `true` only if the magazine has at least as many copies of **every** requested letter as the ransom note needs.
+
+**Examples:**
+
+- `ransomNote = "a", magazine = "b"` → `false`.
+- `ransomNote = "aa", magazine = "ab"` → `false` (only one `a`).
+- `ransomNote = "aa", magazine = "aab"` → `true`.
+
+**Constraints:**
+
+`1 <= ransomNote.length, magazine.length <= 10^5`; strings contain lowercase English letters.
+
+**Why This Subpattern Applies:**
+
+A 26-letter supply array tells how many copies remain after each requested character is consumed. A negative counter signals shortage immediately.
+
+**Connection to Previous Solution:**
+
+LC 242 requires **exact equality** and checks all 26 balances equal zero. Change the criterion to **one-sided sufficiency**: count all `magazine` letters, decrement each `ransomNote` letter, and return false only if a count becomes negative; surplus is acceptable.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public boolean canConstruct(String ransomNote, String magazine) {
+        if (ransomNote.length() > magazine.length()) return false;
+        int[] available = new int[26];
+        for (int i = 0; i < magazine.length(); i++) {
+            available[magazine.charAt(i) - 'a']++;
+        }
+        for (int i = 0; i < ransomNote.length(); i++) {
+            if (--available[ransomNote.charAt(i) - 'a'] < 0) return false;
+        }
+        return true;
+    }
+}
+```
+
+**Key Logic:**
+
+Counters start as magazine supplies. Prefix-decrement checks immediate exhaustion; no final zero-check is necessary. The length guard rules out obviously insufficient total inventory.
+
+**Time Complexity:**
+
+**O(n+m)** time.
+
+**Space Complexity:**
+
+**O(1)** auxiliary (26 counters).
+
+---
+
+### LeetCode 1347
+
+**Question:**
+
+Given two equally long lowercase strings `s` and `t`, compute the **minimum number of character replacements in `t`** needed to make `t` an anagram of `s`. One operation chooses one position in `t` and changes its character to any other lowercase letter. You may reorder letters conceptually when checking anagram equivalence, but the only operation counted is replacement, not swapping.
+
+**Examples:**
+
+- `s = "bab", t = "aba"` → `1` (replace a surplus `a` with `b`).
+- `s = "leetcode", t = "practice"` → `5`.
+- `s = "anagram", t = "mangaar"` → `0`.
+
+**Constraints:**
+
+`1 <= s.length <= 5 * 10^4`; `t.length == s.length`; both strings use lowercase English letters.
+
+**Why This Subpattern Applies:**
+
+A balance array measures which letters are missing from `t` compared with `s`; each missing occurrence requires one replacement. Equal lengths guarantee an equal number of surplus positions to replace.
+
+**Connection to Previous Solution:**
+
+LC 383 checks whether a deficit exists and returns a boolean. Retain the frequency-difference array, but **sum positive deficits** `max(count[c],0)` to calculate the minimum number of replacement operations.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int minSteps(String s, String t) {
+        int[] difference = new int[26];
+        for (int i = 0; i < s.length(); i++) {
+            difference[s.charAt(i) - 'a']++;
+            difference[t.charAt(i) - 'a']--;
+        }
+        int changes = 0;
+        for (int deficit : difference) {
+            if (deficit > 0) changes += deficit;
+        }
+        return changes;
+    }
+}
+```
+
+**Key Logic:**
+
+`difference[c]` is demand from `s` minus occurrences in `t`. Positive counts are missing letters; negatives are replaceable surplus. Each edit fixes one deficit and consumes one surplus, so their total is the minimum.
+
+**Time Complexity:**
+
+**O(n + 26) = O(n)**.
+
+**Space Complexity:**
+
+**O(1)** auxiliary.
+
+---
+
+### LeetCode 2085
+
+**Question:**
+
+Given two string arrays `words1` and `words2`, return the number of **distinct words** that occur **exactly once in `words1` and exactly once in `words2`**. A word occurring twice in either array does not qualify, even if it occurs once in the other. Compare complete words, not their characters or letter counts.
+
+**Examples:**
+
+- `words1 = ["leetcode","is","amazing","as","is"], words2 = ["amazing","leetcode","is"]` → `2` (`leetcode`, `amazing`).
+- `words1 = ["b","bb","bbb"], words2 = ["a","aa","aaa"]` → `0`.
+- `words1 = ["a","ab"], words2 = ["a","a","a","ab"]` → `1` (`ab`).
+
+**Constraints:**
+
+`1 <= words1.length, words2.length <= 1000`; `1 <= words1[i].length, words2[i].length <= 30`; all words consist of lowercase English letters.
+
+**Why This Subpattern Applies:**
+
+Each full string is the frequency key. Two maps preserve exact occurrence counts separately and allow checking both frequencies equal one.
+
+**Connection to Previous Solution:**
+
+LC 1347 counts **individual letters** with `int[26]` and aggregates deficits. Here switch to `Map<String,Integer>` for whole-word keys, build **two** frequency maps, and count only words with `count1 == 1 && count2 == 1`.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public int countWords(String[] words1, String[] words2) {
+        Map<String, Integer> first = new HashMap<>();
+        Map<String, Integer> second = new HashMap<>();
+        for (String word : words1) first.merge(word, 1, Integer::sum);
+        for (String word : words2) second.merge(word, 1, Integer::sum);
+        int answer = 0;
+        for (Map.Entry<String, Integer> entry : first.entrySet()) {
+            if (entry.getValue() == 1 &&
+                second.getOrDefault(entry.getKey(), 0) == 1) answer++;
+        }
+        return answer;
+    }
+}
+```
+
+**Key Logic:**
+
+Frequency maps preserve duplicates instead of discarding them. Only keys with precisely one occurrence in both arrays qualify. Iterating unique keys in the first map counts each eligible word once.
+
+**Time Complexity:**
+
+Expected **O(L)** total character-processing time, where `L` is the total length of all words (hashing costs length of each key).
+
+**Space Complexity:**
+
+**O(U)** map entries for distinct words; stored key characters may use O(L) space, excluding input strings.
+
+---
+
+### LeetCode 387
+
+**Question:**
+
+Given a lowercase string `s`, find the **index of its first non-repeating character**. Return the smallest zero-based index whose character occurs exactly once in the whole string; return `-1` if no character is unique. You must consider total occurrences, including characters appearing later in the string.
+
+**Examples:**
+
+- `s = "leetcode"` → `0` (`l`).
+- `s = "loveleetcode"` → `2` (`v`).
+- `s = "aabb"` → `-1`.
+
+**Constraints:**
+
+`1 <= s.length <= 10^5`; `s` contains only lowercase English letters.
+
+**Why This Subpattern Applies:**
+
+The frequency array identifies globally unique characters, and a second scan in original order finds the earliest one. A set alone cannot distinguish single occurrences from multiple copies.
+
+**Connection to Previous Solution:**
+
+LC 2085 counts whole-string keys in **two maps** and checks count one in both. Revert to **one** 26-counter array for characters, then scan positions left-to-right and return the first `count[s.charAt(i)] == 1` instead of counting matched keys.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int firstUniqChar(String s) {
+        int[] count = new int[26];
+        for (int i = 0; i < s.length(); i++) {
+            count[s.charAt(i) - 'a']++;
+        }
+        for (int i = 0; i < s.length(); i++) {
+            if (count[s.charAt(i) - 'a'] == 1) return i;
+        }
+        return -1;
+    }
+}
+```
+
+**Key Logic:**
+
+The first pass computes complete-string counts; the second pass enforces earliest-index ordering. An all-repeating string correctly returns `-1`.
+
+**Time Complexity:**
+
+**O(n)** time for two passes.
+
+**Space Complexity:**
+
+**O(1)** auxiliary.
+
+---
+
+## Subpattern H5: Frequency-of-frequency and multiset equivalence
+
+**When to Apply:**
+
+Use when the property concerns the **distribution of occurrence counts**, rather than individual values. Build a value→count profile, then compare frequencies against one another. Some transformations additionally require the same set of supported keys. Invariant: count profiles preserve multiplicities; a second set or sorted count spectrum describes the distribution of those multiplicities.
+
+**Basic Java Code Snippet:**
+
+```java
+Map<Integer, Integer> frequency = new HashMap<>();
+for (int value : nums) frequency.merge(value, 1, Integer::sum);
+Set<Integer> usedCounts = new HashSet<>();
+for (int times : frequency.values()) {
+    if (!usedCounts.add(times)) {
+        // Two distinct values occur equally often.
+    }
+}
+```
+
+**Core Logic:**
+
+First count the keys; then treat **counts themselves** as objects to compare. Use a set for uniqueness or sorting for equality of count multisets.
+
+**Questions Covered:** LC 1207, LC 1657
+
+
+### LeetCode 1207
+
+**Question:**
+
+Given integer array `arr`, determine whether every distinct integer has a **different number of occurrences**. Return `true` if the frequencies of all distinct values are pairwise unique; otherwise `false`. The actual values and the order in which they occur do not matter.
+
+**Examples:**
+
+- `arr = [1,2,2,1,1,3]` → `true` (counts 3,2,1 are distinct).
+- `arr = [1,2]` → `false` (both occur once).
+- `arr = [-3,0,1,-3,1,1,1,-3,10,0]` → `true` (counts 3,2,4,1).
+
+**Constraints:**
+
+`1 <= arr.length <= 1000`; `-1000 <= arr[i] <= 1000`.
+
+**Why This Subpattern Applies:**
+
+The required uniqueness is over frequencies, not keys. Counting values and then inserting each count into a second set detects repeated occurrence counts.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public boolean uniqueOccurrences(int[] arr) {
+        Map<Integer, Integer> counts = new HashMap<>();
+        for (int value : arr) counts.merge(value, 1, Integer::sum);
+        Set<Integer> seenFrequencies = new HashSet<>();
+        for (int frequency : counts.values()) {
+            if (!seenFrequencies.add(frequency)) return false;
+        }
+        return true;
+    }
+}
+```
+
+**Key Logic:**
+
+The first map identifies frequencies per distinct integer. `seenFrequencies.add` fails exactly when two different integers share the same occurrence count.
+
+**Time Complexity:**
+
+Expected **O(n)**.
+
+**Space Complexity:**
+
+**O(u)** auxiliary for `u` distinct integers and their frequencies.
+
+---
+
+### LeetCode 1657
+
+**Question:**
+
+Given two lowercase strings `word1` and `word2`, decide if they can become identical by applying any number of either operation: (1) swap any two existing character positions, or (2) globally swap the labels of two **existing** distinct characters, replacing every occurrence of each by the other. You cannot introduce a character not already present in the string. Return whether such a transformation is possible.
+
+**Examples:**
+
+- `word1 = "abc", word2 = "bca"` → `true` (reordering suffices).
+- `word1 = "a", word2 = "aa"` → `false` (lengths differ).
+- `word1 = "cabbba", word2 = "abbccc"` → `true` (same supported letters and frequency multiset `{1,2,3}`).
+
+**Constraints:**
+
+`1 <= word1.length, word2.length <= 10^5`; both contain lowercase English letters.
+
+**Why This Subpattern Applies:**
+
+Position swaps allow arbitrary order; label swaps permute occurrence frequencies among characters already present. Thus both strings need identical character support and identical multisets of positive frequency counts.
+
+**Connection to Previous Solution:**
+
+LC 1207 only checks that the **one input's** frequency values are unique. Instead compute frequencies for **both strings**, verify each letter is present in both or neither, then `Arrays.sort` both 26-count arrays and compare them for equal frequency spectra (duplicate counts are allowed).
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public boolean closeStrings(String word1, String word2) {
+        if (word1.length() != word2.length()) return false;
+        int[] first = new int[26];
+        int[] second = new int[26];
+        for (int i = 0; i < word1.length(); i++) {
+            first[word1.charAt(i) - 'a']++;
+            second[word2.charAt(i) - 'a']++;
+        }
+        for (int i = 0; i < 26; i++) {
+            if ((first[i] == 0) != (second[i] == 0)) return false;
+        }
+        Arrays.sort(first);
+        Arrays.sort(second);
+        return Arrays.equals(first, second);
+    }
+}
+```
+
+**Key Logic:**
+
+Matching supports rules out introducing absent characters. Sorting the two 26-length count profiles checks whether existing character counts can be permuted into the desired counts. Original positions do not constrain the transformation.
+
+**Time Complexity:**
+
+**O(n+m + 26 log 26) = O(n+m)**.
+
+**Space Complexity:**
+
+**O(1)** auxiliary (two fixed arrays; sorting fixed-size data).
+
+---
+
+## Subpattern H6: Grouping by canonical content signatures
+
+**When to Apply:**
+
+Use when multiple records belong to the same equivalence class determined by **content**, and every class must retain its original members. Derive a canonical signature for each record and group originals in a `Map<signature,List<original>>`. Invariant: equivalent items have equal keys; non-equivalent items cannot collide semantically in the chosen key representation.
+
+**Basic Java Code Snippet:**
+
+```java
+Map<String, List<String>> groups = new HashMap<>();
+for (String item : items) {
+    String signature = makeCanonicalSignature(item);
+    groups.computeIfAbsent(signature, k -> new ArrayList<>()).add(item);
+}
+// makeCanonicalSignature must encode the *exact* equivalence relation.
+```
+
+**Core Logic:**
+
+Compute a stable equality key, then append each original to its bucket. The key may be a character multiset signature or literal parsed file contents; `computeIfAbsent` creates the bucket only when needed.
+
+**Questions Covered:** LC 49, LC 609
+
+
+### LeetCode 49
+
+**Question:**
+
+Given an array of lowercase strings `strs`, group together all strings that are **anagrams** of each other. Anagrams use exactly the same character multiplicities in any order; repeated identical words are still separate entries and must remain in the resulting groups. Return the groups in any order, and the strings inside each group in any order.
+
+**Examples:**
+
+- `strs = ["eat","tea","tan","ate","nat","bat"]` → `[["eat","tea","ate"],["tan","nat"],["bat"]]` (group order arbitrary).
+- `strs = [""]` → `[[""]]`.
+- `strs = ["a"]` → `[["a"]]`.
+
+**Constraints:**
+
+`1 <= strs.length <= 10^4`; `0 <= strs[i].length <= 100`; strings contain lowercase English letters.
+
+**Why This Subpattern Applies:**
+
+Every anagram class has the same 26-character frequency vector. Serialize it unambiguously with separators and use that key to group original words.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public List<List<String>> groupAnagrams(String[] strs) {
+        Map<String, List<String>> groups = new HashMap<>();
+        for (String word : strs) {
+            int[] counts = new int[26];
+            for (int i = 0; i < word.length(); i++) {
+                counts[word.charAt(i) - 'a']++;
+            }
+            StringBuilder key = new StringBuilder();
+            for (int count : counts) key.append('#').append(count);
+            groups.computeIfAbsent(key.toString(), k -> new ArrayList<>()).add(word);
+        }
+        return new ArrayList<>(groups.values());
+    }
+}
+```
+
+**Key Logic:**
+
+The `#` delimiter distinguishes distinct count vectors (for example, `[1,11]` from `[11,1]`). Empty strings share the all-zero signature. Group insertion preserves duplicates as separate list entries.
+
+**Time Complexity:**
+
+Expected **O(L + 26n)**, where `L` is the total input character count and `n` the number of strings.
+
+**Space Complexity:**
+
+**O(26n)** for key strings and map metadata plus **O(n)** output references; output character content is not copied.
+
+---
+
+### LeetCode 609
+
+**Question:**
+
+Given an array `paths`, each element describes a directory followed by one or more space-separated files in that directory, formatted `root/d1/d2 file1.txt(content1) file2.txt(content2)`. Find all groups of **two or more files with identical contents**. Output each file as its complete path `directory/filename`; omit files with unique contents. The content text inside parentheses determines equality, not the filename or directory. File contents do not contain parentheses or spaces under the standard format.
+
+**Examples:**
+
+- `paths = ["root/a 1.txt(abcd) 2.txt(efgh)","root/c 3.txt(abcd)","root/c/d 4.txt(efgh)","root 4.txt(efgh)"]` → `[["root/a/1.txt","root/c/3.txt"],["root/a/2.txt","root/c/d/4.txt","root/4.txt"]]` (any group/order).
+- `paths = ["root/a 1.txt(x)","root/b 2.txt(y)"]` → `[]`.
+- `paths = ["root/a 1.txt(x) 2.txt(x)"]` → `[["root/a/1.txt","root/a/2.txt"]]`.
+
+**Constraints:**
+
+`1 <= paths.length <= 2 * 10^4`; each path description length is at most `3000`; directory and filenames use allowed letters/digits/slashes/dots; each description contains one directory and at least one file of form `name(content)`; file contents are nonempty and contain no parentheses/spaces.
+
+**Why This Subpattern Applies:**
+
+Literal file content is the canonical key. A map of content to full paths groups files correctly across different directories and filenames.
+
+**Connection to Previous Solution:**
+
+LC 49 computes `signature = serializedLetterCounts(word)` and groups original words. Keep `Map<String,List<String>>` + `computeIfAbsent`, but **parse `filename(content)`**, use `content` itself as the key, construct `directory + "/" + filename`, then **exclude buckets of size one**.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public List<List<String>> findDuplicate(String[] paths) {
+        Map<String, List<String>> byContent = new HashMap<>();
+        for (String line : paths) {
+            String[] tokens = line.split(" ");
+            String directory = tokens[0];
+            for (int i = 1; i < tokens.length; i++) {
+                String token = tokens[i];
+                int opening = token.indexOf('(');
+                String filename = token.substring(0, opening);
+                String content = token.substring(opening + 1, token.length() - 1);
+                byContent.computeIfAbsent(content, k -> new ArrayList<>())
+                         .add(directory + "/" + filename);
+            }
+        }
+        List<List<String>> result = new ArrayList<>();
+        for (List<String> group : byContent.values()) {
+            if (group.size() > 1) result.add(group);
+        }
+        return result;
+    }
+}
+```
+
+**Key Logic:**
+
+Splitting yields the directory followed by file tokens; parentheses identify exact content boundaries. Every full path is appended to its content group. Only groups with at least two distinct file entries are returned.
+
+**Time Complexity:**
+
+Expected **O(T)**, where `T` is total input text length, including hashing each content string; output construction is linear in retained path text.
+
+**Space Complexity:**
+
+**O(T)** auxiliary for token/string slices, content keys, grouped full paths and result references (excluding returned references counted as output).
+
+---
+
+## Subpattern H7: Consistent bidirectional pattern mapping
+
+**When to Apply:**
+
+Use when two aligned sequences must have identical repetition structure: the same source token must always map to the same destination token, and different source tokens must not map to one destination. Maintain **forward and reverse maps**. Invariant: after processing any prefix, both maps represent mutually consistent one-to-one assignments.
+
+**Basic Java Code Snippet:**
+
+```java
+Map<Character, String> forward = new HashMap<>();
+Map<String, Character> reverse = new HashMap<>();
+for (int i = 0; i < pattern.length(); i++) {
+    char symbol = pattern.charAt(i);
+    String token = words[i];
+    if (forward.containsKey(symbol) && !forward.get(symbol).equals(token)) {
+        // Reject inconsistent repeated symbol.
+    }
+    if (reverse.containsKey(token) && reverse.get(token) != symbol) {
+        // Reject two symbols mapped to the same token.
+    }
+    forward.put(symbol, token);
+    reverse.put(token, symbol);
+}
+```
+
+**Core Logic:**
+
+Both directions are necessary. A forward map alone enforces consistency but does not prevent two distinct symbols from mapping to one target. Each new aligned position either confirms or extends the bijection.
+
+**Questions Covered:** LC 205, LC 290, LC 890
+
+
+### LeetCode 205
+
+**Question:**
+
+Given strings `s` and `t` of equal length, determine whether they are **isomorphic**. A consistent replacement of every occurrence of a character in `s` must produce `t`, and distinct characters in `s` must map to distinct characters in `t`. Reordering is not allowed; the strings are compared position by position. A character may map to itself, but mapping cannot merge two different source characters.
+
+**Examples:**
+
+- `s = "egg", t = "add"` → `true` (`e→a`, `g→d`).
+- `s = "foo", t = "bar"` → `false` (`o` would need both `a` and `r`).
+- `s = "paper", t = "title"` → `true`.
+
+**Constraints:**
+
+`1 <= s.length <= 5 * 10^4`; `t.length == s.length`; `s` and `t` contain valid ASCII characters.
+
+**Why This Subpattern Applies:**
+
+The substitution must be both consistent and injective. Two maps, one for each direction, enforce a bijection as characters are scanned in order.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public boolean isIsomorphic(String s, String t) {
+        Map<Character, Character> forward = new HashMap<>();
+        Map<Character, Character> reverse = new HashMap<>();
+        for (int i = 0; i < s.length(); i++) {
+            char a = s.charAt(i), b = t.charAt(i);
+            Character mapped = forward.get(a);
+            Character backwards = reverse.get(b);
+            if (mapped != null && mapped != b) return false;
+            if (backwards != null && backwards != a) return false;
+            forward.put(a, b);
+            reverse.put(b, a);
+        }
+        return true;
+    }
+}
+```
+
+**Key Logic:**
+
+Forward consistency ensures recurring source characters match their earlier target; reverse consistency prevents two source characters sharing a target. Checking before insertion maintains the mapping invariant for every prefix.
+
+**Time Complexity:**
+
+Expected **O(n)** for `n` aligned characters.
+
+**Space Complexity:**
+
+**O(u)** auxiliary for distinct mapped characters; bounded by ASCII alphabet size and therefore O(1) under constraints.
+
+---
+
+### LeetCode 290
+
+**Question:**
+
+Given a string `pattern` of lowercase letters and a string `s` containing space-separated lowercase words, return whether `s` follows the pattern. There must be a **one-to-one correspondence** between pattern characters and complete words: each pattern character consistently maps to the same word, and different pattern characters map to different words. The number of words must exactly match the length of `pattern`.
+
+**Examples:**
+
+- `pattern = "abba", s = "dog cat cat dog"` → `true`.
+- `pattern = "abba", s = "dog cat cat fish"` → `false` (the final word differs from `dog`).
+- `pattern = "aaaa", s = "dog cat cat dog"` → `false` (one letter would map to multiple words).
+
+**Constraints:**
+
+`1 <= pattern.length <= 300`; `1 <= s.length <= 3000`; pattern consists of lowercase English letters; `s` contains lowercase words separated by single spaces, without leading/trailing spaces.
+
+**Why This Subpattern Applies:**
+
+This is the same bijection invariant as character isomorphism, but target tokens are entire words. A two-way map rejects collisions and inconsistent repeated mappings.
+
+**Connection to Previous Solution:**
+
+LC 205 maps `Character→Character` and iterates aligned character positions. Keep forward/reverse checks, but tokenize `s`, change types to `Character→String` and `String→Character`, and reject unequal pattern/word counts before mapping.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public boolean wordPattern(String pattern, String s) {
+        String[] words = s.split(" ");
+        if (pattern.length() != words.length) return false;
+        Map<Character, String> forward = new HashMap<>();
+        Map<String, Character> reverse = new HashMap<>();
+        for (int i = 0; i < pattern.length(); i++) {
+            char symbol = pattern.charAt(i);
+            String word = words[i];
+            String previousWord = forward.get(symbol);
+            Character previousSymbol = reverse.get(word);
+            if (previousWord != null && !previousWord.equals(word)) return false;
+            if (previousSymbol != null && previousSymbol != symbol) return false;
+            forward.put(symbol, word);
+            reverse.put(word, symbol);
+        }
+        return true;
+    }
+}
+```
+
+**Key Logic:**
+
+A length mismatch makes aligned mapping impossible. `String.equals` checks whole-word equality; the reverse map ensures distinct pattern characters cannot point to the same word.
+
+**Time Complexity:**
+
+Expected **O(|s| + |pattern|)**, accounting for splitting and hashing words (hash caching may make repeated lookups cheaper).
+
+**Space Complexity:**
+
+**O(|s| + |pattern|)** auxiliary for token array and maps of distinct strings.
+
+---
+
+### LeetCode 890
+
+**Question:**
+
+Given a list of lowercase words `words` and a lowercase string `pattern`, return all words that **match the pattern**. A word matches if some bijective letter substitution transforms `pattern` into that word while preserving positions and equality relationships. All letters in one matched word must have consistent one-to-one mappings. Each candidate is checked independently; a mapping found for one word does not constrain another. Preserve the input order of matching words.
+
+**Examples:**
+
+- `words = ["abc","deq","mee","aqq","dkd","ccc"], pattern = "abb"` → `["mee","aqq"]`.
+- `words = ["a","b","c"], pattern = "a"` → `["a","b","c"]`.
+- `words = ["aa","ab","cc"], pattern = "xy"` → `["ab"]`.
+
+**Constraints:**
+
+`1 <= words.length <= 50`; `1 <= pattern.length <= 20`; `1 <= words[i].length <= 20`; strings contain lowercase English letters.
+
+**Why This Subpattern Applies:**
+
+Each candidate requires the same bijection test as H7's earlier problems. Separate maps per candidate ensure mapping state does not leak from one word to the next.
+
+**Connection to Previous Solution:**
+
+LC 290 applies bidirectional mapping once to pattern and word tokens. Extract **that alignment logic** into `matches(word, pattern)`, use `Character→Character` in both directions, rebuild the maps for each candidate, and collect words whose validator returns true.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public List<String> findAndReplacePattern(String[] words, String pattern) {
+        List<String> result = new ArrayList<>();
+        for (String word : words) {
+            if (matches(word, pattern)) result.add(word);
+        }
+        return result;
+    }
+
+    private boolean matches(String word, String pattern) {
+        if (word.length() != pattern.length()) return false;
+        Map<Character, Character> forward = new HashMap<>();
+        Map<Character, Character> reverse = new HashMap<>();
+        for (int i = 0; i < pattern.length(); i++) {
+            char source = pattern.charAt(i), target = word.charAt(i);
+            Character mapped = forward.get(source);
+            Character back = reverse.get(target);
+            if (mapped != null && mapped != target) return false;
+            if (back != null && back != source) return false;
+            forward.put(source, target);
+            reverse.put(target, source);
+        }
+        return true;
+    }
+}
+```
+
+**Key Logic:**
+
+The helper enforces a fresh bijection for each word. Length mismatch fails immediately; forward consistency and reverse uniqueness reject invalid candidates. The outer loop preserves input order.
+
+**Time Complexity:**
+
+Expected **O(wL)**, where `w` is number of words and `L` their maximum length.
+
+**Space Complexity:**
+
+**O(L)** auxiliary for two per-word maps in the general case; **O(w)** additional output references (alphabet bounds cap map space).
+
+---
+
+## Subpattern H8: Pair counting with transformed/complementary hash keys
+
+**When to Apply:**
+
+Use when each new element contributes pairs with **earlier** elements that share a derived key or satisfy a simple complement equation. Count matching earlier keys before inserting the current one; this enforces `i < j` without extra bookkeeping. Keys may be raw values, residues, reversed-digit transforms, or index-adjusted values. Invariant: each pair is counted exactly once, when its right endpoint is visited.
+
+**Basic Java Code Snippet:**
+
+```java
+Map<Long, Long> seen = new HashMap<>();
+long matches = 0;
+for (int i = 0; i < nums.length; i++) {
+    long key = deriveKey(nums[i], i);
+    matches += seen.getOrDefault(key, 0L);
+    seen.merge(key, 1L, Long::sum);
+}
+// For complement rules, query neededKey(key) instead of key.
+```
+
+**Core Logic:**
+
+`seen` records how many earlier positions satisfy each key. Adding the count *before* updating prevents using the current index with itself and avoids counting pairs twice.
+
+**Questions Covered:** LC 1512, LC 2006, LC 1010, LC 1814, LC 2364
+
+
+### LeetCode 1512
+
+**Question:**
+
+Given an integer array `nums`, count all pairs of distinct indices `(i,j)` with `i < j` and `nums[i] == nums[j]`. Return the **number of index pairs**, not just how many values are duplicated. If a value occurs `f` times, it contributes `f*(f-1)/2` pairs.
+
+**Examples:**
+
+- `nums = [1,2,3,1,1,3]` → `4` (three pairs of `1`s, one pair of `3`s).
+- `nums = [1,1,1,1]` → `6`.
+- `nums = [1,2,3]` → `0`.
+
+**Constraints:**
+
+`1 <= nums.length <= 100`; `1 <= nums[i] <= 100`.
+
+**Why This Subpattern Applies:**
+
+Each new value forms one pair with each previously seen equal value. Prior-frequency lookup yields the exact number of new pairs.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public int numIdenticalPairs(int[] nums) {
+        Map<Integer, Integer> prior = new HashMap<>();
+        int pairs = 0;
+        for (int value : nums) {
+            int seen = prior.getOrDefault(value, 0);
+            pairs += seen;
+            prior.put(value, seen + 1);
+        }
+        return pairs;
+    }
+}
+```
+
+**Key Logic:**
+
+At index `j`, `seen` is the count of qualifying earlier indices. Each valid `(i,j)` is counted when `j` arrives; query-before-insert enforces `i < j`.
+
+**Time Complexity:**
+
+Expected **O(n)**.
+
+**Space Complexity:**
+
+**O(u)** auxiliary for distinct values (at most O(n)).
+
+---
+
+### LeetCode 2006
+
+**Question:**
+
+Given an integer array `nums` and positive integer `k`, count index pairs `(i,j)` where `i < j` and `|nums[i]-nums[j]| == k`. Both directions of the numerical difference are allowed, but each index pair must be counted once. The input is not sorted.
+
+**Examples:**
+
+- `nums = [1,2,2,1], k = 1` → `4`.
+- `nums = [1,3], k = 3` → `0`.
+- `nums = [3,2,1,5,4], k = 2` → `3` (pairs with values 3–1, 3–5, 2–4).
+
+**Constraints:**
+
+`1 <= nums.length <= 200`; `1 <= nums[i] <= 100`; `1 <= k <= 99`.
+
+**Why This Subpattern Applies:**
+
+For current `x`, earlier valid partners have values `x-k` or `x+k`. A frequency map counts both in expected constant time.
+
+**Connection to Previous Solution:**
+
+LC 1512 adds only `prior[x]` (equal values). Change the lookup to `prior[x-k] + prior[x+k]`; keep **query before increment** so indices remain ordered and each pair is counted once. The positive `k` ensures the two candidate keys differ.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public int countKDifference(int[] nums, int k) {
+        Map<Integer, Integer> prior = new HashMap<>();
+        int pairs = 0;
+        for (int value : nums) {
+            pairs += prior.getOrDefault(value - k, 0);
+            pairs += prior.getOrDefault(value + k, 0);
+            prior.merge(value, 1, Integer::sum);
+        }
+        return pairs;
+    }
+}
+```
+
+**Key Logic:**
+
+The two complement lookups cover both absolute-difference directions. Because `k > 0`, no earlier value matches both keys, and updating last prevents self-pairing.
+
+**Time Complexity:**
+
+Expected **O(n)**.
+
+**Space Complexity:**
+
+**O(u)** auxiliary for distinct values.
+
+---
+
+### LeetCode 1010
+
+**Question:**
+
+Given a list of song durations `time` in seconds, count distinct pairs of indices `(i,j)` with `i < j` such that the **sum of the two durations is divisible by 60**. Both durations may be multiples of 60, and different pairs with the same values must be counted separately.
+
+**Examples:**
+
+- `time = [30,20,150,100,40]` → `3` (`30+150`, `20+100`, `20+40`).
+- `time = [60,60,60]` → `3`.
+- `time = [10,20,30]` → `0`.
+
+**Constraints:**
+
+`1 <= time.length <= 6 * 10^4`; `1 <= time[i] <= 500`.
+
+**Why This Subpattern Applies:**
+
+Only each duration's remainder modulo 60 matters. The required earlier remainder is `(60-r)%60`, so a 60-slot count array replaces hash keys.
+
+**Connection to Previous Solution:**
+
+LC 2006 performs numeric complementary lookups for `x-k` and `x+k`. Replace them with **one modular complement** `(60-r)%60`, where `r = duration%60`; use `int[60]` instead of a hash map, while retaining query-before-insert.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int numPairsDivisibleBy60(int[] time) {
+        int[] priorRemainders = new int[60];
+        int pairs = 0;
+        for (int duration : time) {
+            int remainder = duration % 60;
+            int needed = (60 - remainder) % 60;
+            pairs += priorRemainders[needed];
+            priorRemainders[remainder]++;
+        }
+        return pairs;
+    }
+}
+```
+
+**Key Logic:**
+
+Remainder `0` pairs with `0`; remainder `30` pairs with `30`; all others pair with `60-r`. Counting prior buckets handles all cases without double-counting.
+
+**Time Complexity:**
+
+**O(n)**.
+
+**Space Complexity:**
+
+**O(1)** auxiliary (60 counters).
+
+---
+
+### LeetCode 1814
+
+**Question:**
+
+Given an array of nonnegative integers `nums`, define `rev(x)` as the integer obtained by reversing the decimal digits of `x` (leading zeros in the reversed representation disappear). Count index pairs `i < j` such that `nums[i] + rev(nums[j]) == nums[j] + rev(nums[i])`. Because the answer can be large, return it modulo `1_000_000_007`.
+
+**Examples:**
+
+- `nums = [42,11,1,97]` → `2`.
+- `nums = [13,10,35,24,76]` → `4`.
+- `nums = [1,1,1]` → `3`.
+
+**Constraints:**
+
+`1 <= nums.length <= 10^5`; `0 <= nums[i] <= 10^9`.
+
+**Why This Subpattern Applies:**
+
+Rearranging the equation gives `nums[i] - rev(nums[i]) == nums[j] - rev(nums[j])`. Thus the problem becomes online equal-key pair counting.
+
+**Connection to Previous Solution:**
+
+LC 1010 hashes **remainders** and queries a modular complement. Now derive the **equality key** `x - reverse(x)`; query previous equal keys, then insert. Add `% 1_000_000_007` for the potentially large pair count.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    private static final int MOD = 1_000_000_007;
+
+    public int countNicePairs(int[] nums) {
+        Map<Integer, Integer> prior = new HashMap<>();
+        long pairs = 0;
+        for (int value : nums) {
+            int key = value - reverse(value);
+            int count = prior.getOrDefault(key, 0);
+            pairs = (pairs + count) % MOD;
+            prior.put(key, count + 1);
+        }
+        return (int) pairs;
+    }
+
+    private int reverse(int value) {
+        int result = 0;
+        while (value != 0) {
+            result = result * 10 + value % 10;
+            value /= 10;
+        }
+        return result;
+    }
+}
+```
+
+**Key Logic:**
+
+Digit reversal is computed numerically, so leading zeroes naturally disappear. The transformed key is algebraically equivalent to the required pair equality. Counting earlier equal keys enforces index order; `long` and modulo guard the aggregate.
+
+**Time Complexity:**
+
+Expected **O(n·d)**, where `d` is maximum decimal digits (at most 10), so O(n) for bounded inputs.
+
+**Space Complexity:**
+
+**O(u)** auxiliary for distinct transformed keys, at most O(n).
+
+---
+
+### LeetCode 2364
+
+**Question:**
+
+Given a zero-indexed integer array `nums`, count all **bad** index pairs `(i,j)` with `i < j` for which `j - i != nums[j] - nums[i]`. A pair is **good** when those differences are equal. Return the number of bad pairs as a 64-bit integer, since there may be nearly `n*(n-1)/2` pairs.
+
+**Examples:**
+
+- `nums = [4,1,3,3]` → `5` (only one pair is good).
+- `nums = [1,2,3,4,5]` → `0` (every pair is good).
+- `nums = [1,1,1]` → `3` (no pairs are good).
+
+**Constraints:**
+
+`1 <= nums.length <= 10^5`; `1 <= nums[i] <= 10^9`.
+
+**Why This Subpattern Applies:**
+
+The good-pair condition rearranges to `i - nums[i] == j - nums[j]`. Hash the transformed keys to count good pairs once, then subtract from all possible pairs.
+
+**Connection to Previous Solution:**
+
+LC 1814 counts equal transformed keys `x-reverse(x)` directly. Change key to **`i-nums[i]`**, count good pairs by the same query-before-insert rule, then compute **`n*(n-1)/2 - good`** instead of returning the matching-pair count. No modulo applies; use `long`.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public long countBadPairs(int[] nums) {
+        Map<Long, Long> prior = new HashMap<>();
+        long good = 0;
+        for (int i = 0; i < nums.length; i++) {
+            long key = (long) i - nums[i];
+            long earlier = prior.getOrDefault(key, 0L);
+            good += earlier;
+            prior.put(key, earlier + 1);
+        }
+        long n = nums.length;
+        return n * (n - 1) / 2 - good;
+    }
+}
+```
+
+**Key Logic:**
+
+`prior` counts earlier indices with the same invariant `index-value`, which makes exactly the good pairs. The total-pair formula counts every `i<j` pair. Subtracting good pairs leaves all bad pairs, with `long` avoiding overflow.
+
+**Time Complexity:**
+
+Expected **O(n)**.
+
+**Space Complexity:**
+
+**O(u)** auxiliary for distinct transformed keys, at most O(n).
+
+---
+
+## Subpattern H9: Frequency profile, adjacent counts, and span boundaries
+
+**When to Apply:**
+
+Use when the answer is an aggregate over **final frequencies** of values: sums, maxima, matching count properties, adjacent-value combination, or minimum contiguous spans at maximal frequency. Build the value-frequency map first; if subarray spans matter, also record the first and last index of each value. Invariant: each map entry summarizes all occurrences of one distinct value.
+
+**Basic Java Code Snippet:**
+
+```java
+Map<Integer, Integer> frequency = new HashMap<>();
+for (int value : nums) frequency.merge(value, 1, Integer::sum);
+for (Map.Entry<Integer, Integer> entry : frequency.entrySet()) {
+    int value = entry.getKey();
+    int count = entry.getValue();
+    // Test the required count property and update an aggregate.
+}
+// For span questions also record firstIndex[value], lastIndex[value].
+```
+
+**Core Logic:**
+
+The completed frequency profile permits constant-time queries for any distinct value and its neighbors. Aggregations inspect each distinct key once; a span variant collects occurrence indices while building the profile.
+
+**Questions Covered:** LC 1748, LC 1394, LC 3005, LC 594, LC 697
+
+
+### LeetCode 1748
+
+**Question:**
+
+Given an integer array `nums`, return the **sum of all numbers that appear exactly once** in the array. Values occurring two or more times contribute nothing, regardless of their magnitude. If no value occurs exactly once, return `0`. Each unique value is added once, not once per input position.
+
+**Examples:**
+
+- `nums = [1,2,3,2]` → `4` (`1+3`).
+- `nums = [1,1,1,1,1]` → `0`.
+- `nums = [1,2,3,4,5]` → `15`.
+
+**Constraints:**
+
+`1 <= nums.length <= 100`; `1 <= nums[i] <= 100`.
+
+**Why This Subpattern Applies:**
+
+We must know each number's full frequency before deciding whether to add it. Count first, then sum map keys with count exactly one.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public int sumOfUnique(int[] nums) {
+        Map<Integer, Integer> frequency = new HashMap<>();
+        for (int value : nums) frequency.merge(value, 1, Integer::sum);
+        int sum = 0;
+        for (Map.Entry<Integer, Integer> entry : frequency.entrySet()) {
+            if (entry.getValue() == 1) sum += entry.getKey();
+        }
+        return sum;
+    }
+}
+```
+
+**Key Logic:**
+
+Each map entry represents one distinct value and its total count. Only count-one entries contribute their numeric key. Multiplicity is never confused with the value itself.
+
+**Time Complexity:**
+
+Expected **O(n)**.
+
+**Space Complexity:**
+
+**O(u)** auxiliary for `u` distinct values.
+
+---
+
+### LeetCode 1394
+
+**Question:**
+
+Given an integer array `arr`, call a positive integer `x` **lucky** when `x` occurs **exactly `x` times** in the array. Return the largest lucky integer, or `-1` if none exists. Negative or zero values, if considered outside the stated positive-value constraints, cannot qualify under this definition.
+
+**Examples:**
+
+- `arr = [2,2,3,4]` → `2`.
+- `arr = [1,2,2,3,3,3]` → `3` (both `2` and `3` qualify; choose larger).
+- `arr = [2,2,2,3,3]` → `-1`.
+
+**Constraints:**
+
+`1 <= arr.length <= 500`; `1 <= arr[i] <= 500`.
+
+**Why This Subpattern Applies:**
+
+The desired property compares each distinct number to its occurrence count; a frequency map exposes both, and a maximum picks the largest qualifying key.
+
+**Connection to Previous Solution:**
+
+LC 1748 scans the frequency map and **sums keys** satisfying `count == 1`. Keep the same frequency map, change predicate to **`key == count`**, and replace sum with `Math.max(answer,key)` starting from `-1`.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public int findLucky(int[] arr) {
+        Map<Integer, Integer> frequency = new HashMap<>();
+        for (int value : arr) frequency.merge(value, 1, Integer::sum);
+        int answer = -1;
+        for (Map.Entry<Integer, Integer> entry : frequency.entrySet()) {
+            int value = entry.getKey(), count = entry.getValue();
+            if (value == count) answer = Math.max(answer, value);
+        }
+        return answer;
+    }
+}
+```
+
+**Key Logic:**
+
+Only a key equal to its count is lucky. Tracking a maximum, not the first match encountered in hash-map iteration, returns the largest qualifying number.
+
+**Time Complexity:**
+
+Expected **O(n)**.
+
+**Space Complexity:**
+
+**O(u)** auxiliary.
+
+---
+
+### LeetCode 3005
+
+**Question:**
+
+Given a nonempty integer array `nums`, determine the **maximum occurrence frequency** among its distinct values. Return the **total number of array elements** whose values have that maximum frequency. If multiple values tie for highest frequency, add their individual occurrence counts together; do not return the number of tied values.
+
+**Examples:**
+
+- `nums = [1,2,2,3,1,4]` → `4` (`1` and `2` each occur twice).
+- `nums = [1,2,3,4,5]` → `5` (all five values tie at frequency one).
+- `nums = [7,7,7,2,2]` → `3`.
+
+**Constraints:**
+
+`1 <= nums.length <= 100`; `1 <= nums[i] <= 100`.
+
+**Why This Subpattern Applies:**
+
+A complete frequency profile reveals the maximum frequency and which distinct values attain it. Accumulate those winning frequencies rather than their keys.
+
+**Connection to Previous Solution:**
+
+LC 1394 takes the **largest key satisfying `key == count`**. Keep map counting, but replace this special predicate with **global maximum frequency**: on a greater count set `total = count`; on a tie add `count`.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public int maxFrequencyElements(int[] nums) {
+        Map<Integer, Integer> frequency = new HashMap<>();
+        for (int value : nums) frequency.merge(value, 1, Integer::sum);
+        int highest = 0, total = 0;
+        for (int count : frequency.values()) {
+            if (count > highest) {
+                highest = count;
+                total = count;
+            } else if (count == highest) {
+                total += count;
+            }
+        }
+        return total;
+    }
+}
+```
+
+**Key Logic:**
+
+`highest` stores the largest count so far; `total` stores occurrences of all keys tied at `highest`. A newly higher count resets the total; an equal count adds to it.
+
+**Time Complexity:**
+
+Expected **O(n)**.
+
+**Space Complexity:**
+
+**O(u)** auxiliary.
+
+---
+
+### LeetCode 594
+
+**Question:**
+
+Given an integer array `nums`, find the **length of the longest harmonious subsequence**. A subsequence selects elements without requiring them to be adjacent, but must have `maximum - minimum == 1` **exactly**, not at most one. If no pair of distinct neighboring integer values exists, return `0`. A valid subsequence can include every occurrence of its two neighboring values.
+
+**Examples:**
+
+- `nums = [1,3,2,2,5,2,3,7]` → `5` (three `2`s and two `3`s).
+- `nums = [1,2,3,4]` → `2` (any adjacent-value pair).
+- `nums = [1,1,1,1]` → `0` (range is zero, not one).
+
+**Constraints:**
+
+`1 <= nums.length <= 2 * 10^4`; `-10^9 <= nums[i] <= 10^9`.
+
+**Why This Subpattern Applies:**
+
+Every valid harmonious subsequence uses **exactly two values** `x` and `x+1`; both frequencies can be summed since positions do not matter. A frequency map supports checking neighbor existence.
+
+**Connection to Previous Solution:**
+
+LC 3005 aggregates **single-key maximum frequencies**. Keep the value-frequency map, but evaluate **pairs of adjacent keys**: when `freq.containsKey(x+1)` maximize `freq[x]+freq[x+1]`. Guard arithmetic at `Integer.MAX_VALUE`.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public int findLHS(int[] nums) {
+        Map<Integer, Integer> frequency = new HashMap<>();
+        for (int value : nums) frequency.merge(value, 1, Integer::sum);
+        int longest = 0;
+        for (Map.Entry<Integer, Integer> entry : frequency.entrySet()) {
+            int value = entry.getKey();
+            if (value == Integer.MAX_VALUE) continue;
+            Integer neighborCount = frequency.get(value + 1);
+            if (neighborCount != null) {
+                longest = Math.max(longest, entry.getValue() + neighborCount);
+            }
+        }
+        return longest;
+    }
+}
+```
+
+**Key Logic:**
+
+Both neighbor values must be present. Combining **all** occurrences of the two values maximizes subsequence length; checking only `value+1` counts each possible neighboring pair once.
+
+**Time Complexity:**
+
+Expected **O(n)**.
+
+**Space Complexity:**
+
+**O(u)** auxiliary.
+
+---
+
+### LeetCode 697
+
+**Question:**
+
+The **degree** of a nonempty integer array is its largest frequency among any of its distinct values. Given `nums`, return the **minimum length of a contiguous subarray having the same degree as the complete array**. A candidate subarray must contain enough copies of some globally most frequent value to match the full-array degree; you cannot arbitrarily reorder elements.
+
+**Examples:**
+
+- `nums = [1,2,2,3,1]` → `2` (subarray `[2,2]` has degree 2).
+- `nums = [1,2,2,3,1,4,2]` → `6` (shortest span containing all three `2`s).
+- `nums = [5]` → `1`.
+
+**Constraints:**
+
+`1 <= nums.length <= 5 * 10^4`; `0 <= nums[i] <= 49999`.
+
+**Why This Subpattern Applies:**
+
+The global degree must be attained by some value in the subarray. For each such value, its shortest containing span runs from its **first** to **last** occurrence in the original array; compare these spans.
+
+**Connection to Previous Solution:**
+
+LC 594 stores **only frequencies** and combines adjacent values. Extend the profile to `frequency`, `firstIndex`, and `lastIndex` per key; find the global maximum frequency, then minimize **`last-first+1` among keys whose frequency equals that degree**.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public int findShortestSubArray(int[] nums) {
+        Map<Integer, Integer> frequency = new HashMap<>();
+        Map<Integer, Integer> first = new HashMap<>();
+        Map<Integer, Integer> last = new HashMap<>();
+        int degree = 0;
+        for (int i = 0; i < nums.length; i++) {
+            int value = nums[i];
+            first.putIfAbsent(value, i);
+            last.put(value, i);
+            int count = frequency.merge(value, 1, Integer::sum);
+            degree = Math.max(degree, count);
+        }
+        int shortest = nums.length;
+        for (Map.Entry<Integer, Integer> entry : frequency.entrySet()) {
+            if (entry.getValue() == degree) {
+                int value = entry.getKey();
+                shortest = Math.min(shortest, last.get(value) - first.get(value) + 1);
+            }
+        }
+        return shortest;
+    }
+}
+```
+
+**Key Logic:**
+
+The first/last maps record the smallest contiguous span containing every occurrence of each key. To retain the global degree, a subarray must contain all occurrences of at least one maximum-frequency key. The minimum of those spans is optimal.
+
+**Time Complexity:**
+
+Expected **O(n)**.
+
+**Space Complexity:**
+
+**O(u)** auxiliary for three maps of distinct values.
+
+---
+
+## Subpattern H10: Set-based consecutive chains
+
+**When to Apply:**
+
+Use when integer values form runs of `x, x+1, x+2, ...`, input order is irrelevant, and duplicates must not extend chain length. Store distinct values in a set, but expand only from values with **no predecessor**. Invariant: every maximal run is expanded once, from its unique head.
+
+**Basic Java Code Snippet:**
+
+```java
+Set<Integer> values = new HashSet<>();
+for (int x : nums) values.add(x);
+for (int head : values) {
+    if (head != Integer.MIN_VALUE && values.contains(head - 1)) continue;
+    long next = head;
+    while (next <= Integer.MAX_VALUE && values.contains((int) next)) next++;
+    long length = next - head; // chain starting at head
+}
+```
+
+**Core Logic:**
+
+Skipping non-heads prevents quadratic rescanning. `long` guards successor arithmetic for runs reaching `Integer.MAX_VALUE`, and predecessor lookup is guarded at `Integer.MIN_VALUE`.
+
+**Questions Covered:** LC 128
+
+
+### LeetCode 128
+
+**Question:**
+
+Given an unsorted integer array `nums`, return the **length of the longest sequence of consecutive integers** that can be formed from its values, where consecutive means each next number is exactly one larger. Values need not be adjacent in the original input; duplicates cannot count multiple times in a run. The required algorithm should run in expected **O(n)** time.
+
+**Examples:**
+
+- `nums = [100,4,200,1,3,2]` → `4` (run `1,2,3,4`).
+- `nums = [0,3,7,2,5,8,4,6,0,1]` → `9` (run `0..8`).
+- `nums = []` → `0`.
+
+**Constraints:**
+
+`0 <= nums.length <= 10^5`; `-10^9 <= nums[i] <= 10^9` (implementation also guards full 32-bit bounds).
+
+**Why This Subpattern Applies:**
+
+A set supports expected O(1) neighbor checks. Starting only where `x-1` does not exist makes each run expand once, avoiding repeated work from interior elements.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public int longestConsecutive(int[] nums) {
+        Set<Integer> values = new HashSet<>();
+        for (int value : nums) values.add(value);
+        int best = 0;
+        for (int value : values) {
+            if (value != Integer.MIN_VALUE && values.contains(value - 1)) continue;
+            long next = value;
+            while (next <= Integer.MAX_VALUE && values.contains((int) next)) {
+                next++;
+            }
+            best = Math.max(best, (int) (next - value));
+        }
+        return best;
+    }
+}
+```
+
+**Key Logic:**
+
+A start has no predecessor; every consecutive value after it is checked once as part of that run. Duplicate input values disappear in the set. The `long` successor never wraps past maximum `int`.
+
+**Time Complexity:**
+
+Expected **O(n)** total: each distinct element is considered as a potential head and traversed at most once by run expansion.
+
+**Space Complexity:**
+
+**O(u)** auxiliary for distinct values, worst-case O(n).
+
+---
+
+## Subpattern H11: O(1) randomized indexed set
+
+**When to Apply:**
+
+Use when a mutable set must support **membership, insertion, deletion, and uniform random sampling**, all in expected constant time. Maintain a dense dynamic array of elements plus a map from value to its exact array index. Invariant: for every stored element `v`, `values[position[v]] == v`; deletion preserves this by moving the last element into the removed slot.
+
+**Basic Java Code Snippet:**
+
+```java
+List<Integer> values = new ArrayList<>();
+Map<Integer, Integer> position = new HashMap<>();
+// Insert new x: position.put(x, values.size()); values.add(x);
+// Remove x: copy last element into its slot; update moved index;
+//           remove last array slot and delete x from map.
+// Random: values.get(random.nextInt(values.size()));
+```
+
+**Core Logic:**
+
+A dense list gives O(1) indexed sampling, and the position map finds deletion indices without scanning. Swap-with-last prevents a linear-time array shift.
+
+**Questions Covered:** LC 380
+
+
+### LeetCode 380
+
+**Question:**
+
+Implement a data structure `RandomizedSet` supporting three operations: `insert(val)` inserts a previously absent value and returns `true` (otherwise `false`); `remove(val)` deletes an existing value and returns `true` (otherwise `false`); `getRandom()` returns one currently stored value, with every stored value having equal probability of being chosen. All operations must have **expected O(1)** time. Calls to `getRandom()` occur only when the set is nonempty.
+
+**Examples:**
+
+- Operations `RandomizedSet(), insert(1), remove(2), insert(2), getRandom(), remove(1), insert(2), getRandom()` → `[null,true,false,true,1 or 2,true,false,2]`.
+- Operations `RandomizedSet(), insert(5), insert(5), getRandom()` → `[null,true,false,5]`.
+- Operations `RandomizedSet(), insert(1), insert(2), remove(1), getRandom()` → `[null,true,true,true,2]`.
+
+**Constraints:**
+
+`-2^31 <= val <= 2^31 - 1`; at most `2 * 10^5` calls to `insert`, `remove`, and `getRandom`; at least one element exists when `getRandom` is called.
+
+**Why This Subpattern Applies:**
+
+A `HashSet` cannot sample uniformly in expected O(1), and an `ArrayList` cannot locate arbitrary removals in O(1). Combine a dense list with value→index mapping and swap-delete.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    // LC 380's judge instantiates the separate RandomizedSet class below.
+}
+class RandomizedSet {
+    private final List<Integer> values = new ArrayList<>();
+    private final Map<Integer, Integer> index = new HashMap<>();
+    private final Random random = new Random();
+
+    public RandomizedSet() { }
+
+    public boolean insert(int val) {
+        if (index.containsKey(val)) return false;
+        index.put(val, values.size());
+        values.add(val);
+        return true;
+    }
+
+    public boolean remove(int val) {
+        Integer location = index.get(val);
+        if (location == null) return false;
+        int lastIndex = values.size() - 1;
+        int lastValue = values.get(lastIndex);
+        values.set(location, lastValue);
+        index.put(lastValue, location);
+        values.remove(lastIndex);
+        index.remove(val);
+        return true;
+    }
+
+    public int getRandom() {
+        return values.get(random.nextInt(values.size()));
+    }
+}
+```
+
+**Key Logic:**
+
+`index` mirrors the dense list. On removal, move the last value to the removed position, update that value's map index, remove the last list slot, then erase the deleted key. The procedure also works when the removed value was already last. Every array index is sampled uniformly, so every stored value has equal probability. **Submission note:** LeetCode 380 requires `RandomizedSet`; the accompanying empty `Solution` class is included solely to satisfy this workbook's class-name convention and is not instantiated by the judge.
+
+**Time Complexity:**
+
+Expected **O(1)** per operation; `getRandom` draws one uniform integer index.
+
+**Space Complexity:**
+
+**O(n)** for `n` elements currently stored (list plus map).
+
+---
+
+## Subpattern H12: Canonical normalized compound keys
+
+**When to Apply:**
+
+Use when multiple component orderings represent the **same object** (for example, unordered pairs). Normalize the components first, then encode the normalized tuple as a collision-free hash key. Count each new record's matches among earlier records. Invariant: two objects are equivalent if and only if their canonical keys are equal.
+
+**Basic Java Code Snippet:**
+
+```java
+int low = Math.min(a, b), high = Math.max(a, b);
+int key = low * BASE + high; // BASE must exceed every possible high.
+int previous = frequency.getOrDefault(key, 0);
+answer += previous;
+frequency.put(key, previous + 1);
+```
+
+**Core Logic:**
+
+Sorting a pair of components into a canonical order removes orientation. Base encoding is unique only if component bounds are respected; the frequency lookup then counts earlier equivalent objects.
+
+**Questions Covered:** LC 1128
+
+
+### LeetCode 1128
+
+**Question:**
+
+Given a list `dominoes` where each domino has two integer endpoints `[a,b]`, count index pairs `(i,j)` with `i < j` whose dominoes are **equivalent**. Two dominoes are equivalent if they contain the same pair of endpoint numbers in either orientation: `[a,b]` is equivalent to `[b,a]`. Different domino indices count as separate items, even if their values are identical.
+
+**Examples:**
+
+- `dominoes = [[1,2],[2,1],[3,4],[5,6]]` → `1`.
+- `dominoes = [[1,2],[1,2],[1,1],[1,2],[2,2]]` → `3` (three copies of `[1,2]` form three pairs).
+- `dominoes = [[1,1],[1,1],[1,1]]` → `3`.
+
+**Constraints:**
+
+`1 <= dominoes.length <= 4 * 10^4`; `dominoes[i].length == 2`; `1 <= dominoes[i][j] <= 9`.
+
+**Why This Subpattern Applies:**
+
+Equivalent dominoes have the same normalized unordered pair `(min(a,b), max(a,b))`. Since endpoints are 1..9, the decimal key `10*min+max` is collision-free.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern. This uses the prior-frequency counting principle introduced in H8, but **does not** evolve from H11's indexed randomized set; it begins a new family because canonicalizing unordered pairs is a different invariant.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int numEquivDominoPairs(int[][] dominoes) {
+        int[] frequency = new int[100];
+        int pairs = 0;
+        for (int[] domino : dominoes) {
+            int a = Math.min(domino[0], domino[1]);
+            int b = Math.max(domino[0], domino[1]);
+            int key = a * 10 + b;
+            pairs += frequency[key];
+            frequency[key]++;
+        }
+        return pairs;
+    }
+}
+```
+
+**Key Logic:**
+
+Normalization makes reversed dominoes identical keys. The key is between 11 and 99, fitting a fixed array. Before increasing `frequency[key]`, its value is exactly the number of earlier equivalent dominoes, so each index pair is counted once.
+
+**Time Complexity:**
+
+**O(n)**.
+
+**Space Complexity:**
+
+**O(1)** auxiliary (100 counters).
+
+---
+
+## Subpattern H13: Hierarchical string key accumulation
+
+**When to Apply:**
+
+Use when a record contributes a weighted quantity to its **full identifier and every enclosing suffix/category**. Generate the hierarchy keys (for domains, remove successive leftmost labels) and accumulate into a map. Invariant: each record's weight is added exactly once to every suffix it visits.
+
+**Basic Java Code Snippet:**
+
+```java
+Map<String, Long> totals = new HashMap<>();
+for (String domain : domains) {
+    String suffix = domain;
+    while (true) {
+        totals.merge(suffix, visitsForDomain, Long::sum);
+        int dot = suffix.indexOf('.');
+        if (dot == -1) break;
+        suffix = suffix.substring(dot + 1);
+    }
+}
+```
+
+**Core Logic:**
+
+The complete domain contributes first; stripping the next label moves to a parent suffix. Map addition merges contributions from separate records that share a suffix.
+
+**Questions Covered:** LC 811
+
+
+### LeetCode 811
+
+**Question:**
+
+You are given a list of **count-paired domains** in strings of the form `"count domain"`, such as `"9001 discuss.leetcode.com"`. The count means that many visits to the full domain, and **each visit also counts toward every parent suffix domain** (`leetcode.com` and `com`). Return one string `"totalCount suffixDomain"` per distinct suffix, where the total includes visits from every input record whose domain ends with that suffix on a domain-label boundary. Output order is arbitrary.
+
+**Examples:**
+
+- `cpdomains = ["9001 discuss.leetcode.com"]` → `["9001 discuss.leetcode.com","9001 leetcode.com","9001 com"]` (any order).
+- `cpdomains = ["900 google.mail.com","50 yahoo.com","1 intel.mail.com","5 wiki.org"]` → counts `mail.com=901`, `com=951`, `org=5`, `google.mail.com=900`, `yahoo.com=50`, `intel.mail.com=1`, `wiki.org=5`.
+- `cpdomains = ["1 a.com","2 b.com"]` → `["1 a.com","2 b.com","3 com"]` (any order).
+
+**Constraints:**
+
+`1 <= cpdomains.length <= 100`; each entry's visit count is in `[1,10^4]`; domain length is between 1 and 100; domains consist of lowercase letters and dot separators with at most three labels.
+
+**Why This Subpattern Applies:**
+
+Every input record expands into several related suffix keys; those keys receive its weighted count. A hash map aggregates totals from overlapping suffixes.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern. Unlike H12, which normalizes one unordered object into **one key**, each domain here generates **multiple hierarchical keys**, all accumulating the record's visit weight.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public List<String> subdomainVisits(String[] cpdomains) {
+        Map<String, Integer> totals = new HashMap<>();
+        for (String entry : cpdomains) {
+            int space = entry.indexOf(' ');
+            int visits = Integer.parseInt(entry.substring(0, space));
+            String domain = entry.substring(space + 1);
+            totals.merge(domain, visits, Integer::sum);
+            for (int i = 0; i < domain.length(); i++) {
+                if (domain.charAt(i) == '.') {
+                    totals.merge(domain.substring(i + 1), visits, Integer::sum);
+                }
+            }
+        }
+        List<String> result = new ArrayList<>(totals.size());
+        for (Map.Entry<String, Integer> entry : totals.entrySet()) {
+            result.add(entry.getValue() + " " + entry.getKey());
+        }
+        return result;
+    }
+}
+```
+
+**Key Logic:**
+
+Parse count and domain separately. The full domain is one suffix; each dot identifies the beginning of a parent suffix. Adding the count for all suffixes includes overlapping traffic from multiple entries. Output order is unspecified.
+
+**Time Complexity:**
+
+Expected **O(T + S)** for input text length `T` and the total length `S` of generated suffix strings/output keys (typically O(T) with bounded domain depth).
+
+**Space Complexity:**
+
+**O(S)** auxiliary for suffix strings and map entries; result strings require additional O(S) output space.
+
+---
+
+## Final Question Registry
+
+**Verified question count:** 33. **Verified distinct algorithm families:** 13.
+
+| Curriculum sequence | Family | LeetCode number | Included |
+|---:|---|---:|---|
+| 01 | H1 | 217 | Yes |
+| 02 | H1 | 349 | Yes |
+| 03 | H1 | 2215 | Yes |
+| 04 | H2 | 219 | Yes |
+| 05 | H2 | 220 | Yes |
+| 06 | H3 | 1 | Yes |
+| 07 | H3 | 454 | Yes |
+| 08 | H4 | 242 | Yes |
+| 09 | H4 | 383 | Yes |
+| 10 | H4 | 1347 | Yes |
+| 11 | H4 | 2085 | Yes |
+| 12 | H4 | 387 | Yes |
+| 13 | H5 | 1207 | Yes |
+| 14 | H5 | 1657 | Yes |
+| 15 | H6 | 49 | Yes |
+| 16 | H6 | 609 | Yes |
+| 17 | H7 | 205 | Yes |
+| 18 | H7 | 290 | Yes |
+| 19 | H7 | 890 | Yes |
+| 20 | H8 | 1512 | Yes |
+| 21 | H8 | 2006 | Yes |
+| 22 | H8 | 1010 | Yes |
+| 23 | H8 | 1814 | Yes |
+| 24 | H8 | 2364 | Yes |
+| 25 | H9 | 1748 | Yes |
+| 26 | H9 | 1394 | Yes |
+| 27 | H9 | 3005 | Yes |
+| 28 | H9 | 594 | Yes |
+| 29 | H9 | 697 | Yes |
+| 30 | H10 | 128 | Yes |
+| 31 | H11 | 380 | Yes |
+| 32 | H12 | 1128 | Yes |
+| 33 | H13 | 811 | Yes |
+
+**Exact locked order:** 217, 349, 2215, 219, 220, 1, 454, 242, 383, 1347, 2085, 387, 1207, 1657, 49, 609, 205, 290, 890, 1512, 2006, 1010, 1814, 2364, 1748, 1394, 3005, 594, 697, 128, 380, 1128, 811.
+
+**Curriculum comparison:** all 33 locked LeetCode IDs occur exactly once and in the exact source order; no additions, omissions, or substitutions.
+
+**Workflow:** This is a complete reference export. It does not modify the progress checkpoint in the Project master curriculum.

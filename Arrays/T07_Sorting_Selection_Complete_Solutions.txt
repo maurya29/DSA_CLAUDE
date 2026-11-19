@@ -1,0 +1,1669 @@
+# T07 — Sorting & Selection: Complete Solutions
+
+**Locked questions:** 22  |  **Algorithm families:** 13 (R1–R13)  |  **Language:** Java 21
+
+> Source of truth: `MASTER_DSA_CURRICULUM.md`, version 1.7, Section C7. The section opening says 11 families, but its locked R1–R13 registry and explicit taxonomy establish **13**; no questions were changed. This workbook is a reference export, **not** a completion-progress update.
+
+## Table of Contents
+
+- **R1: Pivot partitioning, full sort → order statistic** — [LC 912](#leetcode-912), [LC 215](#leetcode-215), [LC 973](#leetcode-973), [LC 1985](#leetcode-1985)
+- **R2: Sorting makes adjacent differences informative** — [LC 1200](#leetcode-1200), [LC 1502](#leetcode-1502), [LC 1637](#leetcode-1637)
+- **R3: Sorted rank / coordinate compression** — [LC 1365](#leetcode-1365), [LC 1331](#leetcode-1331)
+- **R4: Sort records by indexed key, scatter back** — [LC 2418](#leetcode-2418), [LC 506](#leetcode-506)
+- **R5: Frequency first, comparator orders occurrences** — [LC 1636](#leetcode-1636), [LC 451](#leetcode-451)
+- **R6: Bounded-domain counting buckets** — [LC 1051](#leetcode-1051), [LC 274](#leetcode-274)
+- **R7: Explicit custom priority order** — [LC 791](#leetcode-791)
+- **R8: Non-transitive-looking, but valid concatenation comparator** — [LC 179](#leetcode-179)
+- **R9: Multi-field stable record ordering** — [LC 937](#leetcode-937)
+- **R10: Pigeonhole bucket-gap analysis** — [LC 164](#leetcode-164)
+- **R11: Stable least-significant-digit radix** — [LC 2343](#leetcode-2343)
+- **R12: Median selection with virtual indexing** — [LC 324](#leetcode-324)
+- **R13: Independent positional subsequence sorting** — [LC 2164](#leetcode-2164)
+
+## Reading the solutions
+
+Each question has its own LeetCode-ready `class Solution` (compile one at a time). Array/point inputs may be reordered when the problem permits. Complexity estimates distinguish expected randomized selection behavior from worst case.
+
+## Subpattern R1: Pivot partitioning, full sort → order statistic
+
+**When to Apply:**
+
+- Recognition: order *everything* or find an order statistic without sorting every other element. Invariant: elements before the `lt` boundary are smaller; elements after `gt` are larger; middle matches pivot. For 912, recurse on both outside sections; for 215/973/1985, recurse/iterate only on the target side. Use randomly chosen pivot to avoid systematic bad cases.
+- **Recognition clue:** Need all elements ordered without library sort: randomized in-place 3-way quicksort, partition `<pivot`, `==pivot`, `>pivot`; recursively sort both outer partitions; expected O(n log n), worst O(n²), expected O(log n) stack.
+- **Central invariant:** the three pivot bands partition every element by comparison with the pivot.
+
+**Basic Java Code Snippet:**
+
+```java
+int lt = left, i = left, gt = right;
+int pivot = values[left + java.util.concurrent.ThreadLocalRandom.current()
+                                    .nextInt(right - left + 1)];
+while (i <= gt) {
+    if (values[i] < pivot) { int t=values[lt]; values[lt++]=values[i]; values[i++]=t; }
+    else if (values[i] > pivot) { int t=values[i]; values[i]=values[gt]; values[gt--]=t; }
+    else i++;
+}
+// [left,lt) < pivot; [lt,gt] == pivot; (gt,right] > pivot.
+// Replace < and > with a comparison of derived keys for other data types.
+```
+
+**Core Logic:**
+
+Choose a random pivot, classify elements into three contiguous regions, and either recurse on both sides (sort) or only the side containing the target rank (select).
+
+**Questions Covered:** LeetCode 912, LeetCode 215, LeetCode 973, LeetCode 1985
+
+### LeetCode 912
+
+**Question:**
+
+Return the input integer array sorted in nondecreasing order. Implement the sorting algorithm yourself instead of calling a built-in sorting routine. Duplicates and negative numbers must be handled.
+
+**Examples:**
+
+`[5,2,3,1] → [1,2,3,5]`; `[5,1,1,2,0,0] → [0,0,1,1,2,5]`; `[-1,0,-1] → [-1,-1,0]`.
+
+**Constraints:**
+
+1 ≤ n ≤ 5×10⁴; −5×10⁴ ≤ nums[i] ≤ 5×10⁴.
+
+**Why This Subpattern Applies:**
+
+Need all elements ordered without library sort: randomized in-place 3-way quicksort, partition `<pivot`, `==pivot`, `>pivot`; recursively sort both outer partitions; expected O(n log n), worst O(n²), expected O(log n) stack. Explain merge-sort alternative and guaranteed O(n log n) as companion concept.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int[] sortArray(int[] nums) {
+        sort(nums, 0, nums.length - 1);
+        return nums;
+    }
+    private void sort(int[] a, int left, int right) {
+        while (left < right) {
+            int pivot = a[java.util.concurrent.ThreadLocalRandom.current().nextInt(left, right + 1)];
+            int lt = left, i = left, gt = right;
+            while (i <= gt) {
+                if (a[i] < pivot) swap(a, lt++, i++);
+                else if (a[i] > pivot) swap(a, i, gt--);
+                else i++;
+            }
+            if (lt - left < right - gt) {
+                sort(a, left, lt - 1);
+                left = gt + 1;
+            } else {
+                sort(a, gt + 1, right);
+                right = lt - 1;
+            }
+        }
+    }
+    private void swap(int[] a, int i, int j) {
+        int t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+}
+```
+
+**Key Logic:**
+
+Partition into smaller/equal/larger pivot bands, then sort both outside bands; recurse on smaller band first to limit stack.
+
+**Time Complexity:**
+
+Expected O(n log n); worst O(n²) with unlucky pivots.
+
+**Space Complexity:**
+
+Expected O(log n) recursive stack; O(log n) worst stack with smaller-side recursion and tail iteration.
+
+---
+
+### LeetCode 215
+
+**Question:**
+
+Find the kth largest element of an unsorted integer array, counting repeated values separately. The kth largest is the element at index n−k in fully ascending order, but you need not produce the entire sorted array.
+
+**Examples:**
+
+`[3,2,1,5,6,4], k=2 → 5`; `[3,2,3,1,2,4,5,5,6], k=4 → 4`; `[1], k=1 → 1`.
+
+**Constraints:**
+
+1 ≤ k ≤ n ≤ 10⁵; −10⁴ ≤ nums[i] ≤ 10⁴.
+
+**Why This Subpattern Applies:**
+
+Need only kth **largest**, not fully ordered data: randomized 3-way quickselect; compare target descending-order rank to equal-pivot interval; expected O(n), worst O(n²).
+
+**Connection to Previous Solution:**
+
+Reuse identical partition primitive; **do not sort both sides**: continue only in the partition containing target rank, or stop when it falls inside equal band.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int findKthLargest(int[] nums, int k) {
+        int target = nums.length - k, left = 0, right = nums.length - 1;
+        while (left <= right) {
+            int pivot = nums[java.util.concurrent.ThreadLocalRandom.current().nextInt(left, right + 1)];
+            int lt = left, i = left, gt = right;
+            while (i <= gt) {
+                if (nums[i] < pivot) swap(nums, lt++, i++);
+                else if (nums[i] > pivot) swap(nums, i, gt--);
+                else i++;
+            }
+            if (target < lt) right = lt - 1;
+            else if (target > gt) left = gt + 1;
+            else return nums[target];
+        }
+        throw new IllegalStateException();
+    }
+    private void swap(int[] a, int i, int j) {
+        int t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+}
+```
+
+**Key Logic:**
+
+Use the same 3-way partition but discard the band that cannot contain the target index.
+
+**Time Complexity:**
+
+Expected O(n); worst O(n²).
+
+**Space Complexity:**
+
+O(1) auxiliary; in-place iterative selection.
+
+---
+
+### LeetCode 973
+
+**Question:**
+
+Given integer-coordinate points in the plane and integer k, return any k points having the smallest squared distances to the origin. The returned points may be in any order, and ties may be resolved arbitrarily.
+
+**Examples:**
+
+`[[1,3],[-2,2]], k=1 → [[-2,2]]`; `[[3,3],[5,-1],[-2,4]], k=2 → [[3,3],[-2,4]]` (one valid result); `[[0,0],[1,1]], k=2 → both points`.
+
+**Constraints:**
+
+1 ≤ k ≤ n ≤ 10⁴; −10⁴ ≤ each coordinate ≤ 10⁴; answers may be returned in any order.
+
+**Why This Subpattern Applies:**
+
+Need kth smallest *derived key* among objects: 3-way quickselect points by squared Euclidean distance using `long`; return any `k` points from smallest band/side.
+
+**Connection to Previous Solution:**
+
+Keep selective partition, replace scalar comparison with a `long` distance key and change target from kth-largest scalar to first `k` smallest records.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int[][] kClosest(int[][] points, int k) {
+        int left = 0, right = points.length - 1, target = k - 1;
+        while (left <= right) {
+            long pivot = distance(points[java.util.concurrent.ThreadLocalRandom.current().nextInt(left, right + 1)]);
+            int lt = left, i = left, gt = right;
+            while (i <= gt) {
+                long d = distance(points[i]);
+                if (d < pivot) swap(points, lt++, i++);
+                else if (d > pivot) swap(points, i, gt--);
+                else i++;
+            }
+            if (target < lt) right = lt - 1;
+            else if (target > gt) left = gt + 1;
+            else break;
+        }
+        return java.util.Arrays.copyOf(points, k);
+    }
+    private long distance(int[] p) { return (long)p[0] * p[0] + (long)p[1] * p[1]; }
+    private void swap(int[][] a, int i, int j) {
+        int[] t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+}
+```
+
+**Key Logic:**
+
+Select boundary index k−1 by a derived squared-distance key; all positions before it have no greater distance.
+
+**Time Complexity:**
+
+Expected O(n), worst O(n²), plus O(k) to copy the output.
+
+**Space Complexity:**
+
+O(1) selection auxiliary; O(k) result array of point references.
+
+---
+
+### LeetCode 1985
+
+**Question:**
+
+An array contains nonnegative integers represented as decimal strings, possibly longer than any primitive numeric type. Return the kth largest occurrence in numeric order; duplicate numeric strings count as separate positions.
+
+**Examples:**
+
+`["3","6","7","10"], k=4 → "3"`; `["2","21","12","1"], k=3 → "2"`; `["0","0","1"], k=2 → "0"`.
+
+**Constraints:**
+
+1 ≤ k ≤ n ≤ 10⁴; 1 ≤ string length ≤ 100; strings are valid canonical nonnegative decimal representations without leading zeros except "0".
+
+**Why This Subpattern Applies:**
+
+Need kth largest arbitrarily large nonnegative **decimal string**, no numeric parsing: quickselect with comparator `(length, lexicographic)` in numeric order, preserving distinct occurrences.
+
+**Connection to Previous Solution:**
+
+Keep select-by-rank and 3-way partition; swap numeric/distance comparison for length-then-lexicographic string comparator and return the selected string.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public String kthLargestNumber(String[] nums, int k) {
+        int target = nums.length - k, left = 0, right = nums.length - 1;
+        while (left <= right) {
+            String pivot = nums[java.util.concurrent.ThreadLocalRandom.current().nextInt(left, right + 1)];
+            int lt = left, i = left, gt = right;
+            while (i <= gt) {
+                int cmp = compare(nums[i], pivot);
+                if (cmp < 0) swap(nums, lt++, i++);
+                else if (cmp > 0) swap(nums, i, gt--);
+                else i++;
+            }
+            if (target < lt) right = lt - 1;
+            else if (target > gt) left = gt + 1;
+            else return nums[target];
+        }
+        throw new IllegalStateException();
+    }
+    private int compare(String a, String b) {
+        int c = Integer.compare(a.length(), b.length());
+        return c != 0 ? c : a.compareTo(b);
+    }
+    private void swap(String[] a, int i, int j) {
+        String t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+}
+```
+
+**Key Logic:**
+
+Numeric ordering follows string length first, then lexicographic order for equal-length strings.
+
+**Time Complexity:**
+
+Expected O(n·L), worst O(n²·L), where L is maximum digit count.
+
+**Space Complexity:**
+
+O(1) auxiliary apart from the input array; comparisons do not copy strings.
+
+---
+
+## Subpattern R2: Sorting makes adjacent differences informative
+
+**When to Apply:**
+
+- Recognition: the objective is determined by neighbors in the sorted order; non-neighbors cannot improve a minimum gap or cannot contribute a wider consecutive gap.
+- **Recognition clue:** All pairs attaining minimum absolute difference: sort, scan adjacent pairs, collect tied minima; O(n log n).
+- **Central invariant:** sorted neighbors determine adjacent-gap properties.
+
+**Basic Java Code Snippet:**
+
+```java
+java.util.Arrays.sort(a);
+for (int i = 1; i < a.length; i++) {
+    long gap = (long)a[i] - a[i - 1];
+    // check min gap, common gap, or max gap, depending on question
+}
+```
+
+**Core Logic:**
+
+Sort once, then compare only neighboring sorted keys.
+
+**Questions Covered:** LeetCode 1200, LeetCode 1502, LeetCode 1637
+
+### LeetCode 1200
+
+**Question:**
+
+Find every pair of distinct array elements whose absolute difference equals the smallest difference achievable by any two elements. Return each pair in ascending value order and return the list of pairs ordered by their first element.
+
+**Examples:**
+
+`[4,2,1,3] → [[1,2],[2,3],[3,4]]`; `[1,3,6,10,15] → [[1,3]]`; `[3,8,-10,23,19,-4,-14,27] → [[-14,-10],[19,23],[23,27]]`.
+
+**Constraints:**
+
+2 ≤ n ≤ 10⁵; −10⁶ ≤ arr[i] ≤ 10⁶; elements are distinct.
+
+**Why This Subpattern Applies:**
+
+All pairs attaining minimum absolute difference: sort, scan adjacent pairs, collect tied minima; O(n log n).
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public java.util.List<java.util.List<Integer>> minimumAbsDifference(int[] arr) {
+        java.util.Arrays.sort(arr);
+        int min = Integer.MAX_VALUE;
+        java.util.List<java.util.List<Integer>> result = new java.util.ArrayList<>();
+        for (int i = 1; i < arr.length; i++) {
+            int gap = arr[i] - arr[i - 1];
+            if (gap < min) { min = gap; result.clear(); }
+            if (gap == min) result.add(java.util.List.of(arr[i - 1], arr[i]));
+        }
+        return result;
+    }
+}
+```
+
+**Key Logic:**
+
+After sorting, the closest pair must be adjacent; any nonadjacent pair has at least one intervening value.
+
+**Time Complexity:**
+
+O(n log n) sorting plus O(n) scan.
+
+**Space Complexity:**
+
+O(log n) primitive-array sort stack (implementation-dependent); O(p) output for p pairs.
+
+---
+
+### LeetCode 1502
+
+**Question:**
+
+Determine whether the elements can be rearranged to form an arithmetic progression, meaning every consecutive pair has the same difference. Return true or false.
+
+**Examples:**
+
+`[3,5,1] → true` (1,3,5); `[1,2,4] → false`; `[7,7,7] → true`.
+
+**Constraints:**
+
+2 ≤ n ≤ 1000; −10⁶ ≤ arr[i] ≤ 10⁶.
+
+**Why This Subpattern Applies:**
+
+Can reordered values form an arithmetic progression: sort, derive first adjacent gap and verify every subsequent gap; O(n log n).
+
+**Connection to Previous Solution:**
+
+Retain sorted adjacent-gap scan; replace global minimum/tied-pair collection with constant required-gap equality check.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public boolean canMakeArithmeticProgression(int[] arr) {
+        java.util.Arrays.sort(arr);
+        int gap = arr[1] - arr[0];
+        for (int i = 2; i < arr.length; i++)
+            if (arr[i] - arr[i - 1] != gap) return false;
+        return true;
+    }
+}
+```
+
+**Key Logic:**
+
+Sorted order is the only possible monotone arrangement of a nonconstant arithmetic progression, up to reversal.
+
+**Time Complexity:**
+
+O(n log n).
+
+**Space Complexity:**
+
+O(log n) sorting stack; O(1) explicit auxiliary.
+
+---
+
+### LeetCode 1637
+
+**Question:**
+
+Points are given by [x,y] coordinates. Find the maximum width of a vertical strip between two x-coordinate boundaries that contains no point strictly inside it. Points on boundaries are allowed; y values do not matter.
+
+**Examples:**
+
+`[[8,7],[9,9],[7,4],[9,7]] → 1`; `[[3,1],[9,0],[1,0],[1,4],[5,3],[8,8]] → 3`; `[[1,1],[1,2]] → 0`.
+
+**Constraints:**
+
+2 ≤ n ≤ 10⁵; 0 ≤ x,y ≤ 10⁹.
+
+**Why This Subpattern Applies:**
+
+Widest empty vertical gap among points: sort by x-coordinate, maximize consecutive x difference; O(n log n).
+
+**Connection to Previous Solution:**
+
+Retain adjacent-gap evaluation; replace 1D scalar elements with point x-key comparator and change all-gaps-equal test into maximum gap objective.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int maxWidthOfVerticalArea(int[][] points) {
+        java.util.Arrays.sort(points, (a, b) -> Integer.compare(a[0], b[0]));
+        int best = 0;
+        for (int i = 1; i < points.length; i++)
+            best = Math.max(best, points[i][0] - points[i - 1][0]);
+        return best;
+    }
+}
+```
+
+**Key Logic:**
+
+Sorting by x makes each candidate empty strip the gap between consecutive x-coordinates.
+
+**Time Complexity:**
+
+O(n log n).
+
+**Space Complexity:**
+
+O(log n) to O(n) sorting overhead depending on object-array sort; no output allocation.
+
+---
+
+## Subpattern R3: Sorted rank / coordinate compression
+
+**When to Apply:**
+
+- Recognition: preserve original element positions but replace values by their sorted relative order, with explicit duplicate policy.
+- **Recognition clue:** Number of array values strictly smaller than each element: sort copy; map each distinct value to its **first sorted index**; emit rank counts in original order; O(n log n).
+- **Central invariant:** equal values map to one consistent rank while original positions are retained.
+
+**Basic Java Code Snippet:**
+
+```java
+int[] sorted = a.clone();
+java.util.Arrays.sort(sorted);
+java.util.Map<Integer,Integer> rank = new java.util.HashMap<>();
+for (int i = 0, distinct = 0; i < sorted.length; i++) {
+    if (i == 0 || sorted[i] != sorted[i - 1]) {
+        rank.put(sorted[i], ++distinct); // or assign original index i
+    }
+}
+// Map each original a[i] through rank.
+```
+
+**Core Logic:**
+
+Sort a copy, assign the appropriate rank once per distinct value, and map results back.
+
+**Questions Covered:** LeetCode 1365, LeetCode 1331
+
+### LeetCode 1365
+
+**Question:**
+
+For each array element, count how many other array elements have strictly smaller values. Return counts in the original input order; equal values do not count as smaller.
+
+**Examples:**
+
+`[8,1,2,2,3] → [4,0,1,1,3]`; `[6,5,4,8] → [2,1,0,3]`; `[7,7,7] → [0,0,0]`.
+
+**Constraints:**
+
+2 ≤ n ≤ 500; 0 ≤ nums[i] ≤ 100.
+
+**Why This Subpattern Applies:**
+
+Number of array values strictly smaller than each element: sort copy; map each distinct value to its **first sorted index**; emit rank counts in original order; O(n log n).
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int[] smallerNumbersThanCurrent(int[] nums) {
+        int[] sorted = nums.clone(), result = new int[nums.length];
+        java.util.Arrays.sort(sorted);
+        java.util.Map<Integer, Integer> first = new java.util.HashMap<>();
+        for (int i = 0; i < sorted.length; i++) first.putIfAbsent(sorted[i], i);
+        for (int i = 0; i < nums.length; i++) result[i] = first.get(nums[i]);
+        return result;
+    }
+}
+```
+
+**Key Logic:**
+
+The first occurrence index of a value in sorted order equals the number of strictly smaller elements.
+
+**Time Complexity:**
+
+O(n log n) expected including map operations.
+
+**Space Complexity:**
+
+O(n) for sorted copy, map, and output.
+
+---
+
+### LeetCode 1331
+
+**Question:**
+
+Replace each array element by its rank among the distinct values: the smallest distinct value receives rank 1, equal values share a rank, and consecutive distinct values have consecutive ranks. Preserve original positions.
+
+**Examples:**
+
+`[40,10,20,30] → [4,1,2,3]`; `[100,100,100] → [1,1,1]`; `[37,12,28,9,100,56,80,5,12] → [5,3,4,2,8,6,7,1,3]`.
+
+**Constraints:**
+
+0 ≤ n ≤ 10⁵; −10⁹ ≤ arr[i] ≤ 10⁹.
+
+**Why This Subpattern Applies:**
+
+Dense rank transformation including ties: same sorted unique-value map but assign consecutive rank 1,2,... for each **distinct value**; O(n log n).
+
+**Connection to Previous Solution:**
+
+Keep sort, first-occurrence detection and map-back; replace zero-based first-position count with consecutive distinct-value rank counter.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int[] arrayRankTransform(int[] arr) {
+        int[] sorted = arr.clone(), result = new int[arr.length];
+        java.util.Arrays.sort(sorted);
+        java.util.Map<Integer, Integer> rank = new java.util.HashMap<>();
+        for (int x : sorted) if (!rank.containsKey(x)) rank.put(x, rank.size() + 1);
+        for (int i = 0; i < arr.length; i++) result[i] = rank.get(arr[i]);
+        return result;
+    }
+}
+```
+
+**Key Logic:**
+
+Sort distinct values to construct a dense rank mapping, then project back into original order.
+
+**Time Complexity:**
+
+O(n log n) expected.
+
+**Space Complexity:**
+
+O(n) sorted copy, map, output.
+
+---
+
+## Subpattern R4: Sort records by indexed key, scatter back
+
+**When to Apply:**
+
+- Recognition: sort records by one associated array but return or update different payloads at original indices.
+- **Recognition clue:** Reorder names by corresponding heights descending: sort indices or record pairs by height and emit names in sorted order; O(n log n).
+- **Central invariant:** sort original indices by their associated key.
+
+**Basic Java Code Snippet:**
+
+```java
+Integer[] order = java.util.stream.IntStream.range(0, scores.length)
+                                        .boxed().toArray(Integer[]::new);
+java.util.Arrays.sort(order, (i, j) -> Integer.compare(scores[j], scores[i]));
+for (int sortedPosition = 0; sortedPosition < order.length; sortedPosition++) {
+    int originalIndex = order[sortedPosition];
+    // gather a payload in sorted order OR scatter a rank to originalIndex
+}
+```
+
+**Core Logic:**
+
+Build indices 0..n−1, sort by an external key, and gather or scatter payloads.
+
+**Questions Covered:** LeetCode 2418, LeetCode 506
+
+### LeetCode 2418
+
+**Question:**
+
+Each person has a unique name and corresponding unique height at the same array index. Return the names sorted from tallest to shortest, keeping each name paired with its original height.
+
+**Examples:**
+
+`names=["Mary","John","Emma"], heights=[180,165,170] → ["Mary","Emma","John"]`; `names=["Alice","Bob","Bob"], heights=[155,185,150] → ["Bob","Alice","Bob"]`; `names=["A"], heights=[170] → ["A"]`.
+
+**Constraints:**
+
+1 ≤ n ≤ 10³; names have 1–20 characters; heights are distinct positive integers up to 10⁵.
+
+**Why This Subpattern Applies:**
+
+Reorder names by corresponding heights descending: sort indices or record pairs by height and emit names in sorted order; O(n log n).
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public String[] sortPeople(String[] names, int[] heights) {
+        Integer[] order = new Integer[heights.length];
+        for (int i = 0; i < order.length; i++) order[i] = i;
+        java.util.Arrays.sort(order, (i, j) -> Integer.compare(heights[j], heights[i]));
+        String[] result = new String[names.length];
+        for (int i = 0; i < order.length; i++) result[i] = names[order[i]];
+        return result;
+    }
+}
+```
+
+**Key Logic:**
+
+Sorting indices by height preserves the association between heights and name payloads.
+
+**Time Complexity:**
+
+O(n log n).
+
+**Space Complexity:**
+
+O(n) boxed index permutation and output.
+
+---
+
+### LeetCode 506
+
+**Question:**
+
+Athletes have distinct scores. Assign medals to the top three scores (Gold, Silver, Bronze), and for every remaining athlete assign their one-based numeric finishing position as a string. Return labels aligned with original score indices.
+
+**Examples:**
+
+`[5,4,3,2,1] → ["Gold Medal","Silver Medal","Bronze Medal","4","5"]`; `[10,3,8,9,4] → ["Gold Medal","5","Bronze Medal","Silver Medal","4"]`; `[100] → ["Gold Medal"]`.
+
+**Constraints:**
+
+1 ≤ n ≤ 10⁴; 0 ≤ score[i] ≤ 10⁶; scores distinct.
+
+**Why This Subpattern Applies:**
+
+Assign rank labels based on scores: sort score indices descending, write each rank label into its **original** position; O(n log n).
+
+**Connection to Previous Solution:**
+
+Reuse sorting original indices by external numeric key; change output from sorted payload gathering to **scattering** rank labels back by original index.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public String[] findRelativeRanks(int[] score) {
+        Integer[] order = new Integer[score.length];
+        for (int i = 0; i < score.length; i++) order[i] = i;
+        java.util.Arrays.sort(order, (i, j) -> Integer.compare(score[j], score[i]));
+        String[] result = new String[score.length];
+        for (int rank = 0; rank < order.length; rank++) {
+            result[order[rank]] = switch (rank) {
+                case 0 -> "Gold Medal";
+                case 1 -> "Silver Medal";
+                case 2 -> "Bronze Medal";
+                default -> Integer.toString(rank + 1);
+            };
+        }
+        return result;
+    }
+}
+```
+
+**Key Logic:**
+
+Order original indices by descending score, then scatter each finishing rank back to the original index.
+
+**Time Complexity:**
+
+O(n log n).
+
+**Space Complexity:**
+
+O(n) for indices and output.
+
+---
+
+## Subpattern R5: Frequency first, comparator orders occurrences
+
+**When to Apply:**
+
+- Recognition: ordering is driven by **count of occurrences**, with a specified secondary tie-breaker.
+- **Recognition clue:** Sort array values by increasing occurrence frequency, breaking ties by decreasing value: count frequencies then sort boxed values using two-key comparator; O(n log n).
+- **Central invariant:** frequency is computed before comparison and used as a primary sort key.
+
+**Basic Java Code Snippet:**
+
+```java
+java.util.Map<Integer,Integer> freq = new java.util.HashMap<>();
+for (int x : a) freq.merge(x, 1, Integer::sum);
+Integer[] boxed = java.util.Arrays.stream(a).boxed().toArray(Integer[]::new);
+java.util.Arrays.sort(boxed, (x, y) -> {
+    int byCount = Integer.compare(freq.get(x), freq.get(y));
+    return byCount != 0 ? byCount : Integer.compare(y, x);
+});
+// To group characters, sort DISTINCT symbols then append each frequency times.
+```
+
+**Core Logic:**
+
+Count occurrences before comparing items by frequency and any tie-breaking rule.
+
+**Questions Covered:** LeetCode 1636, LeetCode 451
+
+### LeetCode 1636
+
+**Question:**
+
+Reorder all elements by increasing frequency in the input. If two values have equal frequency, place the numerically larger value first. Return the reordered integer array.
+
+**Examples:**
+
+`[1,1,2,2,2,3] → [3,1,1,2,2,2]`; `[2,3,1,3,2] → [1,3,3,2,2]`; `[-1,1,-1,1] → [1,1,-1,-1]`.
+
+**Constraints:**
+
+1 ≤ n ≤ 100; −100 ≤ nums[i] ≤ 100.
+
+**Why This Subpattern Applies:**
+
+Sort array values by increasing occurrence frequency, breaking ties by decreasing value: count frequencies then sort boxed values using two-key comparator; O(n log n).
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int[] frequencySort(int[] nums) {
+        int[] freq = new int[201];
+        for (int x : nums) freq[x + 100]++;
+        Integer[] values = new Integer[nums.length];
+        for (int i = 0; i < nums.length; i++) values[i] = nums[i];
+        java.util.Arrays.sort(values, (a, b) -> {
+            int cmp = Integer.compare(freq[a + 100], freq[b + 100]);
+            return cmp != 0 ? cmp : Integer.compare(b, a);
+        });
+        for (int i = 0; i < nums.length; i++) nums[i] = values[i];
+        return nums;
+    }
+}
+```
+
+**Key Logic:**
+
+The comparator must use a precomputed frequency primary key and a descending numeric secondary key.
+
+**Time Complexity:**
+
+O(n log n + 201).
+
+**Space Complexity:**
+
+O(n + 201) boxed elements and frequency table.
+
+---
+
+### LeetCode 451
+
+**Question:**
+
+Rearrange the characters of a string so characters with higher total occurrence counts appear before characters with lower counts. Every occurrence of each character must be included, and ties can appear in any order.
+
+**Examples:**
+
+`"tree" → "eert"` (or "eetr"); `"cccaaa" → "cccaaa"` (or "aaaccc"); `"Aabb" → "bbAa"` (or "bbaA").
+
+**Constraints:**
+
+1 ≤ length ≤ 5×10⁵; input consists of uppercase/lowercase English letters and digits.
+
+**Why This Subpattern Applies:**
+
+Rearrange characters by descending frequency: count characters, sort distinct symbols by count descending, append each symbol its multiplicity; O(n + σ log σ).
+
+**Connection to Previous Solution:**
+
+Keep frequency map + frequency comparator; flip frequency direction, remove numeric tie requirement, and emit **grouped repeated characters** rather than sorting every original element.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public String frequencySort(String s) {
+        int[] freq = new int[128];
+        for (int i = 0; i < s.length(); i++) freq[s.charAt(i)]++;
+        java.util.List<Integer> symbols = new java.util.ArrayList<>();
+        for (int c = 0; c < freq.length; c++) if (freq[c] > 0) symbols.add(c);
+        symbols.sort((a, b) -> Integer.compare(freq[b], freq[a]));
+        StringBuilder result = new StringBuilder(s.length());
+        for (int c : symbols) for (int j = 0; j < freq[c]; j++) result.append((char)c);
+        return result.toString();
+    }
+}
+```
+
+**Key Logic:**
+
+Frequency determines ordering, but sorting only distinct characters avoids boxing every original occurrence.
+
+**Time Complexity:**
+
+O(n + σ log σ), σ ≤ 62 for stated alphabet.
+
+**Space Complexity:**
+
+O(n + σ) including output builder; O(σ) auxiliary.
+
+---
+
+## Subpattern R6: Bounded-domain counting buckets
+
+**When to Apply:**
+
+- Recognition: values have a small known domain; frequency counts can replace comparison sorting. Invariant: the bucket for value `v` stores its multiplicity.
+- **Recognition clue:** Compare original heights with nondecreasing sorted order on bounded integers: count heights, stream implied counting-sort sequence and count mismatched positions; O(n + valueRange).
+- **Central invariant:** a bucket counts occurrences or cumulative counts in a bounded domain.
+
+**Basic Java Code Snippet:**
+
+```java
+int[] count = new int[maxValue + 1];
+for (int v : a) count[v]++;
+for (int value = 0; value < count.length; value++) {
+    // consume count[value] occurrences in numeric order
+}
+// To find thresholds, instead accumulate from highest value downward.
+```
+
+**Core Logic:**
+
+Accumulate histogram counts, then traverse buckets in the needed direction.
+
+**Questions Covered:** LeetCode 1051, LeetCode 274
+
+### LeetCode 1051
+
+**Question:**
+
+Students stand in a line with given heights. Count how many positions differ between the original line and the line obtained by sorting all heights in nondecreasing order. Do not merely count displaced people; compare positions.
+
+**Examples:**
+
+`[1,1,4,2,1,3] → 3`; `[5,1,2,3,4] → 5`; `[1,2,3,4,5] → 0`.
+
+**Constraints:**
+
+1 ≤ n ≤ 100; 1 ≤ heights[i] ≤ 100.
+
+**Why This Subpattern Applies:**
+
+Compare original heights with nondecreasing sorted order on bounded integers: count heights, stream implied counting-sort sequence and count mismatched positions; O(n + valueRange).
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int heightChecker(int[] heights) {
+        int[] count = new int[101];
+        for (int h : heights) count[h]++;
+        int mismatches = 0, expected = 1;
+        for (int actual : heights) {
+            while (count[expected] == 0) expected++;
+            if (actual != expected) mismatches++;
+            count[expected]--;
+        }
+        return mismatches;
+    }
+}
+```
+
+**Key Logic:**
+
+A bounded height range permits reconstructing sorted values on the fly from frequency buckets.
+
+**Time Complexity:**
+
+O(n + 100).
+
+**Space Complexity:**
+
+O(100) auxiliary.
+
+---
+
+### LeetCode 274
+
+**Question:**
+
+Given citation counts for a researcher’s papers, return the maximum integer h such that at least h papers each have at least h citations. Citations can exceed the number of papers.
+
+**Examples:**
+
+`[3,0,6,1,5] → 3`; `[1,3,1] → 1`; `[0,0] → 0`.
+
+**Constraints:**
+
+1 ≤ n ≤ 5000; 0 ≤ citations[i] ≤ 1000.
+
+**Why This Subpattern Applies:**
+
+Compute largest h satisfying at least h papers with ≥h citations: cap each citation at n, build count buckets, accumulate frequencies downward to find crossing; O(n).
+
+**Connection to Previous Solution:**
+
+Reuse value buckets; change output from reconstructing sorted sequence to reverse cumulative counts and stop when the count reaches current threshold.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int hIndex(int[] citations) {
+        int n = citations.length;
+        int[] count = new int[n + 1];
+        for (int c : citations) count[Math.min(c, n)]++;
+        int papers = 0;
+        for (int h = n; h >= 0; h--) {
+            papers += count[h];
+            if (papers >= h) return h;
+        }
+        return 0;
+    }
+}
+```
+
+**Key Logic:**
+
+Capping citations at n preserves every possible h threshold; cumulative buckets from high to low count qualifying papers.
+
+**Time Complexity:**
+
+O(n).
+
+**Space Complexity:**
+
+O(n) histogram.
+
+---
+
+## Subpattern R7: Explicit custom priority order
+
+**When to Apply:**
+
+- Recognition: a second input specifies which symbols must come first and in what priority order.
+- **Recognition clue:** Character precedence specified by another string; characters not specified remain allowable in any order: count symbols, emit specified priority symbols first, then unspecified symbols; O(n + |order| + alphabet).
+- **Central invariant:** the externally specified priority order determines emission order.
+
+**Basic Java Code Snippet:**
+
+```java
+int[] count = new int[128]; // only when constraints guarantee ASCII
+for (char ch : s.toCharArray()) count[ch]++;
+StringBuilder out = new StringBuilder();
+for (char ch : priority.toCharArray()) {
+    while (count[ch]-- > 0) out.append(ch);
+}
+// Emit remaining counts in any allowed order; avoid negative re-emission.
+```
+
+**Core Logic:**
+
+Emit each prioritized character according to its count, then emit remaining symbols.
+
+**Questions Covered:** LeetCode 791
+
+### LeetCode 791
+
+**Question:**
+
+The order string contains unique lowercase letters in a desired priority sequence. Rearrange the characters of s so any two characters that both occur in order respect that priority; characters not mentioned in order may be placed anywhere. Preserve all multiplicities.
+
+**Examples:**
+
+`order="cba", s="abcd" → "cbad"`; `order="bcafg", s="abcd" → "bcad"`; `order="kqep", s="pekeq" → "kqeep"`.
+
+**Constraints:**
+
+1 ≤ order.length ≤ 26; 1 ≤ s.length ≤ 200; both lowercase English; order has distinct characters.
+
+**Why This Subpattern Applies:**
+
+Character precedence specified by another string; characters not specified remain allowable in any order: count symbols, emit specified priority symbols first, then unspecified symbols; O(n + |order| + alphabet).
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public String customSortString(String order, String s) {
+        int[] count = new int[26];
+        for (int i = 0; i < s.length(); i++) count[s.charAt(i) - 'a']++;
+        StringBuilder result = new StringBuilder(s.length());
+        for (int i = 0; i < order.length(); i++) {
+            int c = order.charAt(i) - 'a';
+            while (count[c] > 0) { result.append((char)('a' + c)); count[c]--; }
+        }
+        for (int c = 0; c < 26; c++)
+            while (count[c] > 0) { result.append((char)('a' + c)); count[c]--; }
+        return result.toString();
+    }
+}
+```
+
+**Key Logic:**
+
+The external order is an explicit ranking; counting characters and emitting in rank order is simpler than comparison sorting.
+
+**Time Complexity:**
+
+O(|s| + |order| + 26).
+
+**Space Complexity:**
+
+O(26) auxiliary plus O(|s|) output.
+
+---
+
+## Subpattern R8: Non-transitive-looking, but valid concatenation comparator
+
+**When to Apply:**
+
+- Recognition: placing `a` before `b` must be decided by which *combined string* yields the better result.
+- **Recognition clue:** Arrange numbers to create lexicographically maximal concatenated decimal string: sort string forms by `(b+a).
+- **Central invariant:** a pair is ordered by the better of the two possible concatenations.
+
+**Basic Java Code Snippet:**
+
+```java
+String[] parts = /* converted values */ new String[0];
+java.util.Arrays.sort(parts, (a, b) -> (b + a).compareTo(a + b));
+// Concatenate sorted parts, treating all-zero input specially.
+```
+
+**Core Logic:**
+
+For each pair a,b, compare a+b with b+a; sorting by this preference maximizes the concatenation.
+
+**Questions Covered:** LeetCode 179
+
+### LeetCode 179
+
+**Question:**
+
+Arrange nonnegative integers into an order whose decimal concatenation is numerically largest, and return the result as a string. Do not parse the concatenation into a numeric primitive; if all values are zero, return a single "0".
+
+**Examples:**
+
+`[10,2] → "210"`; `[3,30,34,5,9] → "9534330"`; `[0,0] → "0"`.
+
+**Constraints:**
+
+1 ≤ n ≤ 100; 0 ≤ nums[i] ≤ 10⁹.
+
+**Why This Subpattern Applies:**
+
+Arrange numbers to create lexicographically maximal concatenated decimal string: sort string forms by `(b+a).compareTo(a+b)`, concatenate, collapse all-zero result; O(n log n · maxDigitLength).
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public String largestNumber(int[] nums) {
+        String[] parts = new String[nums.length];
+        for (int i = 0; i < nums.length; i++) parts[i] = Integer.toString(nums[i]);
+        java.util.Arrays.sort(parts, (a, b) -> (b + a).compareTo(a + b));
+        if (parts[0].equals("0")) return "0";
+        StringBuilder result = new StringBuilder();
+        for (String part : parts) result.append(part);
+        return result.toString();
+    }
+}
+```
+
+**Key Logic:**
+
+Comparing a+b against b+a captures which local placement produces the globally preferable concatenation.
+
+**Time Complexity:**
+
+O(n log n · L), where L bounds pair-concatenation comparison length.
+
+**Space Complexity:**
+
+O(n·L) strings and final output (plus sorting references).
+
+---
+
+## Subpattern R9: Multi-field stable record ordering
+
+**When to Apply:**
+
+- Recognition: some records have multiple comparator fields, while a separate record category must retain original input order.
+- **Recognition clue:** Keep digit-records in original relative order after placing sorted letter-records first: classify records; sort letter-records by content and identifier; append untouched digit-records; O(n log n · stringCompareCost).
+- **Central invariant:** only letter records are reordered; digit records retain their input order.
+
+**Basic Java Code Snippet:**
+
+```java
+java.util.List<String> sortable = new java.util.ArrayList<>();
+java.util.List<String> stable = new java.util.ArrayList<>();
+// Classify records into these lists.
+sortable.sort((a, b) -> {
+    // compare primary parsed field, then secondary key
+    return 0;
+});
+// Return sortable followed by stable (untouched order).
+```
+
+**Core Logic:**
+
+Classify records; sort the selected category with a multi-field comparator and append the stable category untouched.
+
+**Questions Covered:** LeetCode 937
+
+### LeetCode 937
+
+**Question:**
+
+Each log starts with an identifier followed by words or digits. Put all letter-logs before digit-logs; sort letter-logs lexicographically by their content and then by identifier; keep digit-logs in their original relative order. Return all complete original logs.
+
+**Examples:**
+
+`["dig1 8 1 5 1","let1 art can","dig2 3 6","let2 own kit dig","let3 art zero"] → ["let1 art can","let3 art zero","let2 own kit dig","dig1 8 1 5 1","dig2 3 6"]`; `["a1 9 2","g1 act car","zo4 4 7","ab1 off key dog","a8 act zoo"] → ["g1 act car","a8 act zoo","ab1 off key dog","a1 9 2","zo4 4 7"]`.
+
+**Constraints:**
+
+1 ≤ n ≤ 100; each log length 3–100; identifier and content separated by one space; letter logs have lowercase words, digit logs numeric tokens.
+
+**Why This Subpattern Applies:**
+
+Keep digit-records in original relative order after placing sorted letter-records first: classify records; sort letter-records by content and identifier; append untouched digit-records; O(n log n · stringCompareCost).
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public String[] reorderLogFiles(String[] logs) {
+        java.util.List<String> letters = new java.util.ArrayList<>();
+        java.util.List<String> digits = new java.util.ArrayList<>();
+        for (String log : logs) {
+            int space = log.indexOf(' ');
+            if (Character.isDigit(log.charAt(space + 1))) digits.add(log);
+            else letters.add(log);
+        }
+        letters.sort((a, b) -> {
+            int ai = a.indexOf(' '), bi = b.indexOf(' ');
+            int cmp = a.substring(ai + 1).compareTo(b.substring(bi + 1));
+            return cmp != 0 ? cmp : a.substring(0, ai).compareTo(b.substring(0, bi));
+        });
+        String[] result = new String[logs.length];
+        int i = 0;
+        for (String log : letters) result[i++] = log;
+        for (String log : digits) result[i++] = log;
+        return result;
+    }
+}
+```
+
+**Key Logic:**
+
+Separate the stable category from the sorted category; apply a two-field comparator only to letter logs.
+
+**Time Complexity:**
+
+O(n log n · L) where L is log length.
+
+**Space Complexity:**
+
+O(n·L) temporary substring allocations during comparisons and O(n) result/list references.
+
+---
+
+## Subpattern R10: Pigeonhole bucket-gap analysis
+
+**When to Apply:**
+
+- Recognition: only the largest **consecutive** difference matters; distribution bounds allow discarding all within-bucket orderings.
+- **Recognition clue:** Maximum adjacent sorted gap for unsorted nonnegative integers: obtain min/max, distribute into interval buckets storing only local min/max, inspect gaps between nonempty buckets; O(n) time/space using pigeonhole bound; avoid subtraction overflow with `long`.
+- **Central invariant:** the global maximum sorted gap occurs across bucket boundaries.
+
+**Basic Java Code Snippet:**
+
+```java
+long min = /* smallest */ 0, max = /* largest */ 0;
+int n = a.length;
+if (n >= 2 && max != min) {
+    long width = Math.max(1L, (max - min + n - 2) / (n - 1));
+    // bucketIndex = (value - min) / width;
+    // track min/max per occupied bucket, then adjacent occupied-bucket gaps.
+}
+```
+
+**Core Logic:**
+
+Compute a bucket width based on min/max and n; only store each bucket’s minimum and maximum.
+
+**Questions Covered:** LeetCode 164
+
+### LeetCode 164
+
+**Question:**
+
+Return the largest difference between consecutive elements after the unsorted nonnegative array is placed in ascending order. Return zero for fewer than two elements. Achieve linear time and linear extra space without comparison sorting.
+
+**Examples:**
+
+`[3,6,9,1] → 3`; `[10] → 0`; `[1,10000000] → 9999999`.
+
+**Constraints:**
+
+1 ≤ n ≤ 10⁵; 0 ≤ nums[i] ≤ 10⁹.
+
+**Why This Subpattern Applies:**
+
+Maximum adjacent sorted gap for unsorted nonnegative integers: obtain min/max, distribute into interval buckets storing only local min/max, inspect gaps between nonempty buckets; O(n) time/space using pigeonhole bound; avoid subtraction overflow with `long`.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int maximumGap(int[] nums) {
+        int n = nums.length;
+        if (n < 2) return 0;
+        long min = Long.MAX_VALUE, max = Long.MIN_VALUE;
+        for (int x : nums) { min = Math.min(min, x); max = Math.max(max, x); }
+        if (min == max) return 0;
+        long width = Math.max(1L, (max - min + n - 2) / (n - 1));
+        int buckets = (int)((max - min) / width + 1);
+        long[] lows = new long[buckets], highs = new long[buckets];
+        boolean[] used = new boolean[buckets];
+        for (int x : nums) {
+            int b = (int)((x - min) / width);
+            if (!used[b]) { lows[b] = highs[b] = x; used[b] = true; }
+            else { lows[b] = Math.min(lows[b], x); highs[b] = Math.max(highs[b], x); }
+        }
+        long previous = min, best = 0;
+        for (int b = 0; b < buckets; b++) {
+            if (!used[b]) continue;
+            best = Math.max(best, lows[b] - previous);
+            previous = highs[b];
+        }
+        return (int)best;
+    }
+}
+```
+
+**Key Logic:**
+
+Pigeonhole spacing ensures a sufficiently narrow bucket cannot contain the maximum adjacent sorted gap; store only each bucket’s extremes.
+
+**Time Complexity:**
+
+O(n) time; bucket count ≤ n for chosen width.
+
+**Space Complexity:**
+
+O(n) bucket minima, maxima, and occupancy.
+
+---
+
+## Subpattern R11: Stable least-significant-digit radix
+
+**When to Apply:**
+
+- Recognition: fixed-width digit strings have many suffix-length ranking queries; stable digit passes preserve earlier tie order.
+- **Recognition clue:** Many queries ask for kth smallest equal-length decimal string after retaining last `trim` digits, with original-index tie break: preprocess stable LSD counting/radix passes over digit positions, save ordered indices per trim depth, answer queries by rank; O(n·digits·10 + queries) time with saved ranks and O(n·digits) storage.
+- **Central invariant:** each stable digit pass preserves all lower-significance ordering and original ties.
+
+**Basic Java Code Snippet:**
+
+```java
+int[] order = java.util.stream.IntStream.range(0, n).toArray();
+for (int pos = digitCount - 1; pos >= 0; pos--) {
+    int[] count = new int[10];
+    for (int idx : order) count[digits[idx].charAt(pos) - '0']++;
+    for (int d = 1; d < 10; d++) count[d] += count[d - 1];
+    int[] next = new int[n];
+    for (int i = n - 1; i >= 0; i--) {
+        int idx = order[i], d = digits[idx].charAt(pos) - '0';
+        next[--count[d]] = idx; // stable counting sort
+    }
+    order = next; // snapshot the ordering for this trim depth if needed
+}
+```
+
+**Core Logic:**
+
+Perform stable counting sort from rightmost digit to leftmost, retaining the order after every pass.
+
+**Questions Covered:** LeetCode 2343
+
+### LeetCode 2343
+
+**Question:**
+
+All numeric strings have the same length and may contain leading zeros. Each query [k,trim] retains only the last trim digits of every string, compares these trimmed strings numerically, and returns the original index of the kth smallest. Ties are broken by smaller original index. Answer all queries in order.
+
+**Examples:**
+
+`nums=["102","473","251","814"], queries=[[1,1],[2,3],[4,2],[1,2]] → [2,2,1,0]`; `nums=["24","37","96","04"], queries=[[2,1],[2,2]] → [3,0]`; `nums=["00","00"], queries=[[2,2]] → [1]`.
+
+**Constraints:**
+
+1 ≤ n ≤ 100; 1 ≤ digits ≤ 100; 1 ≤ queries.length ≤ 100; 1 ≤ k ≤ n, 1 ≤ trim ≤ digits; strings consist of digits.
+
+**Why This Subpattern Applies:**
+
+Many queries ask for kth smallest equal-length decimal string after retaining last `trim` digits, with original-index tie break: preprocess stable LSD counting/radix passes over digit positions, save ordered indices per trim depth, answer queries by rank; O(n·digits·10 + queries) time with saved ranks and O(n·digits) storage.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int[] smallestTrimmedNumbers(String[] nums, int[][] queries) {
+        int n = nums.length, digits = nums[0].length();
+        int[][] ranks = new int[digits + 1][n];
+        int[] order = new int[n];
+        for (int i = 0; i < n; i++) order[i] = i;
+        for (int trim = 1; trim <= digits; trim++) {
+            int pos = digits - trim;
+            int[] count = new int[10];
+            for (int index : order) count[nums[index].charAt(pos) - '0']++;
+            for (int d = 1; d < 10; d++) count[d] += count[d - 1];
+            int[] next = new int[n];
+            for (int i = n - 1; i >= 0; i--) {
+                int index = order[i], digit = nums[index].charAt(pos) - '0';
+                next[--count[digit]] = index;
+            }
+            order = next;
+            ranks[trim] = order;
+        }
+        int[] answer = new int[queries.length];
+        for (int i = 0; i < queries.length; i++)
+            answer[i] = ranks[queries[i][1]][queries[i][0] - 1];
+        return answer;
+    }
+}
+```
+
+**Key Logic:**
+
+Stable least-significant-digit passes build correct sorted order for each suffix length while preserving original-index ties.
+
+**Time Complexity:**
+
+O(d·(n + 10) + q) preprocessing and queries; d is digit count.
+
+**Space Complexity:**
+
+O(n·d + n + 10 + q) including saved rankings and output.
+
+---
+
+## Subpattern R12: Median selection with virtual indexing
+
+**When to Apply:**
+
+- Recognition: a strict alternating `< > < >` layout requires protecting large values at odd indices even with many median duplicates.
+- **Recognition clue:** Strict wiggle ordering with duplicates: select median by quickselect, then 3-way partition around it using virtual index `(1+2*i)%(n|1)` so large values land at odd positions; expected O(n) time, O(1) extra, worst-case O(n²) with randomized select.
+- **Central invariant:** virtual odd-first indexing places values above median at peaks.
+
+**Basic Java Code Snippet:**
+
+```java
+int median = /* select kth via R1 */ 0;
+int n = a.length, low = 0, scan = 0, high = n - 1;
+while (scan <= high) {
+    int mapped = (1 + 2 * scan) % (n | 1);
+    // 3-way partition using virtual index (1 + 2*i) % (n|1).
+    // Values > median go to virtual front; < median go to virtual back.
+    scan++; // placeholder; actual advancement depends on swap branch
+}
+```
+
+**Core Logic:**
+
+Find a median with quickselect; three-way partition using odd-first virtual indices.
+
+**Questions Covered:** LeetCode 324
+
+### LeetCode 324
+
+**Question:**
+
+Rearrange an array in place so nums[0] < nums[1] > nums[2] < nums[3] ... strictly. The input is guaranteed to admit a valid arrangement, including cases with duplicates. Any valid arrangement is accepted.
+
+**Examples:**
+
+`[1,5,1,1,6,4] → [1,6,1,5,1,4]` (valid); `[1,3,2,2,3,1] → [2,3,1,3,1,2]` (valid); `[1,2] → [1,2]`.
+
+**Constraints:**
+
+1 ≤ n ≤ 5×10⁴; 0 ≤ nums[i] ≤ 5000; a valid strict wiggle arrangement is guaranteed.
+
+**Why This Subpattern Applies:**
+
+Strict wiggle ordering with duplicates: select median by quickselect, then 3-way partition around it using virtual index `(1+2*i)%(n|1)` so large values land at odd positions; expected O(n) time, O(1) extra, worst-case O(n²) with randomized select.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public void wiggleSort(int[] nums) {
+        int n = nums.length;
+        int median = select(nums, n / 2);
+        int low = 0, scan = 0, high = n - 1;
+        while (scan <= high) {
+            int at = mapped(scan, n);
+            if (nums[at] > median) { swap(nums, mapped(low++, n), at); scan++; }
+            else if (nums[at] < median) swap(nums, at, mapped(high--, n));
+            else scan++;
+        }
+    }
+    private int mapped(int i, int n) { return (1 + 2 * i) % (n | 1); }
+    private int select(int[] a, int target) {
+        int left = 0, right = a.length - 1;
+        while (left <= right) {
+            int pivot = a[java.util.concurrent.ThreadLocalRandom.current().nextInt(left, right + 1)];
+            int lt = left, i = left, gt = right;
+            while (i <= gt) {
+                if (a[i] < pivot) swap(a, lt++, i++);
+                else if (a[i] > pivot) swap(a, i, gt--);
+                else i++;
+            }
+            if (target < lt) right = lt - 1;
+            else if (target > gt) left = gt + 1;
+            else return a[target];
+        }
+        throw new IllegalStateException();
+    }
+    private void swap(int[] a, int i, int j) { int t = a[i]; a[i] = a[j]; a[j] = t; }
+}
+```
+
+**Key Logic:**
+
+Select the median, then virtually reorder indices so larger-than-median values fill odd peaks and smaller values fill even valleys.
+
+**Time Complexity:**
+
+Expected O(n), worst O(n²) due to randomized quickselect.
+
+**Space Complexity:**
+
+O(1) auxiliary; in-place partition.
+
+---
+
+## Subpattern R13: Independent positional subsequence sorting
+
+**When to Apply:**
+
+- Recognition: positions split into independent ordered subsequences, each with its own sorting direction.
+- **Recognition clue:** Even-indexed values must increase, odd-indexed values must decrease: extract parity-index groups, sort each group, put values back into their original index parity positions; O(n log n) time/O(n) space.
+- **Central invariant:** index parity creates independent sequences with opposite sorting directions.
+
+**Basic Java Code Snippet:**
+
+```java
+java.util.List<Integer> even = new java.util.ArrayList<>(), odd = new java.util.ArrayList<>();
+for (int i = 0; i < a.length; i++) (i % 2 == 0 ? even : odd).add(a[i]);
+even.sort(Integer::compareTo);
+odd.sort(java.util.Comparator.reverseOrder());
+// Refill alternating original positions with successive items of each list.
+```
+
+**Core Logic:**
+
+Extract the two index-parity subsequences, sort in opposite directions, then interleave.
+
+**Questions Covered:** LeetCode 2164
+
+### LeetCode 2164
+
+**Question:**
+
+Sort values at even indices (0,2,4,...) in ascending order, and values at odd indices (1,3,5,...) in descending order. Values must remain within their original index-parity group. Return the modified array.
+
+**Examples:**
+
+`[4,1,2,3] → [2,3,4,1]`; `[2,1] → [2,1]`; `[9,8,7,6,5] → [5,8,7,6,9]`.
+
+**Constraints:**
+
+1 ≤ n ≤ 100; 1 ≤ nums[i] ≤ 100.
+
+**Why This Subpattern Applies:**
+
+Even-indexed values must increase, odd-indexed values must decrease: extract parity-index groups, sort each group, put values back into their original index parity positions; O(n log n) time/O(n) space.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int[] sortEvenOdd(int[] nums) {
+        int n = nums.length;
+        int[] even = new int[(n + 1) / 2], odd = new int[n / 2];
+        for (int i = 0; i < n; i++) {
+            if ((i & 1) == 0) even[i / 2] = nums[i];
+            else odd[i / 2] = nums[i];
+        }
+        java.util.Arrays.sort(even);
+        java.util.Arrays.sort(odd);
+        for (int i = 0; i < n; i++) {
+            if ((i & 1) == 0) nums[i] = even[i / 2];
+            else nums[i] = odd[odd.length - 1 - i / 2];
+        }
+        return nums;
+    }
+}
+```
+
+**Key Logic:**
+
+Index parity partitions positions into two independent sorting problems; reinsertion must respect parity.
+
+**Time Complexity:**
+
+O(n log n).
+
+**Space Complexity:**
+
+O(n) auxiliary arrays; input modified in place.
+
+---
+
+## Final Question Registry
+
+| Sequence | Family | LeetCode | Included |
+|---:|---|---:|---|
+| 01 | R1 | 912 | Yes |
+| 02 | R1 | 215 | Yes |
+| 03 | R1 | 973 | Yes |
+| 04 | R1 | 1985 | Yes |
+| 05 | R2 | 1200 | Yes |
+| 06 | R2 | 1502 | Yes |
+| 07 | R2 | 1637 | Yes |
+| 08 | R3 | 1365 | Yes |
+| 09 | R3 | 1331 | Yes |
+| 10 | R4 | 2418 | Yes |
+| 11 | R4 | 506 | Yes |
+| 12 | R5 | 1636 | Yes |
+| 13 | R5 | 451 | Yes |
+| 14 | R6 | 1051 | Yes |
+| 15 | R6 | 274 | Yes |
+| 16 | R7 | 791 | Yes |
+| 17 | R8 | 179 | Yes |
+| 18 | R9 | 937 | Yes |
+| 19 | R10 | 164 | Yes |
+| 20 | R11 | 2343 | Yes |
+| 21 | R12 | 324 | Yes |
+| 22 | R13 | 2164 | Yes |
+
+**Registry validation:** All 22 locked LeetCode IDs are included exactly once, in the same order as Section C7; all 13 algorithm families have a separate starter template. No questions have been marked practiced or completed.

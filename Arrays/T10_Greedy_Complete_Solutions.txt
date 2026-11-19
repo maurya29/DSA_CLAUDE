@@ -1,0 +1,2926 @@
+# T10 — Greedy: Complete Solutions Workbook
+
+**Locked curriculum:** 33 LeetCode questions across 27 algorithm families (G1–G27).
+**Source:** `MASTER_DSA_CURRICULUM.md`, version 1.10, Section C10.
+**Scope:** Full reference workbook; it does not mark any problem as practiced or completed.
+
+## Table of Contents
+
+- [G1 — Farthest reachable frontier & minimum jumps](#g1-farthest-reachable-frontier--minimum-jumps)
+  - [LeetCode 55](#leetcode-55)
+  - [LeetCode 45](#leetcode-45)
+- [G2 — Unlimited local profit exchanges](#g2-unlimited-local-profit-exchanges)
+  - [LeetCode 122](#leetcode-122)
+- [G3 — Global balance and feasible starting point](#g3-global-balance-and-feasible-starting-point)
+  - [LeetCode 134](#leetcode-134)
+- [G4 — Ascending-capacity greedy matching](#g4-ascending-capacity-greedy-matching)
+  - [LeetCode 455](#leetcode-455)
+- [G5 — Two-end capacity packing](#g5-two-end-capacity-packing)
+  - [LeetCode 881](#leetcode-881)
+- [G6 — Descending marginal reward under capacity](#g6-descending-marginal-reward-under-capacity)
+  - [LeetCode 1710](#leetcode-1710)
+- [G7 — Smallest completion deficit first](#g7-smallest-completion-deficit-first)
+  - [LeetCode 1833](#leetcode-1833)
+  - [LeetCode 2279](#leetcode-2279)
+- [G8 — Sort by differential assignment gain](#g8-sort-by-differential-assignment-gain)
+  - [LeetCode 1029](#leetcode-1029)
+  - [LeetCode 2611](#leetcode-2611)
+- [G9 — Offline queries with sorted prefix optimum](#g9-offline-queries-with-sorted-prefix-optimum)
+  - [LeetCode 2070](#leetcode-2070)
+  - [LeetCode 826](#leetcode-826)
+- [G10 — Local spacing with occupancy constraints](#g10-local-spacing-with-occupancy-constraints)
+  - [LeetCode 605](#leetcode-605)
+- [G11 — Denomination-preserving change allocation](#g11-denomination-preserving-change-allocation)
+  - [LeetCode 860](#leetcode-860)
+- [G12 — Last-occurrence partition closure](#g12-last-occurrence-partition-closure)
+  - [LeetCode 763](#leetcode-763)
+- [G13 — Earliest valid cut for distinct-character pieces](#g13-earliest-valid-cut-for-distinct-character-pieces)
+  - [LeetCode 2405](#leetcode-2405)
+- [G14 — Bounded consecutive character-run construction](#g14-bounded-consecutive-character-run-construction)
+  - [LeetCode 984](#leetcode-984)
+  - [LeetCode 1405](#leetcode-1405)
+- [G15 — Feasible open-count interval](#g15-feasible-open-count-interval)
+  - [LeetCode 678](#leetcode-678)
+- [G16 — Two-direction flexible bracket feasibility](#g16-two-direction-flexible-bracket-feasibility)
+  - [LeetCode 2116](#leetcode-2116)
+- [G17 — Bidirectional local lower-bound constraints](#g17-bidirectional-local-lower-bound-constraints)
+  - [LeetCode 135](#leetcode-135)
+- [G18 — Sort-first sign flip optimization](#g18-sort-first-sign-flip-optimization)
+  - [LeetCode 1005](#leetcode-1005)
+- [G19 — Reverse-operations minimization](#g19-reverse-operations-minimization)
+  - [LeetCode 991](#leetcode-991)
+  - [LeetCode 2139](#leetcode-2139)
+- [G20 — Suffix-digit monotonic correction](#g20-suffix-digit-monotonic-correction)
+  - [LeetCode 738](#leetcode-738)
+- [G21 — Rightmost-beneficial digit exchange](#g21-rightmost-beneficial-digit-exchange)
+  - [LeetCode 670](#leetcode-670)
+- [G22 — Extend existing consecutive chains first](#g22-extend-existing-consecutive-chains-first)
+  - [LeetCode 659](#leetcode-659)
+- [G23 — Smallest remaining consecutive-start exhaustion](#g23-smallest-remaining-consecutive-start-exhaustion)
+  - [LeetCode 1296](#leetcode-1296)
+- [G24 — Fill lexicographically best prefix under global sum](#g24-fill-lexicographically-best-prefix-under-global-sum)
+  - [LeetCode 1663](#leetcode-1663)
+- [G25 — Descending-rank positional insertion](#g25-descending-rank-positional-insertion)
+  - [LeetCode 406](#leetcode-406)
+- [G26 — Keep maximum cost per equal-run](#g26-keep-maximum-cost-per-equal-run)
+  - [LeetCode 1578](#leetcode-1578)
+- [G27 — Deadline-count earliest-threat elimination](#g27-deadline-count-earliest-threat-elimination)
+  - [LeetCode 1921](#leetcode-1921)
+
+---
+
+## Subpattern G1: Farthest reachable frontier & minimum jumps
+
+**When to Apply:**
+- **Recognition clues:** Jump lengths allow covering a forward interval; greedily retain the farthest reachable endpoint.
+- **Central invariant:** Jump lengths allow covering a forward interval; greedily retain the farthest reachable endpoint.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+int farthest = 0;
+for (int i = 0; i < a.length && i <= farthest; i++) {
+    farthest = Math.max(farthest, i + a[i]);
+    // Reachability or layer-boundary logic depends on objective.
+}
+```
+
+**Core Logic:**
+The template maintains the state needed for **farthest reachable frontier & minimum jumps**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 55, LeetCode 45.
+
+---
+
+### LeetCode 55
+
+**Question:**
+
+Given a nonnegative integer array, start at index zero. At index i you may jump forward by any number of positions up to nums[i]. Decide whether some sequence of legal jumps can reach the last index. A zero may trap you; reaching or passing the last index suffices.
+
+**Examples:**
+
+1. **Input:** `nums = [2,3,1,1,4]`  
+   **Output:** `true`  
+   **Explanation:** Jump from 0 to 1 and then to the last index.
+
+2. **Input:** `nums = [3,2,1,0,4]`  
+   **Output:** `false`  
+   **Explanation:** No reachable position can cross the zero at index 3.
+
+3. **Input:** `nums = [0]`  
+   **Output:** `true`  
+   **Explanation:** Already at the destination.
+
+**Constraints:**
+
+1 ≤ nums.length ≤ 10^4; 0 ≤ nums[i] ≤ 10^5.
+
+**Why This Subpattern Applies:**
+
+Jump lengths allow covering a forward interval; greedily retain the farthest reachable endpoint.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public boolean canJump(int[] nums) {
+        int farthest = 0;
+        for (int i = 0; i < nums.length; i++) {
+            if (i > farthest) return false;
+            farthest = Math.max(farthest, i + nums[i]);
+            if (farthest >= nums.length - 1) return true;
+        }
+        return true;
+    }
+}
+```
+
+**Key Logic:**
+
+Can later positions be reached from index 0? Track maximal forward reachable index and reject a gap; O(n).
+
+**Time Complexity:**
+
+**O(n).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(1).** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+### LeetCode 45
+
+**Question:**
+
+Given jump capacities at each array index, begin at index zero and reach the final index using the fewest jumps. A jump from i can land on any position i+1 through i+nums[i]. The input guarantees that the last index can be reached.
+
+**Examples:**
+
+1. **Input:** `nums = [2,3,1,1,4]`  
+   **Output:** `2`  
+   **Explanation:** 0 → 1 → 4.
+
+2. **Input:** `nums = [2,3,0,1,4]`  
+   **Output:** `2`  
+   **Explanation:** Two jumps are sufficient.
+
+3. **Input:** `nums = [0]`  
+   **Output:** `0`  
+   **Explanation:** No jump is needed.
+
+**Constraints:**
+
+1 ≤ nums.length ≤ 10^4; 0 ≤ nums[i] ≤ 1000; the last index is reachable.
+
+**Why This Subpattern Applies:**
+
+Jump lengths allow covering a forward interval; greedily retain the farthest reachable endpoint.
+
+**Connection to Previous Solution:**
+
+Keep farthest-frontier update; add currentEnd and jumps, increment jumps only when scanning reaches the existing frontier.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int jump(int[] nums) {
+        int jumps = 0, end = 0, farthest = 0;
+        for (int i = 0; i < nums.length - 1; i++) {
+            farthest = Math.max(farthest, i + nums[i]);
+            if (i == end) {
+                jumps++;
+                end = farthest;
+            }
+        }
+        return jumps;
+    }
+}
+```
+
+**Key Logic:**
+
+Find minimum jumps when end is guaranteed reachable: maintain current jump-layer end and farthest next-layer reach; O(n).
+
+**Time Complexity:**
+
+**O(n).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(1).** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G2: Unlimited local profit exchanges
+
+**When to Apply:**
+- **Recognition clues:** Independent positive adjacent increases can be collected without compromising later trades.
+- **Central invariant:** Independent positive adjacent increases can be collected without compromising later trades.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+long profit = 0;
+for (int i = 1; i < prices.length; i++)
+    profit += Math.max(0, prices[i] - prices[i - 1]);
+```
+
+**Core Logic:**
+The template maintains the state needed for **unlimited local profit exchanges**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 122.
+
+---
+
+### LeetCode 122
+
+**Question:**
+
+For each day, a stock has a given price. You may buy and sell repeatedly, but you can own at most one share at a time. Selling and buying on the same day is permitted. With no transaction fee or cooldown, return the greatest total achievable profit.
+
+**Examples:**
+
+1. **Input:** `prices = [7,1,5,3,6,4]`  
+   **Output:** `7`  
+   **Explanation:** Profit 4 from 1→5 and 3 from 3→6.
+
+2. **Input:** `prices = [1,2,3,4,5]`  
+   **Output:** `4`  
+   **Explanation:** Collect all daily rises.
+
+3. **Input:** `prices = [7,6,4,3,1]`  
+   **Output:** `0`  
+   **Explanation:** Never buy when prices only fall.
+
+**Constraints:**
+
+1 ≤ prices.length ≤ 3 × 10^4; 0 ≤ prices[i] ≤ 10^4.
+
+**Why This Subpattern Applies:**
+
+Independent positive adjacent increases can be collected without compromising later trades.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int maxProfit(int[] prices) {
+        int profit = 0;
+        for (int i = 1; i < prices.length; i++)
+            profit += Math.max(0, prices[i] - prices[i - 1]);
+        return profit;
+    }
+}
+```
+
+**Key Logic:**
+
+Unlimited nonoverlapping buy/sell transactions, no fee/cooldown: sum all positive day-to-day differences; O(n).
+
+**Time Complexity:**
+
+**O(n).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(1).** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G3: Global balance and feasible starting point
+
+**When to Apply:**
+- **Recognition clues:** A circular route is possible when global supply covers demand; negative running balance invalidates an entire candidate prefix.
+- **Central invariant:** A circular route is possible when global supply covers demand; negative running balance invalidates an entire candidate prefix.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+long total = 0, tank = 0;
+int candidate = 0;
+for (int i = 0; i < n; i++) {
+    long delta = gain[i] - cost[i];
+    total += delta; tank += delta;
+    if (tank < 0) { candidate = i + 1; tank = 0; }
+}
+```
+
+**Core Logic:**
+The template maintains the state needed for **global balance and feasible starting point**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 134.
+
+---
+
+### LeetCode 134
+
+**Question:**
+
+Gas stations form a circle. At station i you can take gas[i] fuel; traveling from i to the next station consumes cost[i]. Begin with an empty tank at one station and travel exactly one full circuit. Return the unique feasible starting index, or -1 if none exists.
+
+**Examples:**
+
+1. **Input:** `gas = [1,2,3,4,5], cost = [3,4,5,1,2]`  
+   **Output:** `3`  
+   **Explanation:** Starting at station 3 completes the circuit.
+
+2. **Input:** `gas = [2,3,4], cost = [3,4,3]`  
+   **Output:** `-1`  
+   **Explanation:** Total fuel is insufficient.
+
+**Constraints:**
+
+1 ≤ gas.length = cost.length ≤ 10^5; 0 ≤ gas[i], cost[i] ≤ 10^4; if feasible, the answer is unique.
+
+**Why This Subpattern Applies:**
+
+A circular route is possible when global supply covers demand; negative running balance invalidates an entire candidate prefix.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int canCompleteCircuit(int[] gas, int[] cost) {
+        int total = 0, tank = 0, start = 0;
+        for (int i = 0; i < gas.length; i++) {
+            int net = gas[i] - cost[i];
+            total += net;
+            tank += net;
+            if (tank < 0) {
+                start = i + 1;
+                tank = 0;
+            }
+        }
+        return total >= 0 ? start : -1;
+    }
+}
+```
+
+**Key Logic:**
+
+Select feasible cyclic gas-station start: global net balance and reset candidate after negative tank; O(n).
+
+**Time Complexity:**
+
+**O(n).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(1).** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G4: Ascending-capacity greedy matching
+
+**When to Apply:**
+- **Recognition clues:** Each smallest available demand should consume the smallest sufficient resource to leave larger resources for later demands.
+- **Central invariant:** Each smallest available demand should consume the smallest sufficient resource to leave larger resources for later demands.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+Arrays.sort(needs); Arrays.sort(resources);
+int i = 0, j = 0, matched = 0;
+while (i < needs.length && j < resources.length) {
+    if (resources[j] >= needs[i]) { matched++; i++; }
+    j++;
+}
+```
+
+**Core Logic:**
+The template maintains the state needed for **ascending-capacity greedy matching**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 455.
+
+---
+
+### LeetCode 455
+
+**Question:**
+
+Each child has a minimum cookie size that satisfies them, and each cookie has a size. Give each child at most one cookie and use each cookie at most once. Maximize the number of satisfied children; cookies smaller than a child’s requirement do not satisfy that child.
+
+**Examples:**
+
+1. **Input:** `g = [1,2,3], s = [1,1]`  
+   **Output:** `1`  
+   **Explanation:** Only the least-demanding child can be satisfied.
+
+2. **Input:** `g = [1,2], s = [1,2,3]`  
+   **Output:** `2`  
+   **Explanation:** Both children can receive fitting cookies.
+
+**Constraints:**
+
+1 ≤ g.length, s.length ≤ 3 × 10^4; 1 ≤ g[i], s[j] ≤ 2^31−1.
+
+**Why This Subpattern Applies:**
+
+Each smallest available demand should consume the smallest sufficient resource to leave larger resources for later demands.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.Arrays;
+class Solution {
+    public int findContentChildren(int[] g, int[] s) {
+        Arrays.sort(g);
+        Arrays.sort(s);
+        int child = 0, cookie = 0;
+        while (child < g.length && cookie < s.length) {
+            if (s[cookie] >= g[child]) child++;
+            cookie++;
+        }
+        return child;
+    }
+}
+```
+
+**Key Logic:**
+
+Maximize satisfied recipients by sorting requirements and resources, pairing the smallest fitting resource; O(n log n+m log m).
+
+**Time Complexity:**
+
+**O(g log g + s log s).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(log g + log s) sorting-stack space; O(1) explicit auxiliary.** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G5: Two-end capacity packing
+
+**When to Apply:**
+- **Recognition clues:** Maximize two-item containers by pairing heaviest remaining item with lightest possible partner.
+- **Central invariant:** Maximize two-item containers by pairing heaviest remaining item with lightest possible partner.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+Arrays.sort(weights);
+int left = 0, right = weights.length - 1, boats = 0;
+while (left <= right) {
+    if (left < right && weights[left] + weights[right] <= limit) left++;
+    right--; boats++;
+}
+```
+
+**Core Logic:**
+The template maintains the state needed for **two-end capacity packing**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 881.
+
+---
+
+### LeetCode 881
+
+**Question:**
+
+People have positive weights, and a rescue boat carries at most two people with combined weight no more than limit. Every person must be transported. Find the minimum number of boats; each person individually fits in a boat.
+
+**Examples:**
+
+1. **Input:** `people = [1,2], limit = 3`  
+   **Output:** `1`  
+   **Explanation:** The pair fits.
+
+2. **Input:** `people = [3,2,2,1], limit = 3`  
+   **Output:** `3`  
+   **Explanation:** Pair 2 with 1; the others travel separately.
+
+3. **Input:** `people = [3,5,3,4], limit = 5`  
+   **Output:** `4`  
+   **Explanation:** No two people fit together.
+
+**Constraints:**
+
+1 ≤ people.length ≤ 5 × 10^4; 1 ≤ people[i] ≤ limit ≤ 3 × 10^4.
+
+**Why This Subpattern Applies:**
+
+Maximize two-item containers by pairing heaviest remaining item with lightest possible partner.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.Arrays;
+class Solution {
+    public int numRescueBoats(int[] people, int limit) {
+        Arrays.sort(people);
+        int left = 0, right = people.length - 1, boats = 0;
+        while (left <= right) {
+            if (people[left] + people[right] <= limit) left++;
+            right--;
+            boats++;
+        }
+        return boats;
+    }
+}
+```
+
+**Key Logic:**
+
+Minimum boats with capacity limit and at most two passengers: pair lightest with heaviest if feasible, otherwise send heaviest alone; O(n log n).
+
+**Time Complexity:**
+
+**O(n log n).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(log n) sorting-stack space; O(1) explicit auxiliary.** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G6: Descending marginal reward under capacity
+
+**When to Apply:**
+- **Recognition clues:** When units have independent constant value by category, consume highest-value categories first.
+- **Central invariant:** When units have independent constant value by category, consume highest-value categories first.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+Arrays.sort(items, (a,b) -> Integer.compare(b[1], a[1]));
+long answer = 0;
+for (int[] item : items) {
+    int take = Math.min(capacity, item[0]);
+    answer += (long)take * item[1]; capacity -= take;
+    if (capacity == 0) break;
+}
+```
+
+**Core Logic:**
+The template maintains the state needed for **descending marginal reward under capacity**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 1710.
+
+---
+
+### LeetCode 1710
+
+**Question:**
+
+Each box type supplies a number of identical boxes and a fixed number of units per box. A truck can carry at most truckSize boxes, regardless of type. Choose which boxes to load to maximize the total units carried.
+
+**Examples:**
+
+1. **Input:** `boxTypes = [[1,3],[2,2],[3,1]], truckSize = 4`  
+   **Output:** `8`  
+   **Explanation:** Take one 3-unit box, two 2-unit boxes, and one 1-unit box.
+
+2. **Input:** `boxTypes = [[5,10],[2,5],[4,7],[3,9]], truckSize = 10`  
+   **Output:** `91`  
+   **Explanation:** Prioritize types with 10, 9, then 7 units per box.
+
+**Constraints:**
+
+1 ≤ boxTypes.length ≤ 1000; 1 ≤ count, units per box ≤ 1000; 1 ≤ truckSize ≤ 10^6.
+
+**Why This Subpattern Applies:**
+
+When units have independent constant value by category, consume highest-value categories first.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.Arrays;
+class Solution {
+    public int maximumUnits(int[][] boxTypes, int truckSize) {
+        Arrays.sort(boxTypes, (a, b) -> Integer.compare(b[1], a[1]));
+        int units = 0;
+        for (int[] type : boxTypes) {
+            int take = Math.min(truckSize, type[0]);
+            units += take * type[1];
+            truckSize -= take;
+            if (truckSize == 0) break;
+        }
+        return units;
+    }
+}
+```
+
+**Key Logic:**
+
+Maximize truck units value from box types with counts and units per box: sort by descending unit value and fill greedily; O(n log n).
+
+**Time Complexity:**
+
+**O(t log t).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(log t) sorting-stack space.** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G7: Smallest completion deficit first
+
+**When to Apply:**
+- **Recognition clues:** Sort independent completion/purchase costs ascending and spend budget on cheapest attainable units first.
+- **Central invariant:** Sort independent completion/purchase costs ascending and spend budget on cheapest attainable units first.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+Arrays.sort(costs);
+int completed = 0;
+for (int cost : costs) {
+    if (cost > budget) break;
+    budget -= cost; completed++;
+}
+```
+
+**Core Logic:**
+The template maintains the state needed for **smallest completion deficit first**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 1833, LeetCode 2279.
+
+---
+
+### LeetCode 1833
+
+**Question:**
+
+Each ice cream bar has a price and may be bought at most once. Given a limited number of coins, buy the maximum possible number of bars. Return the count, not the remaining budget or total cost.
+
+**Examples:**
+
+1. **Input:** `costs = [1,3,2,4,1], coins = 7`  
+   **Output:** `4`  
+   **Explanation:** Buy bars costing 1,1,2,3.
+
+2. **Input:** `costs = [10,6,8,7,7,8], coins = 5`  
+   **Output:** `0`  
+   **Explanation:** No bar is affordable.
+
+3. **Input:** `costs = [1,6,3,1,2,5], coins = 20`  
+   **Output:** `6`  
+   **Explanation:** All bars are affordable.
+
+**Constraints:**
+
+1 ≤ costs.length ≤ 10^5; 1 ≤ costs[i] ≤ 10^5; 1 ≤ coins ≤ 10^8.
+
+**Why This Subpattern Applies:**
+
+Sort independent completion/purchase costs ascending and spend budget on cheapest attainable units first.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.Arrays;
+class Solution {
+    public int maxIceCream(int[] costs, int coins) {
+        Arrays.sort(costs);
+        int count = 0;
+        for (int cost : costs) {
+            if (cost > coins) break;
+            coins -= cost;
+            count++;
+        }
+        return count;
+    }
+}
+```
+
+**Key Logic:**
+
+Buy maximum number of ice creams under fixed budget: sort independent bar costs and purchase cheapest first; O(n log n).
+
+**Time Complexity:**
+
+**O(n log n).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(log n) sorting-stack space.** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+### LeetCode 2279
+
+**Question:**
+
+Each bag has a capacity and an initial number of rocks no greater than its capacity. You can distribute up to additionalRocks extra rocks across bags. Maximize how many bags become exactly full; already-full bags count without using new rocks.
+
+**Examples:**
+
+1. **Input:** `capacity = [2,3,4,5], rocks = [1,2,4,4], additionalRocks = 2`  
+   **Output:** `3`  
+   **Explanation:** One bag is full already; fill two bags missing one rock each.
+
+2. **Input:** `capacity = [10,2,2], rocks = [2,2,0], additionalRocks = 100`  
+   **Output:** `3`  
+   **Explanation:** Enough rocks to fill every bag.
+
+**Constraints:**
+
+1 ≤ capacity.length = rocks.length ≤ 5 × 10^4; 1 ≤ capacity[i] ≤ 10^9; 0 ≤ rocks[i] ≤ capacity[i]; 1 ≤ additionalRocks ≤ 10^9.
+
+**Why This Subpattern Applies:**
+
+Sort independent completion/purchase costs ascending and spend budget on cheapest attainable units first.
+
+**Connection to Previous Solution:**
+
+Reuse sorted cheapest-first purchases; replace provided costs with computed completion deficits capacity[i]-rocks[i].
+
+**Java Solution:**
+
+```java
+import java.util.Arrays;
+class Solution {
+    public int maximumBags(int[] capacity, int[] rocks, int additionalRocks) {
+        int n = capacity.length;
+        int[] need = new int[n];
+        for (int i = 0; i < n; i++) need[i] = capacity[i] - rocks[i];
+        Arrays.sort(need);
+        int full = 0;
+        for (int x : need) {
+            if (x > additionalRocks) break;
+            additionalRocks -= x;
+            full++;
+        }
+        return full;
+    }
+}
+```
+
+**Key Logic:**
+
+Maximize fully filled bags using extra rocks: convert each bag into remaining deficit, sort deficits, spend budget on cheapest completions; O(n log n).
+
+**Time Complexity:**
+
+**O(n log n).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(n) deficits array, plus sorting stack.** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G8: Sort by differential assignment gain
+
+**When to Apply:**
+- **Recognition clues:** With an exact quota for category A, sort jobs by (costA-costB) and assign those most advantageous to A.
+- **Central invariant:** With an exact quota for category A, sort jobs by (costA-costB) and assign those most advantageous to A.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+Arrays.sort(jobs, (x,y) -> Long.compare((long)x[0]-x[1], (long)y[0]-y[1]));
+long total = 0;
+for (int i = 0; i < jobs.length; i++)
+    total += (i < quotaA) ? jobs[i][0] : jobs[i][1];
+```
+
+**Core Logic:**
+The template maintains the state needed for **sort by differential assignment gain**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 1029, LeetCode 2611.
+
+---
+
+### LeetCode 1029
+
+**Question:**
+
+There are 2n people, each with a flight cost to city A and to city B. Exactly n people must fly to each city. Choose assignments that minimize the sum of flight costs while meeting the equal-quota constraint.
+
+**Examples:**
+
+1. **Input:** `costs = [[10,20],[30,200],[400,50],[30,20]]`  
+   **Output:** `110`  
+   **Explanation:** Send the first two to A and the last two to B.
+
+2. **Input:** `costs = [[259,770],[448,54],[926,667],[184,139],[840,118],[577,469]]`  
+   **Output:** `1859`  
+   **Explanation:** Sorting relative cost advantages gives the minimum.
+
+**Constraints:**
+
+2 ≤ costs.length ≤ 100; costs.length is even; 1 ≤ costs[i][j] ≤ 1000.
+
+**Why This Subpattern Applies:**
+
+With an exact quota for category A, sort jobs by (costA-costB) and assign those most advantageous to A.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.Arrays;
+class Solution {
+    public int twoCitySchedCost(int[][] costs) {
+        Arrays.sort(costs, (a, b) -> Long.compare((long)a[0]-a[1], (long)b[0]-b[1]));
+        int n = costs.length / 2, total = 0;
+        for (int i = 0; i < costs.length; i++)
+            total += i < n ? costs[i][0] : costs[i][1];
+        return total;
+    }
+}
+```
+
+**Key Logic:**
+
+Assign exactly half the people to each city at minimal total airfare: sort costA-costB ascending, first half to A; O(n log n).
+
+**Time Complexity:**
+
+**O(n log n).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(log n) sorting-stack space.** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+### LeetCode 2611
+
+**Question:**
+
+There are n cheeses. Mouse 1 earns reward1[i] for cheese i; mouse 2 earns reward2[i]. Exactly k cheeses must go to mouse 1 and all others to mouse 2. Maximize the sum of rewards.
+
+**Examples:**
+
+1. **Input:** `reward1 = [1,1,3,4], reward2 = [4,4,1,1], k = 2`  
+   **Output:** `15`  
+   **Explanation:** Give the two greatest reward differences to mouse 1.
+
+2. **Input:** `reward1 = [1,1], reward2 = [1,1], k = 2`  
+   **Output:** `2`  
+   **Explanation:** Mouse 1 takes both cheeses.
+
+**Constraints:**
+
+1 ≤ n ≤ 10^5; reward1.length = reward2.length = n; 1 ≤ reward1[i], reward2[i] ≤ 1000; 0 ≤ k ≤ n.
+
+**Why This Subpattern Applies:**
+
+With an exact quota for category A, sort jobs by (costA-costB) and assign those most advantageous to A.
+
+**Connection to Previous Solution:**
+
+Retain quota-and-delta ranking; switch from minimizing two-city cost (ascending differences) to maximizing incremental reward (descending differences).
+
+**Java Solution:**
+
+```java
+import java.util.Arrays;
+class Solution {
+    public int miceAndCheese(int[] reward1, int[] reward2, int k) {
+        int n = reward1.length, total = 0;
+        Integer[] order = new Integer[n];
+        for (int i = 0; i < n; i++) {
+            total += reward2[i];
+            order[i] = i;
+        }
+        Arrays.sort(order, (a, b) -> Long.compare((long)reward1[b]-reward2[b], (long)reward1[a]-reward2[a]));
+        for (int i = 0; i < k; i++) {
+            int j = order[i];
+            total += reward1[j] - reward2[j];
+        }
+        return total;
+    }
+}
+```
+
+**Key Logic:**
+
+Select exactly k items for first reward function, all others for second: start from all-second reward, sort reward1-reward2 descending and add top k deltas; O(n log n).
+
+**Time Complexity:**
+
+**O(n log n).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(n) index array, plus sorting stack.** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G9: Offline queries with sorted prefix optimum
+
+**When to Apply:**
+- **Recognition clues:** Sort records by threshold and build the best score observed up to each threshold for many independent queries.
+- **Central invariant:** Sort records by threshold and build the best score observed up to each threshold for many independent queries.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+Arrays.sort(records, Comparator.comparingInt(x -> x[0]));
+int best = 0;
+for (int[] record : records) {
+    best = Math.max(best, record[1]);
+    // Answer compatible queries by sweeping sorted limits or binary-searching prefix maxima.
+}
+```
+
+**Core Logic:**
+The template maintains the state needed for **offline queries with sorted prefix optimum**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 2070, LeetCode 826.
+
+---
+
+### LeetCode 2070
+
+**Question:**
+
+Each item has a price and beauty score. For each independent query q, find the maximum beauty among items with price at most q. If no item qualifies, return zero. An item may be considered for any number of queries; return answers in the original query order.
+
+**Examples:**
+
+1. **Input:** `items = [[1,2],[3,2],[2,4],[5,6],[3,5]], queries = [1,2,3,4,5,6]`  
+   **Output:** `[2,4,5,5,6,6]`  
+   **Explanation:** Running best beauty increases at qualifying prices.
+
+2. **Input:** `items = [[10,1000]], queries = [5]`  
+   **Output:** `[0]`  
+   **Explanation:** The only item exceeds the budget.
+
+**Constraints:**
+
+1 ≤ items.length, queries.length ≤ 10^5; 1 ≤ price, beauty, query ≤ 10^9.
+
+**Why This Subpattern Applies:**
+
+Sort records by threshold and build the best score observed up to each threshold for many independent queries.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.Arrays;
+class Solution {
+    public int[] maximumBeauty(int[][] items, int[] queries) {
+        Arrays.sort(items, (a, b) -> Integer.compare(a[0], b[0]));
+        int n = queries.length;
+        Integer[] order = new Integer[n];
+        for (int i = 0; i < n; i++) order[i] = i;
+        Arrays.sort(order, (a, b) -> Integer.compare(queries[a], queries[b]));
+        int[] answer = new int[n];
+        int i = 0, best = 0;
+        for (int q : order) {
+            while (i < items.length && items[i][0] <= queries[q]) {
+                best = Math.max(best, items[i][1]);
+                i++;
+            }
+            answer[q] = best;
+        }
+        return answer;
+    }
+}
+```
+
+**Key Logic:**
+
+For each maximum affordable price, find best beauty: sort price/beauty and sweep sorted query limits with running max; O((n+q)log(n+q)).
+
+**Time Complexity:**
+
+**O(m log m + q log q).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(q) query indices and output, plus sorting stack.** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+### LeetCode 826
+
+**Question:**
+
+Each job has a difficulty and a profit. Each worker has an ability and may perform any job with difficulty at most that ability. Jobs can be reused by different workers, and each worker performs at most one job. Maximize total profit across all workers.
+
+**Examples:**
+
+1. **Input:** `difficulty = [2,4,6,8,10], profit = [10,20,30,40,50], worker = [4,5,6,7]`  
+   **Output:** `100`  
+   **Explanation:** Worker profits are 20,20,30,30.
+
+2. **Input:** `difficulty = [85,47,57], profit = [24,66,99], worker = [40,25,25]`  
+   **Output:** `0`  
+   **Explanation:** No worker qualifies for any job.
+
+**Constraints:**
+
+1 ≤ jobs, workers ≤ 10^4; 1 ≤ difficulty[i], profit[i], worker[j] ≤ 10^5.
+
+**Why This Subpattern Applies:**
+
+Sort records by threshold and build the best score observed up to each threshold for many independent queries.
+
+**Connection to Previous Solution:**
+
+Reuse offline sorted-threshold sweep and running maximum; replace price queries with worker abilities and sum each worker’s best instead of returning a result array.
+
+**Java Solution:**
+
+```java
+import java.util.Arrays;
+class Solution {
+    public int maxProfitAssignment(int[] difficulty, int[] profit, int[] worker) {
+        int n = difficulty.length;
+        int[][] jobs = new int[n][2];
+        for (int i = 0; i < n; i++) {
+            jobs[i][0] = difficulty[i];
+            jobs[i][1] = profit[i];
+        }
+        Arrays.sort(jobs, (a, b) -> Integer.compare(a[0], b[0]));
+        Arrays.sort(worker);
+        int i = 0, best = 0, sum = 0;
+        for (int ability : worker) {
+            while (i < n && jobs[i][0] <= ability) {
+                best = Math.max(best, jobs[i][1]);
+                i++;
+            }
+            sum += best;
+        }
+        return sum;
+    }
+}
+```
+
+**Key Logic:**
+
+Each worker ability is an independent threshold to choose maximum-paying available job, jobs reusable: sort difficulty/profit and sweep sorted abilities; O((n+m)log(n+m)).
+
+**Time Complexity:**
+
+**O(n log n + m log m).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(n) job records, plus sorting stack.** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G10: Local spacing with occupancy constraints
+
+**When to Apply:**
+- **Recognition clues:** A chosen location forbids adjacent locations; choose earliest legal spot when choices do not harm later feasibility.
+- **Central invariant:** A chosen location forbids adjacent locations; choose earliest legal spot when choices do not harm later feasibility.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+for (int i = 0; i < places.length; i++) {
+    boolean leftFree = i == 0 || places[i-1] == 0;
+    boolean rightFree = i+1 == places.length || places[i+1] == 0;
+    if (places[i] == 0 && leftFree && rightFree) {
+        places[i] = 1; planted++;
+    }
+}
+```
+
+**Core Logic:**
+The template maintains the state needed for **local spacing with occupancy constraints**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 605.
+
+---
+
+### LeetCode 605
+
+**Question:**
+
+A flowerbed array uses 1 for an existing flower and 0 for an empty plot. New flowers cannot be adjacent to any flower, including newly planted ones. Determine whether at least n additional flowers can be planted without moving existing flowers.
+
+**Examples:**
+
+1. **Input:** `flowerbed = [1,0,0,0,1], n = 1`  
+   **Output:** `true`  
+   **Explanation:** Plant at index 2.
+
+2. **Input:** `flowerbed = [1,0,0,0,1], n = 2`  
+   **Output:** `false`  
+   **Explanation:** Only one additional flower fits.
+
+3. **Input:** `flowerbed = [0], n = 1`  
+   **Output:** `true`  
+   **Explanation:** The single plot is free.
+
+**Constraints:**
+
+1 ≤ flowerbed.length ≤ 2 × 10^4; flowerbed[i] ∈ {0,1}; existing flowers are nonadjacent; 0 ≤ n ≤ flowerbed.length.
+
+**Why This Subpattern Applies:**
+
+A chosen location forbids adjacent locations; choose earliest legal spot when choices do not harm later feasibility.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public boolean canPlaceFlowers(int[] flowerbed, int n) {
+        for (int i = 0; i < flowerbed.length && n > 0; i++) {
+            if (flowerbed[i] == 0 && (i == 0 || flowerbed[i - 1] == 0)
+                    && (i == flowerbed.length - 1 || flowerbed[i + 1] == 0)) {
+                flowerbed[i] = 1;
+                n--;
+            }
+        }
+        return n == 0;
+    }
+}
+```
+
+**Key Logic:**
+
+Can n additional flowers be planted without adjacent flowers? Scan left-to-right and plant immediately whenever neighbors are free; O(n).
+
+**Time Complexity:**
+
+**O(n).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(1).** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G11: Denomination-preserving change allocation
+
+**When to Apply:**
+- **Recognition clues:** Maintain inventory of small denominations; use larger change combinations only when they leave sufficient future change.
+- **Central invariant:** Maintain inventory of small denominations; use larger change combinations only when they leave sufficient future change.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+int small = 0, medium = 0;
+for (int paid : payments) {
+    if (paid == base) small++;
+    else if (paid == 2*base) { if (small == 0) break; small--; medium++; }
+    else { /* preferentially spend one medium + one small; else three small */ }
+}
+```
+
+**Core Logic:**
+The template maintains the state needed for **denomination-preserving change allocation**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 860.
+
+---
+
+### LeetCode 860
+
+**Question:**
+
+A lemonade costs $5. Customers arrive in a fixed order and pay with $5, $10, or $20 bills. You begin with no change and must give exact change immediately using bills received from earlier customers. Determine whether every sale can be completed.
+
+**Examples:**
+
+1. **Input:** `bills = [5,5,5,10,20]`  
+   **Output:** `true`  
+   **Explanation:** Use one $10 and one $5 for the last customer.
+
+2. **Input:** `bills = [5,5,10,10,20]`  
+   **Output:** `false`  
+   **Explanation:** No $5 bill remains to change the final $20.
+
+3. **Input:** `bills = [5,5,10]`  
+   **Output:** `true`  
+   **Explanation:** All customers receive correct change.
+
+**Constraints:**
+
+1 ≤ bills.length ≤ 10^5; bills[i] ∈ {5,10,20}.
+
+**Why This Subpattern Applies:**
+
+Maintain inventory of small denominations; use larger change combinations only when they leave sufficient future change.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public boolean lemonadeChange(int[] bills) {
+        int five = 0, ten = 0;
+        for (int bill : bills) {
+            if (bill == 5) five++;
+            else if (bill == 10) {
+                if (five == 0) return false;
+                five--;
+                ten++;
+            } else {
+                if (ten > 0 && five > 0) {
+                    ten--;
+                    five--;
+                } else if (five >= 3) five -= 3;
+                else return false;
+            }
+        }
+        return true;
+    }
+}
+```
+
+**Key Logic:**
+
+Give exact change in arrival order with fixed bill denominations: track small/medium bills and prefer using larger available change; O(n).
+
+**Time Complexity:**
+
+**O(n).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(1).** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G12: Last-occurrence partition closure
+
+**When to Apply:**
+- **Recognition clues:** Close a partition only once every symbol encountered so far has its final occurrence inside it.
+- **Central invariant:** Close a partition only once every symbol encountered so far has its final occurrence inside it.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+int[] last = new int[26];
+for (int i = 0; i < s.length(); i++) last[s.charAt(i)-'a'] = i;
+int start = 0, end = 0;
+for (int i = 0; i < s.length(); i++) {
+    end = Math.max(end, last[s.charAt(i)-'a']);
+    if (i == end) { /* emit partition [start,end] */ start = i+1; }
+}
+```
+
+**Core Logic:**
+The template maintains the state needed for **last-occurrence partition closure**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 763.
+
+---
+
+### LeetCode 763
+
+**Question:**
+
+Split a lowercase string into as many consecutive nonempty segments as possible such that every letter occurs in at most one segment. Return segment lengths in their original order; concatenating the segments must reconstruct the entire input.
+
+**Examples:**
+
+1. **Input:** `s = "ababcbacadefegdehijhklij"`  
+   **Output:** `[9,7,8]`  
+   **Explanation:** All occurrences of each letter stay within one segment.
+
+2. **Input:** `s = "eccbbbbdec"`  
+   **Output:** `[10]`  
+   **Explanation:** Overlapping last occurrences force one segment.
+
+**Constraints:**
+
+1 ≤ s.length ≤ 500; s consists only of lowercase English letters.
+
+**Why This Subpattern Applies:**
+
+Close a partition only once every symbol encountered so far has its final occurrence inside it.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.ArrayList;
+import java.util.List;
+class Solution {
+    public List<Integer> partitionLabels(String s) {
+        int[] last = new int[26];
+        for (int i = 0; i < s.length(); i++) last[s.charAt(i) - 'a'] = i;
+        List<Integer> result = new ArrayList<>();
+        int start = 0, end = 0;
+        for (int i = 0; i < s.length(); i++) {
+            end = Math.max(end, last[s.charAt(i) - 'a']);
+            if (i == end) {
+                result.add(end - start + 1);
+                start = i + 1;
+            }
+        }
+        return result;
+    }
+}
+```
+
+**Key Logic:**
+
+Partition a string into as many blocks as possible so each letter appears in only one block: scan last occurrences and close at farthest required boundary; O(n).
+
+**Time Complexity:**
+
+**O(n + 26).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(26) auxiliary plus O(p) output for p partitions.** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G13: Earliest valid cut for distinct-character pieces
+
+**When to Apply:**
+- **Recognition clues:** When a new character repeats within the current segment, start a fresh segment immediately.
+- **Central invariant:** When a new character repeats within the current segment, start a fresh segment immediately.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+boolean[] seen = new boolean[26];
+int parts = 1;
+for (char c : s.toCharArray()) {
+    int idx = c-'a';
+    if (seen[idx]) { Arrays.fill(seen, false); parts++; }
+    seen[idx] = true;
+}
+```
+
+**Core Logic:**
+The template maintains the state needed for **earliest valid cut for distinct-character pieces**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 2405.
+
+---
+
+### LeetCode 2405
+
+**Question:**
+
+Partition a lowercase string into the minimum number of consecutive nonempty substrings such that no substring contains the same character twice. Every original character must appear in exactly one substring.
+
+**Examples:**
+
+1. **Input:** `s = "abacaba"`  
+   **Output:** `4`  
+   **Explanation:** One valid partition is "ab" | "ac" | "ab" | "a".
+
+2. **Input:** `s = "ssssss"`  
+   **Output:** `6`  
+   **Explanation:** Every repeated s forces a new segment.
+
+3. **Input:** `s = "abc"`  
+   **Output:** `1`  
+   **Explanation:** All characters are distinct.
+
+**Constraints:**
+
+1 ≤ s.length ≤ 10^5; lowercase English letters only.
+
+**Why This Subpattern Applies:**
+
+When a new character repeats within the current segment, start a fresh segment immediately.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int partitionString(String s) {
+        int seen = 0, pieces = 1;
+        for (int i = 0; i < s.length(); i++) {
+            int bit = 1 << (s.charAt(i) - 'a');
+            if ((seen & bit) != 0) {
+                pieces++;
+                seen = 0;
+            }
+            seen |= bit;
+        }
+        return pieces;
+    }
+}
+```
+
+**Key Logic:**
+
+Minimum number of substrings with no repeated letters inside a substring: cut immediately upon a repeat and reset seen state; O(n) for fixed alphabet.
+
+**Time Complexity:**
+
+**O(n).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(1).** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G14: Bounded consecutive character-run construction
+
+**When to Apply:**
+- **Recognition clues:** Construct a string from remaining character counts while forbidding three identical consecutive outputs.
+- **Central invariant:** Construct a string from remaining character counts while forbidding three identical consecutive outputs.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+StringBuilder out = new StringBuilder();
+while (remainingA > 0 || remainingB > 0) {
+    // Choose preferred available char unless it creates a forbidden run.
+    // If preferred char is blocked, choose the alternate or terminate.
+}
+```
+
+**Core Logic:**
+The template maintains the state needed for **bounded consecutive character-run construction**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 984, LeetCode 1405.
+
+---
+
+### LeetCode 984
+
+**Question:**
+
+Given counts a and b, construct any string containing exactly a letters a and b letters b, without aaa or bbb as a substring. The problem guarantees at least one valid arrangement. Return any valid string; the output need not be unique.
+
+**Examples:**
+
+1. **Input:** `a = 1, b = 2`  
+   **Output:** `"abb"`  
+   **Explanation:** Uses both counts and contains no triple.
+
+2. **Input:** `a = 4, b = 1`  
+   **Output:** `"aabaa"`  
+   **Explanation:** A single b separates groups of a.
+
+3. **Input:** `a = 2, b = 2`  
+   **Output:** `"aabb"`  
+   **Explanation:** Both counts are satisfied.
+
+**Constraints:**
+
+0 ≤ a, b ≤ 100; a + b ≥ 1; at least one valid answer exists.
+
+**Why This Subpattern Applies:**
+
+Construct a string from remaining character counts while forbidding three identical consecutive outputs.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public String strWithout3a3b(int a, int b) {
+        StringBuilder sb = new StringBuilder(a + b);
+        while (a + b > 0) {
+            int len = sb.length();
+            boolean blockA = len >= 2 && sb.charAt(len - 1) == 'a' && sb.charAt(len - 2) == 'a';
+            boolean blockB = len >= 2 && sb.charAt(len - 1) == 'b' && sb.charAt(len - 2) == 'b';
+            if (!blockA && a > 0 && (blockB || a >= b)) {
+                sb.append('a');
+                a--;
+            } else {
+                sb.append('b');
+                b--;
+            }
+        }
+        return sb.toString();
+    }
+}
+```
+
+**Key Logic:**
+
+Construct string with required counts of a and b avoiding aaa/bbb: choose preferred available char unless it would form a run of three; O(a+b).
+
+**Time Complexity:**
+
+**O(a+b).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(1) auxiliary excluding O(a+b) output.** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+### LeetCode 1405
+
+**Question:**
+
+Given available counts of a, b, and c, construct the longest possible string using no more than those counts. The string must never contain aaa, bbb, or ccc. You may leave characters unused; return any maximum-length valid string.
+
+**Examples:**
+
+1. **Input:** `a = 1, b = 1, c = 7`  
+   **Output:** `"ccaccbcc"`  
+   **Explanation:** Length 8 is achievable without three consecutive c.
+
+2. **Input:** `a = 2, b = 2, c = 1`  
+   **Output:** `"aabbc"`  
+   **Explanation:** All five characters can be used.
+
+**Constraints:**
+
+0 ≤ a,b,c ≤ 100; 1 ≤ a+b+c ≤ 300.
+
+**Why This Subpattern Applies:**
+
+Construct a string from remaining character counts while forbidding three identical consecutive outputs.
+
+**Connection to Previous Solution:**
+
+Generalize two fixed remaining counters to three dynamically ordered counts; replace if/else preference with max-heap and blocked-run fallback while preserving run-length constraint.
+
+**Java Solution:**
+
+```java
+import java.util.PriorityQueue;
+class Solution {
+    public String longestDiverseString(int a, int b, int c) {
+        PriorityQueue<int[]> pq = new PriorityQueue<>((x, y) -> Integer.compare(y[0], x[0]));
+        if (a > 0) pq.offer(new int[]{a, 'a'});
+        if (b > 0) pq.offer(new int[]{b, 'b'});
+        if (c > 0) pq.offer(new int[]{c, 'c'});
+        StringBuilder sb = new StringBuilder();
+        while (!pq.isEmpty()) {
+            int[] first = pq.poll();
+            int n = sb.length();
+            if (n >= 2 && sb.charAt(n - 1) == first[1] && sb.charAt(n - 2) == first[1]) {
+                if (pq.isEmpty()) break;
+                int[] second = pq.poll();
+                sb.append((char)second[1]);
+                if (--second[0] > 0) pq.offer(second);
+                pq.offer(first);
+            } else {
+                sb.append((char)first[1]);
+                if (--first[0] > 0) pq.offer(first);
+            }
+        }
+        return sb.toString();
+    }
+}
+```
+
+**Key Logic:**
+
+Construct maximum-length string from counts of a,b,c without three consecutive equals: use max heap of remaining counts; when top char blocked, pick runner-up; O(total letters log 3).
+
+**Time Complexity:**
+
+**O(a+b+c) since heap size ≤ 3.** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(1) auxiliary excluding O(a+b+c) output.** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G15: Feasible open-count interval
+
+**When to Apply:**
+- **Recognition clues:** Wildcard parentheses may behave as open, close, or empty; maintain minimum/maximum feasible unmatched opens.
+- **Central invariant:** Wildcard parentheses may behave as open, close, or empty; maintain minimum/maximum feasible unmatched opens.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+int low = 0, high = 0;
+for (char c : s.toCharArray()) {
+    if (c == '(') { low++; high++; }
+    else if (c == ')') { low = Math.max(0,low-1); high--; }
+    else { low = Math.max(0,low-1); high++; }
+    if (high < 0) { /* impossible */ }
+}
+```
+
+**Core Logic:**
+The template maintains the state needed for **feasible open-count interval**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 678.
+
+---
+
+### LeetCode 678
+
+**Question:**
+
+Given a string containing (, ), and *, determine whether it can be made into a valid parentheses string. Each * can independently represent (, ), or the empty string. Validity requires every closing parenthesis to match an earlier opening one and no unmatched opening parentheses at the end.
+
+**Examples:**
+
+1. **Input:** `s = "()"`  
+   **Output:** `true`  
+   **Explanation:** Already balanced.
+
+2. **Input:** `s = "(*)"`  
+   **Output:** `true`  
+   **Explanation:** Treat * as empty.
+
+3. **Input:** `s = "(*))"`  
+   **Output:** `true`  
+   **Explanation:** Treat * as an opening parenthesis.
+
+4. **Input:** `s = ")("`  
+   **Output:** `false`  
+   **Explanation:** A closing bracket appears before any possible opener.
+
+**Constraints:**
+
+1 ≤ s.length ≤ 100; s[i] ∈ { (, ), * }.
+
+**Why This Subpattern Applies:**
+
+Wildcard parentheses may behave as open, close, or empty; maintain minimum/maximum feasible unmatched opens.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public boolean checkValidString(String s) {
+        int low = 0, high = 0;
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if (ch == '(') { low++; high++; }
+            else if (ch == ')') { low--; high--; }
+            else { low--; high++; }
+            if (high < 0) return false;
+            low = Math.max(low, 0);
+        }
+        return low == 0;
+    }
+}
+```
+
+**Key Logic:**
+
+Validate parentheses with * allowed as (, ) or empty: maintain lower/upper unmatched-open counts; O(n)/O(1).
+
+**Time Complexity:**
+
+**O(n).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(1).** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G16: Two-direction flexible bracket feasibility
+
+**When to Apply:**
+- **Recognition clues:** Locked parentheses constrain fixed symbols; unlocked positions may become either bracket but cannot disappear.
+- **Central invariant:** Locked parentheses constrain fixed symbols; unlocked positions may become either bracket but cannot disappear.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+int balance = 0;
+for (int i = 0; i < s.length(); i++) {
+    // Treat unlocked positions as potential '('; reject impossible closes.
+}
+for (int i = s.length()-1; i >= 0; i--) {
+    // Treat unlocked positions as potential ')'; reject impossible opens.
+}
+```
+
+**Core Logic:**
+The template maintains the state needed for **two-direction flexible bracket feasibility**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 2116.
+
+---
+
+### LeetCode 2116
+
+**Question:**
+
+Given parentheses string s and a same-length binary string locked, positions marked 1 are fixed and positions marked 0 may be changed to either ( or ). Unlike wildcard problems, no position can be removed. Determine whether the resulting string can be balanced.
+
+**Examples:**
+
+1. **Input:** `s = "))()))", locked = "010100"`  
+   **Output:** `true`  
+   **Explanation:** Unlocked positions can be reassigned to balance the string.
+
+2. **Input:** `s = "()()", locked = "0000"`  
+   **Output:** `true`  
+   **Explanation:** The string can remain unchanged.
+
+3. **Input:** `s = ")", locked = "0"`  
+   **Output:** `false`  
+   **Explanation:** Odd length cannot be balanced.
+
+**Constraints:**
+
+1 ≤ s.length = locked.length ≤ 10^5; s contains only parentheses; locked contains only 0 and 1.
+
+**Why This Subpattern Applies:**
+
+Locked parentheses constrain fixed symbols; unlocked positions may become either bracket but cannot disappear.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public boolean canBeValid(String s, String locked) {
+        int n = s.length();
+        if ((n & 1) == 1) return false;
+        int balance = 0;
+        for (int i = 0; i < n; i++) {
+            if (locked.charAt(i) == '0' || s.charAt(i) == '(') balance++;
+            else balance--;
+            if (balance < 0) return false;
+        }
+        balance = 0;
+        for (int i = n - 1; i >= 0; i--) {
+            if (locked.charAt(i) == '0' || s.charAt(i) == ')') balance++;
+            else balance--;
+            if (balance < 0) return false;
+        }
+        return true;
+    }
+}
+```
+
+**Key Logic:**
+
+Check whether locked/unlocked positions can become a balanced parentheses string: reject odd length; scan left/right under optimistic assignments; O(n).
+
+**Time Complexity:**
+
+**O(n).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(1).** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G17: Bidirectional local lower-bound constraints
+
+**When to Apply:**
+- **Recognition clues:** Each index must exceed neighbor allocations when its rating exceeds neighbor ratings; combine minimal directional bounds.
+- **Central invariant:** Each index must exceed neighbor allocations when its rating exceeds neighbor ratings; combine minimal directional bounds.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+int[] left = new int[n], right = new int[n];
+Arrays.fill(left, 1); Arrays.fill(right, 1);
+for (int i=1;i<n;i++) if (rating[i]>rating[i-1]) left[i]=left[i-1]+1;
+for (int i=n-2;i>=0;i--) if (rating[i]>rating[i+1]) right[i]=right[i+1]+1;
+long sum=0;
+for (int i=0;i<n;i++) sum+=Math.max(left[i],right[i]);
+```
+
+**Core Logic:**
+The template maintains the state needed for **bidirectional local lower-bound constraints**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 135.
+
+---
+
+### LeetCode 135
+
+**Question:**
+
+Children stand in a line, each with a rating. Give each child at least one candy. Whenever a child has a higher rating than an immediate neighbor, that child must receive more candy than that neighbor. Minimize the total number of candies.
+
+**Examples:**
+
+1. **Input:** `ratings = [1,0,2]`  
+   **Output:** `5`  
+   **Explanation:** Assign [2,1,2].
+
+2. **Input:** `ratings = [1,2,2]`  
+   **Output:** `4`  
+   **Explanation:** Assign [1,2,1].
+
+3. **Input:** `ratings = [1,3,4,5,2]`  
+   **Output:** `11`  
+   **Explanation:** Both rising and falling neighbor constraints matter.
+
+**Constraints:**
+
+1 ≤ ratings.length ≤ 2 × 10^4; 0 ≤ ratings[i] ≤ 2 × 10^4.
+
+**Why This Subpattern Applies:**
+
+Each index must exceed neighbor allocations when its rating exceeds neighbor ratings; combine minimal directional bounds.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int candy(int[] ratings) {
+        int n = ratings.length;
+        int[] left = new int[n];
+        left[0] = 1;
+        for (int i = 1; i < n; i++)
+            left[i] = ratings[i] > ratings[i - 1] ? left[i - 1] + 1 : 1;
+        int right = 1, total = left[n - 1];
+        for (int i = n - 2; i >= 0; i--) {
+            right = ratings[i] > ratings[i + 1] ? right + 1 : 1;
+            total += Math.max(left[i], right);
+        }
+        return total;
+    }
+}
+```
+
+**Key Logic:**
+
+Minimum candies with adjacent rating constraints: compute left-increasing and right-increasing minimal assignments then take per-index maximum; O(n).
+
+**Time Complexity:**
+
+**O(n).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(n) auxiliary.** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G18: Sort-first sign flip optimization
+
+**When to Apply:**
+- **Recognition clues:** Flip negative values before nonnegative values; after negatives exhausted, leftover parity determines whether smallest absolute value flips.
+- **Central invariant:** Flip negative values before nonnegative values; after negatives exhausted, leftover parity determines whether smallest absolute value flips.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+Arrays.sort(a);
+for (int i = 0; i < a.length && k > 0 && a[i] < 0; i++, k--) a[i] = -a[i];
+// If k is odd, subtract twice the smallest absolute value from sum.
+
+```
+
+**Core Logic:**
+The template maintains the state needed for **sort-first sign flip optimization**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 1005.
+
+---
+
+### LeetCode 1005
+
+**Question:**
+
+Perform exactly k operations on an integer array. In each operation choose one element and replace it by its negative; the same element may be chosen repeatedly. Return the largest achievable array sum after all operations.
+
+**Examples:**
+
+1. **Input:** `nums = [4,2,3], k = 1`  
+   **Output:** `5`  
+   **Explanation:** Flip 2 to −2? Instead flip no positive? The optimal flip is 2 → −2, giving 5.
+
+2. **Input:** `nums = [3,-1,0,2], k = 3`  
+   **Output:** `6`  
+   **Explanation:** Flip −1, then flip zero twice.
+
+3. **Input:** `nums = [2,-3,-1,5,-4], k = 2`  
+   **Output:** `13`  
+   **Explanation:** Flip −4 and −3.
+
+**Constraints:**
+
+1 ≤ nums.length ≤ 10^4; −100 ≤ nums[i] ≤ 100; 1 ≤ k ≤ 10^4.
+
+**Why This Subpattern Applies:**
+
+Flip negative values before nonnegative values; after negatives exhausted, leftover parity determines whether smallest absolute value flips.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.Arrays;
+class Solution {
+    public int largestSumAfterKNegations(int[] nums, int k) {
+        Arrays.sort(nums);
+        for (int i = 0; i < nums.length && k > 0 && nums[i] < 0; i++, k--)
+            nums[i] = -nums[i];
+        int sum = 0, minAbs = Integer.MAX_VALUE;
+        for (int x : nums) {
+            sum += x;
+            minAbs = Math.min(minAbs, Math.abs(x));
+        }
+        return (k & 1) == 0 ? sum : sum - 2 * minAbs;
+    }
+}
+```
+
+**Key Logic:**
+
+Maximize sum after exactly k sign flips: flip negatives from most negative upward; use remaining parity and minimum absolute value; O(n log n).
+
+**Time Complexity:**
+
+**O(n log n).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(log n) sorting-stack space.** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G19: Reverse-operations minimization
+
+**When to Apply:**
+- **Recognition clues:** Work backward from target using inverse actions; divide when possible because halving dominates repeated decrement/increment.
+- **Central invariant:** Work backward from target using inverse actions; divide when possible because halving dominates repeated decrement/increment.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+while (target > start && doubles > 0) {
+    if ((target & 1) == 0) { target /= 2; doubles--; }
+    else target++;
+}
+// Finish with unit steps once doubling resource or useful reductions are exhausted.
+
+```
+
+**Core Logic:**
+The template maintains the state needed for **reverse-operations minimization**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 991, LeetCode 2139.
+
+---
+
+### LeetCode 991
+
+**Question:**
+
+Start with integer startValue. An operation either doubles the current number or subtracts one. Find the minimum number of operations needed to obtain target, with all values treated as integers.
+
+**Examples:**
+
+1. **Input:** `startValue = 2, target = 3`  
+   **Output:** `2`  
+   **Explanation:** 2 → 4 → 3.
+
+2. **Input:** `startValue = 5, target = 8`  
+   **Output:** `2`  
+   **Explanation:** 5 → 4 → 8.
+
+3. **Input:** `startValue = 3, target = 10`  
+   **Output:** `3`  
+   **Explanation:** 3 → 6 → 5 → 10.
+
+**Constraints:**
+
+1 ≤ startValue, target ≤ 10^9.
+
+**Why This Subpattern Applies:**
+
+Work backward from target using inverse actions; divide when possible because halving dominates repeated decrement/increment.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int brokenCalc(int startValue, int target) {
+        int steps = 0;
+        while (target > startValue) {
+            if ((target & 1) == 0) target /= 2;
+            else target++;
+            steps++;
+        }
+        return steps + startValue - target;
+    }
+}
+```
+
+**Key Logic:**
+
+Fewest operations from start to target using double or subtract 1: reverse by halving even target and incrementing odd target; O(log target).
+
+**Time Complexity:**
+
+**O(log target + max(0, startValue − finalTarget)).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(1).** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+### LeetCode 2139
+
+**Question:**
+
+Start from 1 and reach target using increments by one and doubling. You may use doubling at most maxDoubles times, but increments are unlimited. Return the minimum total number of operations.
+
+**Examples:**
+
+1. **Input:** `target = 5, maxDoubles = 0`  
+   **Output:** `4`  
+   **Explanation:** Four increments are required.
+
+2. **Input:** `target = 19, maxDoubles = 2`  
+   **Output:** `7`  
+   **Explanation:** Use at most two doubles and fill remaining gaps with increments.
+
+3. **Input:** `target = 10, maxDoubles = 4`  
+   **Output:** `4`  
+   **Explanation:** 1 → 2 → 4 → 5 → 10.
+
+**Constraints:**
+
+1 ≤ target ≤ 10^9; 0 ≤ maxDoubles ≤ 100.
+
+**Why This Subpattern Applies:**
+
+Work backward from target using inverse actions; divide when possible because halving dominates repeated decrement/increment.
+
+**Connection to Previous Solution:**
+
+Retain reverse-halving policy; add maximum number of allowed halves and replace reverse odd increment with odd decrement, corresponding to original +1 action.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int minMoves(int target, int maxDoubles) {
+        int moves = 0;
+        while (target > 1 && maxDoubles > 0) {
+            if ((target & 1) == 0) {
+                target /= 2;
+                maxDoubles--;
+            } else target--;
+            moves++;
+        }
+        return moves + target - 1;
+    }
+}
+```
+
+**Key Logic:**
+
+Fewest moves from 1 to target using increment and limited doubling: reverse with decrement if odd, halve if even and doubling budget remains; finish by decrements; O(log target + remaining linear steps).
+
+**Time Complexity:**
+
+**O(log target + min(target, maxDoubles)) upper bounded by O(log target + maxDoubles); remaining increments counted in O(1).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(1).** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G20: Suffix-digit monotonic correction
+
+**When to Apply:**
+- **Recognition clues:** To get the largest number not exceeding n with nondecreasing decimal digits, repair any descending adjacent pair by reducing the left digit and filling suffix with 9.
+- **Central invariant:** To get the largest number not exceeding n with nondecreasing decimal digits, repair any descending adjacent pair by reducing the left digit and filling suffix with 9.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+char[] d = Integer.toString(n).toCharArray();
+int cut = d.length;
+for (int i = d.length-1; i>0; i--)
+    if (d[i-1]>d[i]) { d[i-1]--; cut=i; }
+for (int i=cut;i<d.length;i++) d[i]='9';
+```
+
+**Core Logic:**
+The template maintains the state needed for **suffix-digit monotonic correction**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 738.
+
+---
+
+### LeetCode 738
+
+**Question:**
+
+For a nonnegative integer n, find the greatest integer at most n whose decimal digits are monotonically nondecreasing from left to right (each digit no larger than the next). Leading zeros are not significant.
+
+**Examples:**
+
+1. **Input:** `n = 10`  
+   **Output:** `9`  
+   **Explanation:** 10 decreases from 1 to 0.
+
+2. **Input:** `n = 1234`  
+   **Output:** `1234`  
+   **Explanation:** Digits are already nondecreasing.
+
+3. **Input:** `n = 332`  
+   **Output:** `299`  
+   **Explanation:** Reducing the leading 3 and filling suffix with 9 gives the maximum.
+
+**Constraints:**
+
+0 ≤ n ≤ 10^9.
+
+**Why This Subpattern Applies:**
+
+To get the largest number not exceeding n with nondecreasing decimal digits, repair any descending adjacent pair by reducing the left digit and filling suffix with 9.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int monotoneIncreasingDigits(int n) {
+        char[] digits = Integer.toString(n).toCharArray();
+        int mark = digits.length;
+        for (int i = digits.length - 1; i > 0; i--) {
+            if (digits[i - 1] > digits[i]) {
+                digits[i - 1]--;
+                mark = i;
+            }
+        }
+        for (int i = mark; i < digits.length; i++) digits[i] = '9';
+        return Integer.parseInt(new String(digits));
+    }
+}
+```
+
+**Key Logic:**
+
+Largest integer <= n whose digits are monotone nondecreasing: right-to-left descend-break repair and suffix fill with 9; O(digits).
+
+**Time Complexity:**
+
+**O(d) where d is decimal digits.** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(d).** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G21: Rightmost-beneficial digit exchange
+
+**When to Apply:**
+- **Recognition clues:** Maximize a number with at most one swap by bringing the largest later digit into the earliest improvable position.
+- **Central invariant:** Maximize a number with at most one swap by bringing the largest later digit into the earliest improvable position.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+int[] last = new int[10];
+for (int i=0;i<digits.length;i++) last[digits[i]-'0']=i;
+for (int i=0;i<digits.length;i++) {
+    for (int want=9; want>digits[i]-'0'; want--)
+        if (last[want]>i) { /* swap current with rightmost desired digit; return */ }
+}
+```
+
+**Core Logic:**
+The template maintains the state needed for **rightmost-beneficial digit exchange**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 670.
+
+---
+
+### LeetCode 670
+
+**Question:**
+
+Given a nonnegative integer, you may swap two of its decimal digits at most once. Return the largest integer that can result. If no swap improves the value, return the original integer.
+
+**Examples:**
+
+1. **Input:** `num = 2736`  
+   **Output:** `7236`  
+   **Explanation:** Swap 2 with the later 7.
+
+2. **Input:** `num = 9973`  
+   **Output:** `9973`  
+   **Explanation:** No beneficial swap exists.
+
+3. **Input:** `num = 98368`  
+   **Output:** `98863`  
+   **Explanation:** Use the rightmost later 8 to improve the earliest possible digit.
+
+**Constraints:**
+
+0 ≤ num ≤ 10^8.
+
+**Why This Subpattern Applies:**
+
+Maximize a number with at most one swap by bringing the largest later digit into the earliest improvable position.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int maximumSwap(int num) {
+        char[] d = Integer.toString(num).toCharArray();
+        int[] last = new int[10];
+        for (int i = 0; i < d.length; i++) last[d[i] - '0'] = i;
+        for (int i = 0; i < d.length; i++) {
+            for (int digit = 9; digit > d[i] - '0'; digit--) {
+                if (last[digit] > i) {
+                    char tmp = d[i];
+                    d[i] = d[last[digit]];
+                    d[last[digit]] = tmp;
+                    return Integer.parseInt(new String(d));
+                }
+            }
+        }
+        return num;
+    }
+}
+```
+
+**Key Logic:**
+
+Maximum value after at most one digit swap: store last position of each digit and improve earliest possible digit with highest available later digit; O(digits*10).
+
+**Time Complexity:**
+
+**O(10d) = O(d).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(d).** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G22: Extend existing consecutive chains first
+
+**When to Apply:**
+- **Recognition clues:** When choosing between extending a shorter already-open consecutive subsequence and starting a new one, extend an existing chain first.
+- **Central invariant:** When choosing between extending a shorter already-open consecutive subsequence and starting a new one, extend an existing chain first.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+Map<Integer,Integer> remaining = new HashMap<>(), tails = new HashMap<>();
+for (int x : sorted) {
+    if (remaining.getOrDefault(x,0)==0) continue;
+    // Prefer consuming an open chain ending at x-1.
+    // Otherwise require available x+1 and x+2 to open a length-3 chain.
+}
+```
+
+**Core Logic:**
+The template maintains the state needed for **extend existing consecutive chains first**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 659.
+
+---
+
+### LeetCode 659
+
+**Question:**
+
+Given a sorted nondecreasing integer array (a multiset), split every element into one or more subsequences, each consisting of consecutive integers and having length at least three. Determine whether such a complete partition exists. Duplicate values may belong to different subsequences.
+
+**Examples:**
+
+1. **Input:** `nums = [1,2,3,3,4,5]`  
+   **Output:** `true`  
+   **Explanation:** Use [1,2,3] and [3,4,5].
+
+2. **Input:** `nums = [1,2,3,4,4,5]`  
+   **Output:** `false`  
+   **Explanation:** The extra 4 and 5 cannot form a length-three chain.
+
+3. **Input:** `nums = [1,2,3,3,4,4,5,5]`  
+   **Output:** `true`  
+   **Explanation:** Use [1,2,3,4,5] and [3,4,5].
+
+**Constraints:**
+
+1 ≤ nums.length ≤ 10^4; −1000 ≤ nums[i] ≤ 1000; nums sorted nondecreasing.
+
+**Why This Subpattern Applies:**
+
+When choosing between extending a shorter already-open consecutive subsequence and starting a new one, extend an existing chain first.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.HashMap;
+import java.util.Map;
+class Solution {
+    public boolean isPossible(int[] nums) {
+        Map<Integer, Integer> freq = new HashMap<>();
+        Map<Integer, Integer> tails = new HashMap<>();
+        for (int x : nums) freq.merge(x, 1, Integer::sum);
+        for (int x : nums) {
+            if (freq.get(x) == 0) continue;
+            freq.put(x, freq.get(x) - 1);
+            if (tails.getOrDefault(x - 1, 0) > 0) {
+                tails.put(x - 1, tails.get(x - 1) - 1);
+                tails.merge(x, 1, Integer::sum);
+            } else if (freq.getOrDefault(x + 1, 0) > 0 && freq.getOrDefault(x + 2, 0) > 0) {
+                freq.put(x + 1, freq.get(x + 1) - 1);
+                freq.put(x + 2, freq.get(x + 2) - 1);
+                tails.merge(x + 2, 1, Integer::sum);
+            } else return false;
+        }
+        return true;
+    }
+}
+```
+
+**Key Logic:**
+
+Can sorted multiset be split into consecutive subsequences each length >=3? Use frequency map and map of available tails, extend existing chain first; O(n log n) if sorting required.
+
+**Time Complexity:**
+
+**O(n) expected with hash maps; input already sorted.** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(n).** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G23: Smallest remaining consecutive-start exhaustion
+
+**When to Apply:**
+- **Recognition clues:** To form fixed-length groups of consecutive integers, the smallest remaining value must start a group; consume its necessary successors.
+- **Central invariant:** To form fixed-length groups of consecutive integers, the smallest remaining value must start a group; consume its necessary successors.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+TreeMap<Integer,Integer> freq = new TreeMap<>();
+for (int x : a) freq.merge(x,1,Integer::sum);
+while (!freq.isEmpty()) {
+    int smallest = freq.firstKey();
+    for (int d=0;d<groupSize;d++) {
+        // remove one occurrence of smallest+d or reject.
+    }
+}
+```
+
+**Core Logic:**
+The template maintains the state needed for **smallest remaining consecutive-start exhaustion**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 1296.
+
+---
+
+### LeetCode 1296
+
+**Question:**
+
+Given integer cards and a positive groupSize k, determine whether all cards can be rearranged into disjoint groups of exactly k cards, where each group consists of k consecutive integer values. Duplicate card values are allowed, but every card must be used exactly once.
+
+**Examples:**
+
+1. **Input:** `nums = [1,2,3,3,4,4,5,6], k = 4`  
+   **Output:** `true`  
+   **Explanation:** Groups [1,2,3,4] and [3,4,5,6].
+
+2. **Input:** `nums = [3,3,2,2,1,1], k = 3`  
+   **Output:** `true`  
+   **Explanation:** Two copies of [1,2,3].
+
+3. **Input:** `nums = [1,2,3,4], k = 3`  
+   **Output:** `false`  
+   **Explanation:** Total card count is not divisible by 3.
+
+**Constraints:**
+
+1 ≤ nums.length ≤ 10^5; 1 ≤ nums[i] ≤ 10^9; 1 ≤ k ≤ nums.length.
+
+**Why This Subpattern Applies:**
+
+To form fixed-length groups of consecutive integers, the smallest remaining value must start a group; consume its necessary successors.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.TreeMap;
+class Solution {
+    public boolean isPossibleDivide(int[] nums, int k) {
+        if (nums.length % k != 0) return false;
+        TreeMap<Integer, Integer> count = new TreeMap<>();
+        for (int x : nums) count.merge(x, 1, Integer::sum);
+        while (!count.isEmpty()) {
+            int start = count.firstKey();
+            int copies = count.get(start);
+            for (int i = 0; i < k; i++) {
+                int value = start + i;
+                int have = count.getOrDefault(value, 0);
+                if (have < copies) return false;
+                if (have == copies) count.remove(value);
+                else count.put(value, have - copies);
+            }
+        }
+        return true;
+    }
+}
+```
+
+**Key Logic:**
+
+Split cards into groups of fixed size k with consecutive values: ordered frequencies, repeatedly start at smallest unassigned value; O(n log n) with TreeMap.
+
+**Time Complexity:**
+
+**O(n log n + nk) worst-case for TreeMap lookups and k-value passes; more tightly O(n log n) because each processed key is removed.** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(n).** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G24: Fill lexicographically best prefix under global sum
+
+**When to Apply:**
+- **Recognition clues:** To minimize a string while preserving target alphabet score, leave early positions at minimum value and allocate extra score from the right.
+- **Central invariant:** To minimize a string while preserving target alphabet score, leave early positions at minimum value and allocate extra score from the right.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+char[] ans = new char[length]; Arrays.fill(ans,'a');
+int extra = target - length;
+for (int i=length-1; i>=0 && extra>0; i--) {
+    int add = Math.min(25,extra); ans[i] += add; extra-=add;
+}
+```
+
+**Core Logic:**
+The template maintains the state needed for **fill lexicographically best prefix under global sum**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 1663.
+
+---
+
+### LeetCode 1663
+
+**Question:**
+
+Construct a lowercase string of exactly n characters whose numeric value is k, where a=1, b=2, …, z=26. Among all strings satisfying the length and sum, return the lexicographically smallest.
+
+**Examples:**
+
+1. **Input:** `n = 3, k = 27`  
+   **Output:** `"aay"`  
+   **Explanation:** 1+1+25=27 and the prefix is minimal.
+
+2. **Input:** `n = 5, k = 73`  
+   **Output:** `"aaszz"`  
+   **Explanation:** The excess value is pushed as far right as possible.
+
+**Constraints:**
+
+1 ≤ n ≤ 10^5; n ≤ k ≤ 26n.
+
+**Why This Subpattern Applies:**
+
+To minimize a string while preserving target alphabet score, leave early positions at minimum value and allocate extra score from the right.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.Arrays;
+class Solution {
+    public String getSmallestString(int n, int k) {
+        char[] result = new char[n];
+        Arrays.fill(result, 'a');
+        int extra = k - n;
+        for (int i = n - 1; i >= 0 && extra > 0; i--) {
+            int add = Math.min(25, extra);
+            result[i] += add;
+            extra -= add;
+        }
+        return new String(result);
+    }
+}
+```
+
+**Key Logic:**
+
+Lexicographically smallest lowercase string of fixed length and numeric value: start with all a, distribute required extra score right-to-left; O(n).
+
+**Time Complexity:**
+
+**O(n).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(n) output array; O(1) extra beyond output.** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G25: Descending-rank positional insertion
+
+**When to Apply:**
+- **Recognition clues:** Sort people by descending height and insert each at the position equal to its count of preceding taller/equal people.
+- **Central invariant:** Sort people by descending height and insert each at the position equal to its count of preceding taller/equal people.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+Arrays.sort(people, (a,b) -> a[0] == b[0] ? Integer.compare(a[1],b[1]) : Integer.compare(b[0],a[0]));
+List<int[]> placed = new ArrayList<>();
+for (int[] person : people) placed.add(person[1],person);
+```
+
+**Core Logic:**
+The template maintains the state needed for **descending-rank positional insertion**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 406.
+
+---
+
+### LeetCode 406
+
+**Question:**
+
+Each person is represented by [height,k], where k is the number of people in front whose height is at least this person’s height. Reconstruct any queue satisfying every person’s count and return its [height,k] pairs in queue order.
+
+**Examples:**
+
+1. **Input:** `people = [[7,0],[4,4],[7,1],[5,0],[6,1],[5,2]]`  
+   **Output:** `[[5,0],[7,0],[5,2],[6,1],[4,4],[7,1]]`  
+   **Explanation:** Each k equals the count of preceding people at least as tall.
+
+2. **Input:** `people = [[6,0],[5,0],[4,0],[3,2],[2,2],[1,4]]`  
+   **Output:** `[[4,0],[5,0],[2,2],[3,2],[1,4],[6,0]]`  
+   **Explanation:** Insert tallest first at index k.
+
+**Constraints:**
+
+1 ≤ people.length ≤ 2000; 0 ≤ height ≤ 10^6; 0 ≤ k < people.length; a valid answer is guaranteed.
+
+**Why This Subpattern Applies:**
+
+Sort people by descending height and insert each at the position equal to its count of preceding taller/equal people.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+class Solution {
+    public int[][] reconstructQueue(int[][] people) {
+        Arrays.sort(people, (a, b) -> a[0] != b[0]
+                ? Integer.compare(b[0], a[0]) : Integer.compare(a[1], b[1]));
+        List<int[]> queue = new ArrayList<>();
+        for (int[] person : people) queue.add(person[1], person);
+        return queue.toArray(new int[queue.size()][]);
+    }
+}
+```
+
+**Key Logic:**
+
+Reconstruct queue from height and in-front-taller count: sort taller first (ties by k ascending), insert each at index k; O(n²) shifting.
+
+**Time Complexity:**
+
+**O(n²).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(n) auxiliary/output references.** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G26: Keep maximum cost per equal-run
+
+**When to Apply:**
+- **Recognition clues:** When neighboring characters must differ, within each original equal-character run retain the most expensive element and delete the rest.
+- **Central invariant:** When neighboring characters must differ, within each original equal-character run retain the most expensive element and delete the rest.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+int i = 0; long deleted = 0;
+while (i < s.length()) {
+    int j=i, total=0, keep=0;
+    while (j<s.length() && s.charAt(j)==s.charAt(i)) {
+        total+=cost[j]; keep=Math.max(keep,cost[j]); j++;
+    }
+    deleted += total-keep; i=j;
+}
+```
+
+**Core Logic:**
+The template maintains the state needed for **keep maximum cost per equal-run**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 1578.
+
+---
+
+### LeetCode 1578
+
+**Question:**
+
+A row of colored balloons is represented by a string. Removing balloon i costs neededTime[i]. Remove balloons at minimum total cost so that no two remaining adjacent balloons have the same color. Relative order of remaining balloons cannot change.
+
+**Examples:**
+
+1. **Input:** `colors = "abaac", neededTime = [1,2,3,4,5]`  
+   **Output:** `3`  
+   **Explanation:** Remove the cheaper a from the adjacent aa pair.
+
+2. **Input:** `colors = "abc", neededTime = [1,2,3]`  
+   **Output:** `0`  
+   **Explanation:** No adjacent colors match.
+
+3. **Input:** `colors = "aabaa", neededTime = [1,2,3,4,1]`  
+   **Output:** `2`  
+   **Explanation:** Remove one a from each equal-color run.
+
+**Constraints:**
+
+1 ≤ colors.length = neededTime.length ≤ 10^5; lowercase English letters; 1 ≤ neededTime[i] ≤ 10^4.
+
+**Why This Subpattern Applies:**
+
+When neighboring characters must differ, within each original equal-character run retain the most expensive element and delete the rest.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int minCost(String colors, int[] neededTime) {
+        int cost = 0, max = 0;
+        for (int i = 0; i < colors.length(); i++) {
+            if (i > 0 && colors.charAt(i) != colors.charAt(i - 1)) max = 0;
+            cost += Math.min(max, neededTime[i]);
+            max = Math.max(max, neededTime[i]);
+        }
+        return cost;
+    }
+}
+```
+
+**Key Logic:**
+
+Minimize cost to remove characters so adjacent characters differ: in each maximal equal-character run delete all but maximum-cost character; O(n).
+
+**Time Complexity:**
+
+**O(n).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(1).** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Subpattern G27: Deadline-count earliest-threat elimination
+
+**When to Apply:**
+- **Recognition clues:** When one operation per minute eliminates one enemy, sort each enemy’s arrival deadline and process the earliest deadline first.
+- **Central invariant:** When one operation per minute eliminates one enemy, sort each enemy’s arrival deadline and process the earliest deadline first.
+- Use this family when its exchange or feasibility argument permits an irrevocable local choice; do not assume it applies if later decisions can invalidate that choice.
+
+**Basic Java Code Snippet:**
+
+```java
+Arrays.sort(deadline);
+for (int minute=0; minute<deadline.length; minute++) {
+    if (deadline[minute] <= minute) { /* cannot eliminate this one in time */ }
+}
+```
+
+**Core Logic:**
+The template maintains the state needed for **deadline-count earliest-threat elimination**. Its update step enforces the recognition rule above; each full solution below adds the problem-specific input, output, and boundary checks.
+
+**Questions Covered:** LeetCode 1921.
+
+---
+
+### LeetCode 1921
+
+**Question:**
+
+Monsters start at positive distances and approach the city at constant positive speeds. At the start of each integer minute, you can eliminate exactly one monster instantaneously. If any monster reaches the city before it can be eliminated, the game ends. Maximize the number eliminated.
+
+**Examples:**
+
+1. **Input:** `dist = [1,3,4], speed = [1,1,1]`  
+   **Output:** `3`  
+   **Explanation:** Arrival deadlines are 1,3,4; all can be eliminated.
+
+2. **Input:** `dist = [1,1,2,3], speed = [1,1,1,1]`  
+   **Output:** `1`  
+   **Explanation:** Two monsters reach at minute 1; only one can be eliminated at minute 0.
+
+3. **Input:** `dist = [3,2,4], speed = [5,3,2]`  
+   **Output:** `1`  
+   **Explanation:** Two monsters have arrival deadline 1.
+
+**Constraints:**
+
+1 ≤ dist.length = speed.length ≤ 10^5; 1 ≤ dist[i], speed[i] ≤ 10^5.
+
+**Why This Subpattern Applies:**
+
+When one operation per minute eliminates one enemy, sort each enemy’s arrival deadline and process the earliest deadline first.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.Arrays;
+class Solution {
+    public int eliminateMaximum(int[] dist, int[] speed) {
+        int n = dist.length;
+        int[] deadlines = new int[n];
+        for (int i = 0; i < n; i++)
+            deadlines[i] = (dist[i] - 1) / speed[i] + 1;
+        Arrays.sort(deadlines);
+        for (int minute = 0; minute < n; minute++)
+            if (deadlines[minute] <= minute) return minute;
+        return n;
+    }
+}
+```
+
+**Key Logic:**
+
+Eliminate maximum monsters before any reaches city: integer arrival deadline ceil(distance/speed), sort deadlines, eliminate one per minute; O(n log n).
+
+**Time Complexity:**
+
+**O(n log n).** The dominant work is the scan, sorting, ordered-map operations, or bounded heap operations shown in the code.
+
+**Space Complexity:**
+
+**O(n) deadlines array plus sorting stack.** This includes explicitly allocated structures; output storage is identified separately where applicable.
+
+---
+
+## Final Question Registry
+
+The complete locked sequence is reproduced below, in exact master-curriculum order.
+
+| Sequence | Family | LeetCode | Java solution |
+|---:|---|---:|---|
+| 1 | G1 | 55 | Included |
+| 2 | G1 | 45 | Included |
+| 3 | G2 | 122 | Included |
+| 4 | G3 | 134 | Included |
+| 5 | G4 | 455 | Included |
+| 6 | G5 | 881 | Included |
+| 7 | G6 | 1710 | Included |
+| 8 | G7 | 1833 | Included |
+| 9 | G7 | 2279 | Included |
+| 10 | G8 | 1029 | Included |
+| 11 | G8 | 2611 | Included |
+| 12 | G9 | 2070 | Included |
+| 13 | G9 | 826 | Included |
+| 14 | G10 | 605 | Included |
+| 15 | G11 | 860 | Included |
+| 16 | G12 | 763 | Included |
+| 17 | G13 | 2405 | Included |
+| 18 | G14 | 984 | Included |
+| 19 | G14 | 1405 | Included |
+| 20 | G15 | 678 | Included |
+| 21 | G16 | 2116 | Included |
+| 22 | G17 | 135 | Included |
+| 23 | G18 | 1005 | Included |
+| 24 | G19 | 991 | Included |
+| 25 | G19 | 2139 | Included |
+| 26 | G20 | 738 | Included |
+| 27 | G21 | 670 | Included |
+| 28 | G22 | 659 | Included |
+| 29 | G23 | 1296 | Included |
+| 30 | G24 | 1663 | Included |
+| 31 | G25 | 406 | Included |
+| 32 | G26 | 1578 | Included |
+| 33 | G27 | 1921 | Included |
+
+**Verified count:** 33 / 33 locked questions included; **27 / 27** subpattern starter templates included.
+**Ordering:** identical to Section C10 of the master registry.
+**Compilation:** all 33 standalone `Solution.java` submissions compiled individually with `javac` (see accompanying delivery report).
+**Runtime tests:** not performed; compilation does not establish behavioral correctness.

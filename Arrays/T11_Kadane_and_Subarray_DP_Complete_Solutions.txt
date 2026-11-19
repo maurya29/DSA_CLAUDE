@@ -1,0 +1,1098 @@
+# T11 — Kadane & Subarray DP: Complete Solutions
+
+**Locked curriculum:** 14 LeetCode questions | **Algorithm families:** 10 (K1–K10) | **Language:** Java 21
+
+> **Registry:** Exact locked order from `MASTER_DSA_CURRICULUM.md` version 1.11. This is a complete reference workbook, not a practice-completion record. Problem statements below are original paraphrases of the requirements.
+
+## Table of Contents
+
+- **K1 — Extend-or-restart maximum sum / transformed scores**: [LC 53](#leetcode-53), [LC 2606](#leetcode-2606), [LC 2321](#leetcode-2321)
+- **K2 — Dual maximum/minimum Kadane and circular complement**: [LC 1749](#leetcode-1749), [LC 918](#leetcode-918)
+- **K3 — Repeated-array crossing optimum**: [LC 1191](#leetcode-1191)
+- **K4 — Optional single deletion in nonempty best subarray**: [LC 1186](#leetcode-1186)
+- **K5 — Max/min contiguous product**: [LC 152](#leetcode-152)
+- **K6 — Positive/negative product parity lengths**: [LC 1567](#leetcode-1567)
+- **K7 — Count qualifying consecutive suffixes**: [LC 413](#leetcode-413), [LC 2110](#leetcode-2110)
+- **K8 — Alternating adjacent-comparison states**: [LC 978](#leetcode-978)
+- **K9 — Single-rise-then-fall contiguous shape**: [LC 845](#leetcode-845)
+- **K10 — Constrained character-pair Kadane**: [LC 2272](#leetcode-2272)
+
+---
+
+## Subpattern K1: Extend-or-restart maximum sum / transformed scores
+
+### When to Apply
+A contiguous interval has additive scores; retain the best score ending at the current index and choose extension or restart.
+
+**Basic Java Code Snippet:**
+
+```java
+long ending = 0, best = 0;
+for (int score : scores) {
+    ending = Math.max(0L, ending + score);
+    best = Math.max(best, ending);
+}
+```
+
+**Core Logic:**
+The best interval ending at i is either the single current element or the best ending at i−1 plus its score. If empty is allowed, clamp at zero.
+
+**Questions Covered:** LC 53, LC 2606, LC 2321
+
+### LeetCode 53
+
+**Question:**
+Given a nonempty integer array `nums`, choose a **nonempty contiguous subarray** whose elements have the largest possible sum. Return that sum. You may start and end anywhere, but cannot skip an element inside the chosen interval.
+
+**Examples:**
+
+1. **Input:** `[-2,1,-3,4,-1,2,1,-5,4]`  
+   **Output:** `6`  
+   **Explanation:** The interval `[4,-1,2,1]` sums to 6.
+
+2. **Input:** `[1]`  
+   **Output:** `1`  
+   **Explanation:** The only nonempty interval is `[1]`.
+
+3. **Input:** `[5,4,-1,7,8]`  
+   **Output:** `23`  
+   **Explanation:** All elements together yield 23.
+
+**Constraints:**
+`1 <= nums.length <= 10^5`; `-10^4 <= nums[i] <= 10^4`; answer fits a signed 32-bit integer.
+
+**Why This Subpattern Applies:**
+Each valid answer is an additive contiguous segment, so the optimal segment ending at i either starts at i or extends the best ending at i−1.
+
+**Connection to Previous Solution:**
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int maxSubArray(int[] nums) {
+        int ending = nums[0], best = nums[0];
+        for (int i = 1; i < nums.length; i++) {
+            ending = Math.max(nums[i], ending + nums[i]);
+            best = Math.max(best, ending);
+        }
+        return best;
+    }
+}
+```
+
+**Key Logic:**
+`ending` is the best nonempty sum ending at the current index; `best` records the maximum over all endpoints. Initialize from `nums[0]`, not zero, so all-negative inputs work.
+
+**Time Complexity:**
+O(n): one pass over n elements.
+
+**Space Complexity:**
+O(1) auxiliary space
+
+---
+
+### LeetCode 2606
+
+**Question:**
+Given a lowercase string `s`, a string `chars` of distinct lowercase letters, and an integer array `vals` of equal length, assign each letter its alphabetical position (`a=1` through `z=26`) unless it occurs in `chars`, in which case use the corresponding custom value. Find the maximum sum of letter values over any **contiguous substring** of `s`. You may choose the empty substring, whose sum is zero.
+
+**Examples:**
+
+1. **Input:** `"adaa", "d", [-1000]`  
+   **Output:** `2`  
+   **Explanation:** The substring `"aa"` is worth 1+1.
+
+2. **Input:** `"abc", "abc", [-1,-1,-1]`  
+   **Output:** `0`  
+   **Explanation:** All nonempty substrings are negative; choose empty.
+
+3. **Input:** `"abc", "b", [10]`  
+   **Output:** `14`  
+   **Explanation:** The whole string scores 1+10+3.
+
+**Constraints:**
+`1 <= s.length <= 10^5`; `1 <= chars.length <= 26`; `chars` contains distinct lowercase letters; `vals.length == chars.length`; `-1000 <= vals[i] <= 1000`.
+
+**Why This Subpattern Applies:**
+Mapped character values form an additive score stream, so zero-clamped Kadane finds the best possibly-empty substring.
+
+**Connection to Previous Solution:**
+Replace `nums[i]` with a lookup `value[s.charAt(i)-'a']`; change nonempty initialization to `ending=best=0` and use `max(0, ending+score)`.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int maximumCostSubstring(String s, String chars, int[] vals) {
+        int[] value = new int[26];
+        for (int i = 0; i < 26; i++) value[i] = i + 1;
+        for (int i = 0; i < chars.length(); i++) value[chars.charAt(i) - 'a'] = vals[i];
+        int ending = 0, best = 0;
+        for (int i = 0; i < s.length(); i++) {
+            ending = Math.max(0, ending + value[s.charAt(i) - 'a']);
+            best = Math.max(best, ending);
+        }
+        return best;
+    }
+}
+```
+
+**Key Logic:**
+Default values are overwritten for listed characters. Reset negative running scores to zero because an empty substring is valid; a negative prefix never helps future substrings.
+
+**Time Complexity:**
+O(n+26), where n is the string length.
+
+**Space Complexity:**
+O(26) auxiliary space (constant alphabet size).
+
+---
+
+### LeetCode 2321
+
+**Question:**
+Two integer arrays `nums1` and `nums2` have equal length. You may choose **one** contiguous index range and swap the corresponding slices between the arrays, or make no swap. Afterward, consider the total sum of either resulting array. Return the maximum total achievable for either array.
+
+**Examples:**
+
+1. **Input:** `[60,60,60], [10,90,10]`  
+   **Output:** `210`  
+   **Explanation:** Swapping the middle position into `nums1` gives `[60,90,60]`.
+
+2. **Input:** `[20,40,20,70,30], [50,20,50,40,20]`  
+   **Output:** `220`  
+   **Explanation:** An optimal swap increases the better resulting array sum to 220.
+
+3. **Input:** `[1,2], [3,4]`  
+   **Output:** `7`  
+   **Explanation:** No swap is needed: `nums2` already sums to 7.
+
+**Constraints:**
+`1 <= nums1.length == nums2.length <= 10^5`; `1 <= nums1[i], nums2[i] <= 10^4`.
+
+**Why This Subpattern Applies:**
+Swapping a segment changes an array sum by the sum of per-position differences over exactly that segment; maximize this gain with empty-allowed Kadane.
+
+**Connection to Previous Solution:**
+Replace mapped character scores with two difference streams, `nums2[i]-nums1[i]` and its negation; maintain two independent gain states and add gains to their respective original totals.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int maximumsSplicedArray(int[] nums1, int[] nums2) {
+        int sum1 = 0, sum2 = 0;
+        int end1 = 0, end2 = 0, gain1 = 0, gain2 = 0;
+        for (int i = 0; i < nums1.length; i++) {
+            sum1 += nums1[i]; sum2 += nums2[i];
+            int delta = nums2[i] - nums1[i];
+            end1 = Math.max(0, end1 + delta);
+            end2 = Math.max(0, end2 - delta);
+            gain1 = Math.max(gain1, end1);
+            gain2 = Math.max(gain2, end2);
+        }
+        return Math.max(sum1 + gain1, sum2 + gain2);
+    }
+}
+```
+
+**Key Logic:**
+A swapped slice contributes `sum(nums2 slice)-sum(nums1 slice)` to the first array, and the opposite to the second. Track both directions; zero gain represents skipping the operation.
+
+**Time Complexity:**
+O(n): one scan of paired arrays.
+
+**Space Complexity:**
+O(1) auxiliary space
+
+---
+
+## Subpattern K2: Dual maximum/minimum Kadane and circular complement
+
+### When to Apply
+An absolute-value or circular-sum objective depends on both positive and negative contiguous extremes.
+
+**Basic Java Code Snippet:**
+
+```java
+long maxEnd = a[0], minEnd = a[0], maxBest = a[0], minBest = a[0];
+for (int i = 1; i < a.length; i++) {
+    maxEnd = Math.max(a[i], maxEnd + a[i]);
+    minEnd = Math.min(a[i], minEnd + a[i]);
+    maxBest = Math.max(maxBest, maxEnd);
+    minBest = Math.min(minBest, minEnd);
+}
+```
+
+**Core Logic:**
+Maintain maximum and minimum sums ending at each index; a circular maximum can be total minus a nonempty minimum interior segment, unless that removes the entire array.
+
+**Questions Covered:** LC 1749, LC 918
+
+### LeetCode 1749
+
+**Question:**
+Given an integer array `nums`, find the largest absolute value of the sum of any contiguous subarray. The empty subarray is permitted and has sum zero. Return `max(abs(sum))` across all eligible intervals.
+
+**Examples:**
+
+1. **Input:** `[1,-3,2,3,-4]`  
+   **Output:** `5`  
+   **Explanation:** The segment `[2,3]` sums to 5.
+
+2. **Input:** `[2,-5,1,-4,3,-2]`  
+   **Output:** `8`  
+   **Explanation:** The segment `[-5,1,-4]` sums to -8.
+
+3. **Input:** `[0,0]`  
+   **Output:** `0`  
+   **Explanation:** All sums are zero.
+
+**Constraints:**
+`1 <= nums.length <= 10^5`; `-10^4 <= nums[i] <= 10^4`.
+
+**Why This Subpattern Applies:**
+The largest absolute sum is either the largest positive contiguous sum or the negation of the most negative contiguous sum.
+
+**Connection to Previous Solution:**
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int maxAbsoluteSum(int[] nums) {
+        int maxEnd = 0, minEnd = 0, bestMax = 0, bestMin = 0;
+        for (int x : nums) {
+            maxEnd = Math.max(0, maxEnd + x);
+            minEnd = Math.min(0, minEnd + x);
+            bestMax = Math.max(bestMax, maxEnd);
+            bestMin = Math.min(bestMin, minEnd);
+        }
+        return Math.max(bestMax, -bestMin);
+    }
+}
+```
+
+**Key Logic:**
+`maxEnd` and `minEnd` capture extreme suffix sums; clamp each at zero because empty is permitted. Return the larger magnitude of the two global extremes.
+
+**Time Complexity:**
+O(n): one scan.
+
+**Space Complexity:**
+O(1) auxiliary space
+
+---
+
+### LeetCode 918
+
+**Question:**
+Given a nonempty integer array `nums` arranged in a circle, find the maximum sum of a **nonempty** contiguous subarray. A valid circular segment may wrap from the last index back to the first, but cannot use an index more than once.
+
+**Examples:**
+
+1. **Input:** `[1,-2,3,-2]`  
+   **Output:** `3`  
+   **Explanation:** The single element `[3]` is best.
+
+2. **Input:** `[5,-3,5]`  
+   **Output:** `10`  
+   **Explanation:** The wrapped interval takes both 5s and skips -3.
+
+3. **Input:** `[-3,-2,-3]`  
+   **Output:** `-2`  
+   **Explanation:** Every nonempty choice is negative; the least negative element wins.
+
+**Constraints:**
+`1 <= nums.length <= 3 * 10^4`; `-3 * 10^4 <= nums[i] <= 3 * 10^4`; resulting sums fit signed 32-bit.
+
+**Why This Subpattern Applies:**
+A wrapping interval is the complement of a nonempty interior interval; maximizing its sum means subtracting the minimum interior sum from the total.
+
+**Connection to Previous Solution:**
+Retain the maximum/minimum ending sums; add total sum and candidate `total-minSum`, but only when `maxSum>0` so removing the entire all-nonpositive array cannot create an invalid empty result.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int maxSubarraySumCircular(int[] nums) {
+        int total = 0, maxEnd = 0, minEnd = 0;
+        int maxSum = Integer.MIN_VALUE, minSum = Integer.MAX_VALUE;
+        for (int x : nums) {
+            total += x;
+            maxEnd = Math.max(x, maxEnd + x);
+            minEnd = Math.min(x, minEnd + x);
+            maxSum = Math.max(maxSum, maxEnd);
+            minSum = Math.min(minSum, minEnd);
+        }
+        if (maxSum <= 0) return maxSum;
+        return Math.max(maxSum, total - minSum);
+    }
+}
+```
+
+**Key Logic:**
+The best circular segment is either nonwrapping (`maxSum`) or wraps (`total-minSum`). If all values are nonpositive, subtracting the whole array would produce an illegal empty segment, so return `maxSum`.
+
+**Time Complexity:**
+O(n): one scan.
+
+**Space Complexity:**
+O(1) auxiliary space
+
+---
+
+## Subpattern K3: Repeated-array crossing optimum
+
+### When to Apply
+The array repeats k times; the optimal segment may cross copy boundaries and contain full middle copies.
+
+**Basic Java Code Snippet:**
+
+```java
+long total = 0, prefix = 0, maxPrefix = 0;
+for (int x : a) { total += x; prefix = Math.max(prefix, total); maxPrefix = Math.max(maxPrefix, prefix); }
+long suffix = 0, maxSuffix = 0;
+for (int i = a.length - 1; i >= 0; i--) {
+    suffix += a[i]; maxSuffix = Math.max(maxSuffix, suffix);
+}
+long crossing = maxSuffix + maxPrefix + Math.max(0L, total) * (k - 2L); // k >= 2
+```
+
+**Core Logic:**
+Combine a maximum suffix of one copy, zero or more full middle copies when total is positive, and a maximum prefix of the final copy.
+
+**Questions Covered:** LC 1191
+
+### LeetCode 1191
+
+**Question:**
+Given integer array `arr` and positive integer `k`, conceptually concatenate `k` copies of `arr`. Find the maximum sum of any contiguous subarray of this conceptual sequence; the empty subarray is allowed, so the answer is at least zero. Return the answer modulo `1_000_000_007`. Do not build the repeated array.
+
+**Examples:**
+
+1. **Input:** `[1,2], 3`  
+   **Output:** `9`  
+   **Explanation:** All six elements contribute 9.
+
+2. **Input:** `[1,-2,1], 5`  
+   **Output:** `2`  
+   **Explanation:** Best crosses a boundary: trailing 1 plus leading 1.
+
+3. **Input:** `[-1,-2], 7`  
+   **Output:** `0`  
+   **Explanation:** Choose the empty subarray.
+
+**Constraints:**
+`1 <= arr.length <= 10^5`; `1 <= k <= 10^5`; `-10^4 <= arr[i] <= 10^4`; return result modulo `10^9+7`.
+
+**Why This Subpattern Applies:**
+A multi-copy optimum consists of a suffix of the first used copy, complete middle copies, and a prefix of the last used copy.
+
+**Connection to Previous Solution:**
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int kConcatenationMaxSum(int[] arr, int k) {
+        final long MOD = 1_000_000_007L;
+        long total = 0, prefix = 0, maxPrefix = 0;
+        long ending = 0, best = 0;
+        for (int x : arr) {
+            total += x;
+            prefix += x;
+            maxPrefix = Math.max(maxPrefix, prefix);
+            ending = Math.max(0L, ending + x);
+            best = Math.max(best, ending);
+        }
+        if (k == 1) return (int) (best % MOD);
+        long suffix = 0, maxSuffix = 0;
+        for (int i = arr.length - 1; i >= 0; i--) {
+            suffix += arr[i];
+            maxSuffix = Math.max(maxSuffix, suffix);
+        }
+        long crossing = maxSuffix + maxPrefix + Math.max(0L, total) * (k - 2L);
+        return (int) (Math.max(best, crossing) % MOD);
+    }
+}
+```
+
+**Key Logic:**
+One-copy Kadane handles internal intervals. For two or more copies, the best crossing interval joins suffix and prefix, optionally including profitable whole copies between them. Use `long` before modulo; do not mod intermediate values used for comparisons.
+
+**Time Complexity:**
+O(n): one forward and one backward scan.
+
+**Space Complexity:**
+O(1) auxiliary space
+
+---
+
+## Subpattern K4: Optional single deletion in nonempty best subarray
+
+### When to Apply
+You may remove at most one element from a contiguous choice, but at least one element must remain.
+
+**Basic Java Code Snippet:**
+
+```java
+long keep = a[0], drop = Long.MIN_VALUE / 4, best = a[0];
+for (int i = 1; i < a.length; i++) {
+    long nextDrop = Math.max(keep, drop + a[i]);
+    keep = Math.max(a[i], keep + a[i]);
+    drop = nextDrop;
+    best = Math.max(best, Math.max(keep, drop));
+}
+```
+
+**Core Logic:**
+Track the best ending sum with no deletion and with one deletion; the deletion state either skips the current value or extends a previously deleted segment.
+
+**Questions Covered:** LC 1186
+
+### LeetCode 1186
+
+**Question:**
+Given a nonempty integer array `arr`, select a contiguous subarray and optionally delete **at most one element** from that selected interval. At least one element must remain after deletion. Return the largest possible sum of the remaining elements.
+
+**Examples:**
+
+1. **Input:** `[1,-2,0,3]`  
+   **Output:** `4`  
+   **Explanation:** Choose `[1,-2,0,3]` and delete -2.
+
+2. **Input:** `[1,-2,-2,3]`  
+   **Output:** `3`  
+   **Explanation:** The best valid sum is 3.
+
+3. **Input:** `[-1,-1,-1]`  
+   **Output:** `-1`  
+   **Explanation:** Cannot delete all elements; keep one -1.
+
+**Constraints:**
+`1 <= arr.length <= 10^5`; `-10^4 <= arr[i] <= 10^4`.
+
+**Why This Subpattern Applies:**
+The decision to delete is a one-use budget; ending-here DP must distinguish whether it has been spent.
+
+**Connection to Previous Solution:**
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int maximumSum(int[] arr) {
+        int keep = arr[0], drop = Integer.MIN_VALUE / 2, best = arr[0];
+        for (int i = 1; i < arr.length; i++) {
+            int x = arr[i];
+            int nextDrop = Math.max(keep, drop + x);
+            int nextKeep = Math.max(x, keep + x);
+            keep = nextKeep;
+            drop = nextDrop;
+            best = Math.max(best, Math.max(keep, drop));
+        }
+        return best;
+    }
+}
+```
+
+**Key Logic:**
+`keep` is a nonempty segment ending at i without deletion; `drop` is a segment with one deletion already used, whose retained elements are nonempty. Calculate `nextDrop` using old `keep` before updating it. Initial invalid deletion state prevents deleting the sole element.
+
+**Time Complexity:**
+O(n): one scan.
+
+**Space Complexity:**
+O(1) auxiliary space
+
+---
+
+## Subpattern K5: Max/min contiguous product
+
+### When to Apply
+A contiguous product can switch from worst to best when multiplied by a negative number; zero restarts.
+
+**Basic Java Code Snippet:**
+
+```java
+long hi = a[0], lo = a[0], best = a[0];
+for (int i = 1; i < a.length; i++) {
+    long p = hi * a[i], q = lo * a[i];
+    hi = Math.max(a[i], Math.max(p, q));
+    lo = Math.min(a[i], Math.min(p, q));
+    best = Math.max(best, hi);
+}
+```
+
+**Core Logic:**
+Track both product extremes ending at each position, computing new values from a snapshot of both old states.
+
+**Questions Covered:** LC 152
+
+### LeetCode 152
+
+**Question:**
+Given an integer array `nums`, return the maximum product of the elements of a **nonempty contiguous subarray**. Negative numbers and zeros are allowed. The maximum product is guaranteed to fit a signed 32-bit integer.
+
+**Examples:**
+
+1. **Input:** `[2,3,-2,4]`  
+   **Output:** `6`  
+   **Explanation:** The segment `[2,3]` gives 6.
+
+2. **Input:** `[-2,0,-1]`  
+   **Output:** `0`  
+   **Explanation:** Zero is better than any valid negative product.
+
+3. **Input:** `[-2,3,-4]`  
+   **Output:** `24`  
+   **Explanation:** The entire interval has product 24.
+
+**Constraints:**
+`1 <= nums.length <= 2 * 10^4`; `-10 <= nums[i] <= 10`; products of all contiguous subarrays fit signed 32-bit integer.
+
+**Why This Subpattern Applies:**
+Multiplication by a negative reverses ordering, so the minimum product ending at i−1 may become the maximum ending at i.
+
+**Connection to Previous Solution:**
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int maxProduct(int[] nums) {
+        int high = nums[0], low = nums[0], best = nums[0];
+        for (int i = 1; i < nums.length; i++) {
+            int x = nums[i];
+            int p = high * x, q = low * x;
+            high = Math.max(x, Math.max(p, q));
+            low = Math.min(x, Math.min(p, q));
+            best = Math.max(best, high);
+        }
+        return best;
+    }
+}
+```
+
+**Key Logic:**
+Both extremes are needed because a negative factor swaps their roles. `x` itself is a restart candidate; a zero makes both extremes zero and the next element can restart.
+
+**Time Complexity:**
+O(n): one scan.
+
+**Space Complexity:**
+O(1) auxiliary space
+
+---
+
+## Subpattern K6: Positive/negative product parity lengths
+
+### When to Apply
+You need the longest contiguous positive-product run, not the maximum numeric product.
+
+**Basic Java Code Snippet:**
+
+```java
+int pos = 0, neg = 0, best = 0;
+for (int x : a) {
+    if (x == 0) { pos = neg = 0; }
+    else if (x > 0) { pos++; neg = neg == 0 ? 0 : neg + 1; }
+    else {
+        int oldPos = pos, oldNeg = neg;
+        pos = oldNeg == 0 ? 0 : oldNeg + 1;
+        neg = oldPos + 1;
+    }
+    best = Math.max(best, pos);
+}
+```
+
+**Core Logic:**
+Remember lengths of positive- and negative-product suffixes; negative flips parity, and zero invalidates both.
+
+**Questions Covered:** LC 1567
+
+### LeetCode 1567
+
+**Question:**
+Given an integer array `nums`, find the **length** of the longest contiguous subarray whose product is strictly positive. Return zero if none exists. Do not compute the potentially huge product.
+
+**Examples:**
+
+1. **Input:** `[1,-2,-3,4]`  
+   **Output:** `4`  
+   **Explanation:** Two negative factors yield a positive product for the full array.
+
+2. **Input:** `[0,1,-2,-3,-4]`  
+   **Output:** `3`  
+   **Explanation:** The run `[1,-2,-3]` has positive product.
+
+3. **Input:** `[-1,-2,-3,0,1]`  
+   **Output:** `2`  
+   **Explanation:** The first two negatives yield the longest positive run.
+
+**Constraints:**
+`1 <= nums.length <= 10^5`; `-10^9 <= nums[i] <= 10^9`.
+
+**Why This Subpattern Applies:**
+Only the parity of negative factors matters; track the longest suffix of each product sign.
+
+**Connection to Previous Solution:**
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int getMaxLen(int[] nums) {
+        int pos = 0, neg = 0, best = 0;
+        for (int x : nums) {
+            if (x == 0) {
+                pos = 0; neg = 0;
+            } else if (x > 0) {
+                pos++;
+                neg = neg == 0 ? 0 : neg + 1;
+            } else {
+                int oldPos = pos, oldNeg = neg;
+                pos = oldNeg == 0 ? 0 : oldNeg + 1;
+                neg = oldPos + 1;
+            }
+            best = Math.max(best, pos);
+        }
+        return best;
+    }
+}
+```
+
+**Key Logic:**
+`pos`/`neg` store maximum valid suffix lengths with positive/negative products; zero resets. A negative factor turns negative into positive and positive (or a new singleton) into negative.
+
+**Time Complexity:**
+O(n): one scan.
+
+**Space Complexity:**
+O(1) auxiliary space
+
+---
+
+## Subpattern K7: Count qualifying consecutive suffixes
+
+### When to Apply
+Count every contiguous segment satisfying a local adjacency rule rather than optimize a sum.
+
+**Basic Java Code Snippet:**
+
+```java
+long total = 0, ending = 0;
+for (int i = 2; i < a.length; i++) {
+    if ((long) a[i] - a[i - 1] == (long) a[i - 1] - a[i - 2]) ending++;
+    else ending = 0;
+    total += ending;
+}
+```
+
+**Core Logic:**
+Count how many valid subarrays end at the current index and accumulate those contributions.
+
+**Questions Covered:** LC 413, LC 2110
+
+### LeetCode 413
+
+**Question:**
+Given an integer array `nums`, count all contiguous subarrays of length **at least three** whose consecutive elements have the same arithmetic difference. Different starting/ending indices count as distinct slices.
+
+**Examples:**
+
+1. **Input:** `[1,2,3,4]`  
+   **Output:** `3`  
+   **Explanation:** Valid slices: `[1,2,3]`, `[2,3,4]`, `[1,2,3,4]`.
+
+2. **Input:** `[1]`  
+   **Output:** `0`  
+   **Explanation:** Fewer than three elements.
+
+3. **Input:** `[1,3,5,7,9]`  
+   **Output:** `6`  
+   **Explanation:** There are 3 length-3, 2 length-4, and 1 length-5 slices.
+
+**Constraints:**
+`1 <= nums.length <= 5000`; `-1000 <= nums[i] <= 1000`.
+
+**Why This Subpattern Applies:**
+Each matching pair of adjacent differences extends every arithmetic slice ending at the previous index and creates one new length-three slice.
+
+**Connection to Previous Solution:**
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int numberOfArithmeticSlices(int[] nums) {
+        int ending = 0, total = 0;
+        for (int i = 2; i < nums.length; i++) {
+            if (nums[i] - nums[i - 1] == nums[i - 1] - nums[i - 2]) {
+                ending++;
+            } else {
+                ending = 0;
+            }
+            total += ending;
+        }
+        return total;
+    }
+}
+```
+
+**Key Logic:**
+`ending` counts valid length≥3 slices whose right endpoint is i. Equal differences extend prior slices and create one new triple; unequal differences invalidate all suffixes.
+
+**Time Complexity:**
+O(n): one scan.
+
+**Space Complexity:**
+O(1) auxiliary space
+
+---
+
+### LeetCode 2110
+
+**Question:**
+Given daily stock prices `prices`, count all contiguous periods of one or more days for which each price after the first is **exactly one less** than the preceding price. Every one-day period is valid. Return the total number of such periods.
+
+**Examples:**
+
+1. **Input:** `[3,2,1,4]`  
+   **Output:** `7`  
+   **Explanation:** The run `[3,2,1]` contributes 6 periods; `[4]` adds 1.
+
+2. **Input:** `[8,6,7,7]`  
+   **Output:** `4`  
+   **Explanation:** No adjacent drop is exactly one, so only singletons count.
+
+3. **Input:** `[1]`  
+   **Output:** `1`  
+   **Explanation:** The one-day period is valid.
+
+**Constraints:**
+`1 <= prices.length <= 10^5`; `1 <= prices[i] <= 10^5`; the result can exceed 32-bit range.
+
+**Why This Subpattern Applies:**
+Each day closes as many valid periods as the length of the current exactly-one-descending run.
+
+**Connection to Previous Solution:**
+Keep adjacency-based ending counts and cumulative total, but change the predicate to `prices[i-1]-prices[i]==1`, initialize/reset the ending count to 1 (singletons), and accumulate in `long`.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public long getDescentPeriods(int[] prices) {
+        long total = 1, ending = 1;
+        for (int i = 1; i < prices.length; i++) {
+            if (prices[i - 1] - prices[i] == 1) ending++;
+            else ending = 1;
+            total += ending;
+        }
+        return total;
+    }
+}
+```
+
+**Key Logic:**
+A run of length L yields exactly L periods ending at its final day (all suffixes). Reset to one when the required adjacent drop fails. `long` prevents overflow on long descending runs.
+
+**Time Complexity:**
+O(n): one scan.
+
+**Space Complexity:**
+O(1) auxiliary space
+
+---
+
+## Subpattern K8: Alternating adjacent-comparison states
+
+### When to Apply
+The signs of consecutive differences must alternate, and equality breaks the run.
+
+**Basic Java Code Snippet:**
+
+```java
+int up = 1, down = 1, best = 1;
+for (int i = 1; i < a.length; i++) {
+    if (a[i] > a[i-1]) { up = down + 1; down = 1; }
+    else if (a[i] < a[i-1]) { down = up + 1; up = 1; }
+    else { up = down = 1; }
+    best = Math.max(best, Math.max(up, down));
+}
+```
+
+**Core Logic:**
+Keep lengths of alternating runs ending in an up-step and a down-step; each extends the opposite direction.
+
+**Questions Covered:** LC 978
+
+### LeetCode 978
+
+**Question:**
+Given integer array `arr`, find the length of the longest contiguous subarray of length at least two whose consecutive comparison signs **strictly alternate** (`<,>,<,...` or `>,<,>,...`). Adjacent equal values break the pattern. If no length-two turbulent segment exists, return 1.
+
+**Examples:**
+
+1. **Input:** `[9,4,2,10,7,8,8,1,9]`  
+   **Output:** `5`  
+   **Explanation:** `[4,2,10,7,8]` alternates down/up/down/up.
+
+2. **Input:** `[4,8,12,16]`  
+   **Output:** `2`  
+   **Explanation:** Any two unequal adjacent values work, but three increasing values do not.
+
+3. **Input:** `[100]`  
+   **Output:** `1`  
+   **Explanation:** Single element is the best available.
+
+**Constraints:**
+`1 <= arr.length <= 4 * 10^4`; `0 <= arr[i] <= 10^9`.
+
+**Why This Subpattern Applies:**
+An alternating run can be extended only by a step opposite to its previous step, requiring separate up-ending and down-ending states.
+
+**Connection to Previous Solution:**
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int maxTurbulenceSize(int[] arr) {
+        int up = 1, down = 1, best = 1;
+        for (int i = 1; i < arr.length; i++) {
+            if (arr[i] > arr[i - 1]) {
+                up = down + 1;
+                down = 1;
+            } else if (arr[i] < arr[i - 1]) {
+                down = up + 1;
+                up = 1;
+            } else {
+                up = 1; down = 1;
+            }
+            best = Math.max(best, Math.max(up, down));
+        }
+        return best;
+    }
+}
+```
+
+**Key Logic:**
+`up` is the longest turbulent suffix ending in a rise; `down` ends in a fall. A rise extends only an old falling suffix, and vice versa. Equality resets both to singleton length.
+
+**Time Complexity:**
+O(n): one scan.
+
+**Space Complexity:**
+O(1) auxiliary space
+
+---
+
+## Subpattern K9: Single-rise-then-fall contiguous shape
+
+### When to Apply
+A valid segment strictly increases, reaches one peak, then strictly decreases; both phases are mandatory.
+
+**Basic Java Code Snippet:**
+
+```java
+int up = 0, down = 0, best = 0;
+for (int i = 1; i < a.length; i++) {
+    if (a[i] == a[i-1] || (down > 0 && a[i] > a[i-1])) up = down = 0;
+    if (a[i] > a[i-1]) up++;
+    else if (a[i] < a[i-1] && up > 0) down++;
+    if (up > 0 && down > 0) best = Math.max(best, up + down + 1);
+}
+```
+
+**Core Logic:**
+Maintain the current ascent and descent lengths; a new ascent after a descent starts a new mountain.
+
+**Questions Covered:** LC 845
+
+### LeetCode 845
+
+**Question:**
+Given integer array `arr`, find the length of its longest contiguous **mountain**. A mountain has at least three elements, strictly rises for one or more steps to a peak, then strictly falls for one or more steps. Equal adjacent elements, purely rising runs, and purely falling runs are not mountains. Return zero if no mountain exists.
+
+**Examples:**
+
+1. **Input:** `[2,1,4,7,3,2,5]`  
+   **Output:** `5`  
+   **Explanation:** `[1,4,7,3,2]` is a valid mountain.
+
+2. **Input:** `[2,2,2]`  
+   **Output:** `0`  
+   **Explanation:** No strict ascent or descent.
+
+3. **Input:** `[0,2,0,2,1,0]`  
+   **Output:** `4`  
+   **Explanation:** `[0,2,1,0]` is the longest mountain.
+
+**Constraints:**
+`1 <= arr.length <= 10^4`; `0 <= arr[i] <= 10^4`.
+
+**Why This Subpattern Applies:**
+The target shape has two ordered phases, first ascent then descent, and can never resume ascent within the same mountain.
+
+**Connection to Previous Solution:**
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int longestMountain(int[] arr) {
+        int up = 0, down = 0, best = 0;
+        for (int i = 1; i < arr.length; i++) {
+            if (arr[i] == arr[i - 1] || (down > 0 && arr[i] > arr[i - 1])) {
+                up = 0; down = 0;
+            }
+            if (arr[i] > arr[i - 1]) up++;
+            else if (arr[i] < arr[i - 1] && up > 0) down++;
+            if (up > 0 && down > 0) best = Math.max(best, up + down + 1);
+        }
+        return best;
+    }
+}
+```
+
+**Key Logic:**
+`up` and `down` count strict steps, not elements. A new ascent after descending or any equality resets the current mountain. Only update the answer after at least one step of each type.
+
+**Time Complexity:**
+O(n): one scan.
+
+**Space Complexity:**
+O(1) auxiliary space
+
+---
+
+## Subpattern K10: Constrained character-pair Kadane
+
+### When to Apply
+A substring maximizes frequency(major) minus frequency(minor), but must contain at least one of each letter.
+
+**Basic Java Code Snippet:**
+
+```java
+for (int major = 0; major < 26; major++) for (int minor = 0; minor < 26; minor++) {
+    if (major == minor || freq[major] == 0 || freq[minor] == 0) continue;
+    int majorCount = 0, minorCount = 0, remainingMinor = freq[minor];
+    for (char ch : s.toCharArray()) {
+        int c = ch - 'a';
+        if (c == major) majorCount++;
+        if (c == minor) { minorCount++; remainingMinor--; }
+        if (minorCount > 0) { /* update best with majorCount - minorCount */ }
+        if (majorCount < minorCount && remainingMinor > 0) majorCount = minorCount = 0;
+    }
+}
+```
+
+**Core Logic:**
+For each ordered pair, count +1/−1 contributions; score only after seeing the minor letter, and reset negative scores only if another minor remains.
+
+**Questions Covered:** LC 2272
+
+### LeetCode 2272
+
+**Question:**
+Given a lowercase string `s`, consider every **nonempty contiguous substring** containing at least two distinct characters. Its variance is the difference between the largest and smallest occurrence counts among the distinct characters actually present in that substring. Return the maximum possible variance over all such substrings. Both characters used to compute a candidate difference must occur at least once.
+
+**Examples:**
+
+1. **Input:** `"aababbb"`  
+   **Output:** `3`  
+   **Explanation:** The substring `"babbb"` has four b characters and one a.
+
+2. **Input:** `"abcde"`  
+   **Output:** `0`  
+   **Explanation:** Every substring with distinct letters has equal nonzero counts for its present characters.
+
+3. **Input:** `"aaaa"`  
+   **Output:** `0`  
+   **Explanation:** No substring contains two distinct characters.
+
+**Constraints:**
+`1 <= s.length <= 10^4`; `s` contains only lowercase English letters.
+
+**Why This Subpattern Applies:**
+Fix an ordered pair of letters and treat major occurrences as +1 and minor occurrences as −1; the best valid substring is a constrained Kadane optimum requiring at least one minor.
+
+**Connection to Previous Solution:**
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int largestVariance(String s) {
+        int[] freq = new int[26];
+        for (int i = 0; i < s.length(); i++) freq[s.charAt(i) - 'a']++;
+        int best = 0;
+        for (int major = 0; major < 26; major++) {
+            if (freq[major] == 0) continue;
+            for (int minor = 0; minor < 26; minor++) {
+                if (major == minor || freq[minor] == 0) continue;
+                int majorCount = 0, minorCount = 0;
+                int remainingMinor = freq[minor];
+                for (int i = 0; i < s.length(); i++) {
+                    int c = s.charAt(i) - 'a';
+                    if (c == major) majorCount++;
+                    if (c == minor) { minorCount++; remainingMinor--; }
+                    if (minorCount > 0) best = Math.max(best, majorCount - minorCount);
+                    if (majorCount < minorCount && remainingMinor > 0) {
+                        majorCount = 0;
+                        minorCount = 0;
+                    }
+                }
+            }
+        }
+        return best;
+    }
+}
+```
+
+**Key Logic:**
+For each ordered pair, other letters have zero contribution but may remain inside the substring. Score only when `minorCount>0`, and reset a negative prefix only if another minor exists later; otherwise preserve the required minor even with negative running score. Swapping major/minor covers both possible frequency orderings.
+
+**Time Complexity:**
+O(26² × n): scan the string for at most 26×25 ordered pairs.
+
+**Space Complexity:**
+O(26) auxiliary space for frequencies; no per-pair copy of the string.
+
+---
+
+## Final Locked Question Registry
+
+| Position | Family | LeetCode ID | Included |
+|---:|---|---:|---|
+| 01 | K1 | 53 | Yes — full solution |
+| 02 | K1 | 2606 | Yes — full solution |
+| 03 | K1 | 2321 | Yes — full solution |
+| 04 | K2 | 1749 | Yes — full solution |
+| 05 | K2 | 918 | Yes — full solution |
+| 06 | K3 | 1191 | Yes — full solution |
+| 07 | K4 | 1186 | Yes — full solution |
+| 08 | K5 | 152 | Yes — full solution |
+| 09 | K6 | 1567 | Yes — full solution |
+| 10 | K7 | 413 | Yes — full solution |
+| 11 | K7 | 2110 | Yes — full solution |
+| 12 | K8 | 978 | Yes — full solution |
+| 13 | K9 | 845 | Yes — full solution |
+| 14 | K10 | 2272 | Yes — full solution |
+
+**Verification:** 14/14 locked IDs included in exact order; 10/10 families contain recognition rules, a reusable Java starter snippet, and full question entries.

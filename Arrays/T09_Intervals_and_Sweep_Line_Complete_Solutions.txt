@@ -1,0 +1,1811 @@
+# T09 — Intervals & Sweep Line: Complete Solutions
+
+**Locked curriculum:** 23 LeetCode questions · 13 algorithm families (I1–I13).
+**Reference:** `MASTER_DSA_CURRICULUM.md`, Section C9, version 1.9.
+**Study status:** This is a reference workbook; generating it does not mark any question as practiced or completed.
+
+## Table of Contents
+
+- [I1 — Sort-and-merge overlapping intervals](#i1-sort-and-merge-overlapping-intervals) — [LC 56](#leetcode-56), [LC 57](#leetcode-57), [LC 2580](#leetcode-2580)
+- [I2 — Two-stream sorted interval intersection](#i2-two-stream-sorted-interval-intersection) — [LC 986](#leetcode-986), [LC 1229](#leetcode-1229)
+- [I3 — Earliest-finish compatible scheduling](#i3-earliest-finish-compatible-scheduling) — [LC 435](#leetcode-435), [LC 646](#leetcode-646)
+- [I4 — Minimum points piercing closed intervals](#i4-minimum-points-piercing-closed-intervals) — [LC 452](#leetcode-452)
+- [I5 — Greedy full-range coverage](#i5-greedy-full-range-coverage) — [LC 1024](#leetcode-1024), [LC 1326](#leetcode-1326)
+- [I6 — Event-coordinate sweeping and aggregation](#i6-event-coordinate-sweeping-and-aggregation) — [LC 1854](#leetcode-1854), [LC 2406](#leetcode-2406), [LC 1943](#leetcode-1943)
+- [I7 — Nonoverlap booking with ordered neighbors](#i7-nonoverlap-booking-with-ordered-neighbors) — [LC 729](#leetcode-729)
+- [I8 — Calendar overlap counts and rollback](#i8-calendar-overlap-counts-and-rollback) — [LC 731](#leetcode-731), [LC 732](#leetcode-732)
+- [I9 — Dynamic disjoint interval union](#i9-dynamic-disjoint-interval-union) — [LC 352](#leetcode-352), [LC 2276](#leetcode-2276), [LC 715](#leetcode-715)
+- [I10 — Successor interval lookup](#i10-successor-interval-lookup) — [LC 436](#leetcode-436)
+- [I11 — Best-value pair of nonoverlapping events](#i11-best-value-pair-of-nonoverlapping-events) — [LC 2054](#leetcode-2054)
+- [I12 — Skyline active-height sweep](#i12-skyline-active-height-sweep) — [LC 218](#leetcode-218)
+- [I13 — Maximal consecutive integer runs](#i13-maximal-consecutive-integer-runs) — [LC 228](#leetcode-228)
+
+---
+
+## I1 — Sort-and-merge overlapping intervals
+
+### When to Apply
+
+Unsorted closed intervals must be merged or counted as overlap-connected components. Sort by start; the current component ends at the largest right endpoint encountered.
+
+### Basic Java Code Snippet
+
+```java
+java.util.Arrays.sort(ranges, java.util.Comparator.comparingInt(a -> a[0]));
+int start = ranges[0][0], end = ranges[0][1];
+for (int i = 1; i < ranges.length; i++) {
+    if (ranges[i][0] <= end) end = Math.max(end, ranges[i][1]);
+    else {
+        // emit/count finished component [start,end]
+        start = ranges[i][0]; end = ranges[i][1];
+    }
+}
+// emit/count final component; guard empty input.
+```
+
+### Core Logic
+
+Unsorted closed intervals must be merged or counted as overlap-connected components. Sort by start; the current component ends at the largest right endpoint encountered.
+
+### Questions Covered
+
+LC 56, LC 57, LC 2580
+
+---
+
+### LeetCode 56
+
+**Question:**
+
+Given an array of closed intervals [start,end], combine every pair or chain of intervals sharing any point. Return the resulting disjoint intervals covering exactly the original union; output may be in any order. Touching endpoints count as overlapping.
+
+**Examples:**
+
+- `[[1,3],[2,6],[8,10],[15,18]] → [[1,6],[8,10],[15,18]]`
+- `[[1,4],[4,5]] → [[1,5]]`
+- `[[1,4],[2,3]] → [[1,4]].`
+
+**Constraints:**
+
+1 ≤ intervals.length ≤ 10^4; 0 ≤ start ≤ end ≤ 10^4.
+
+**Why This Subpattern Applies:**
+
+Sorting by left endpoint makes every interval overlapping the current merged component consecutive.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int[][] merge(int[][] intervals) {
+        java.util.Arrays.sort(intervals, java.util.Comparator.comparingInt(a -> a[0]));
+        java.util.List<int[]> result = new java.util.ArrayList<>();
+        int start = intervals[0][0], end = intervals[0][1];
+        for (int i = 1; i < intervals.length; i++) {
+            if (intervals[i][0] <= end) end = Math.max(end, intervals[i][1]);
+            else { result.add(new int[]{start, end}); start = intervals[i][0]; end = intervals[i][1]; }
+        }
+        result.add(new int[]{start, end});
+        return result.toArray(new int[result.size()][]);
+    }
+}
+```
+
+**Key Logic:**
+
+Sort starts; retain the current merged range. Extend its end on overlap, otherwise append it and start a new component.
+
+**Time Complexity:**
+
+O(n log n) time for sorting
+
+**Space Complexity:**
+
+O(n) output and O(log n) sorting stack (implementation-dependent).
+
+---
+
+### LeetCode 57
+
+**Question:**
+
+Given nonoverlapping closed intervals already sorted by start and one additional closed interval, insert it and merge any overlaps. Return a sorted disjoint list; do not lose existing intervals.
+
+**Examples:**
+
+- `[[1,3],[6,9]], [2,5] → [[1,5],[6,9]]`
+- `[[1,2],[3,5],[6,7],[8,10],[12,16]], [4,8] → [[1,2],[3,10],[12,16]]`
+- `[], [5,7] → [[5,7]].`
+
+**Constraints:**
+
+0 ≤ intervals.length ≤ 10^4; 0 ≤ start ≤ end ≤ 10^5; original intervals sorted and pairwise disjoint.
+
+**Why This Subpattern Applies:**
+
+Existing order removes the need to sort: only a contiguous middle block can overlap the inserted interval.
+
+**Connection to Previous Solution:**
+
+merge test and endpoint min/max; replace global sorting with three linear phases around the inserted range.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int[][] insert(int[][] intervals, int[] newInterval) {
+        java.util.List<int[]> out = new java.util.ArrayList<>();
+        int i = 0, n = intervals.length;
+        while (i < n && intervals[i][1] < newInterval[0]) out.add(intervals[i++]);
+        int start = newInterval[0], end = newInterval[1];
+        while (i < n && intervals[i][0] <= end) {
+            start = Math.min(start, intervals[i][0]);
+            end = Math.max(end, intervals[i][1]);
+            i++;
+        }
+        out.add(new int[]{start, end});
+        while (i < n) out.add(intervals[i++]);
+        return out.toArray(new int[out.size()][]);
+    }
+}
+```
+
+**Key Logic:**
+
+First copy ranges ending before the new start; merge while next start ≤ new end; append remaining ranges. Endpoints are inclusive.
+
+**Time Complexity:**
+
+O(n) time, O(n) output space
+
+**Space Complexity:**
+
+O(1) extra beyond output.
+
+---
+
+### LeetCode 2580
+
+**Question:**
+
+Given closed integer ranges, assign each entire range to one of two labeled groups. If two ranges overlap, they must be placed in the same group. Count all valid assignments modulo 1,000,000,007; either group may be empty.
+
+**Examples:**
+
+- `[[6,10],[5,15]] → 2`
+- `[[1,3],[10,20],[2,5],[4,8]] → 4`
+- `[[1,1],[3,3]] → 4.`
+
+**Constraints:**
+
+1 ≤ ranges.length ≤ 10^5; 0 ≤ left ≤ right ≤ 10^9.
+
+**Why This Subpattern Applies:**
+
+Overlapping ranges form connected components, and each component independently chooses one of two groups.
+
+**Connection to Previous Solution:**
+
+sorted merge-component detection; replace emitting intervals with incrementing component count and exponentiating 2.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int countWays(int[][] ranges) {
+        java.util.Arrays.sort(ranges, java.util.Comparator.comparingInt(a -> a[0]));
+        long ways = 1;
+        int end = -1;
+        for (int[] r : ranges) {
+            if (r[0] > end) ways = ways * 2 % 1_000_000_007;
+            end = Math.max(end, r[1]);
+        }
+        return (int) ways;
+    }
+}
+```
+
+**Key Logic:**
+
+Sort starts, count a new component only when start > previous merged end. Multiply the answer by two for each component modulo 1e9+7.
+
+**Time Complexity:**
+
+O(n log n) time
+
+**Space Complexity:**
+
+O(log n) sorting stack, O(1) other auxiliary space.
+
+---
+
+## I2 — Two-stream sorted interval intersection
+
+### When to Apply
+
+Two ordered, internally disjoint interval streams need common time or common segments. Compare current intervals and advance the one ending earlier.
+
+### Basic Java Code Snippet
+
+```java
+int i = 0, j = 0;
+while (i < a.length && j < b.length) {
+    int start = Math.max(a[i][0], b[j][0]);
+    int end = Math.min(a[i][1], b[j][1]);
+    if (start <= end) { /* common closed span; adapt duration rule */ }
+    if (a[i][1] < b[j][1]) i++; else j++;
+}
+// For available duration D, require (long)end - start >= D
+// when timestamps are treated as half-open [start,end).
+```
+
+### Core Logic
+
+Two ordered, internally disjoint interval streams need common time or common segments. Compare current intervals and advance the one ending earlier.
+
+### Questions Covered
+
+LC 986, LC 1229
+
+---
+
+### LeetCode 986
+
+**Question:**
+
+Two lists of closed intervals are each sorted by start and internally pairwise disjoint. Return every nonempty intersection between one interval from the first list and one from the second, sorted by start. Shared endpoints form singleton intersections.
+
+**Examples:**
+
+- `[[0,2],[5,10],[13,23],[24,25]], [[1,5],[8,12],[15,24],[25,26]] → [[1,2],[5,5],[8,10],[15,23],[24,24],[25,25]]`
+- `[[1,3]], [] → []`
+- `[[1,2]], [[2,3]] → [[2,2]].`
+
+**Constraints:**
+
+0 ≤ list lengths ≤ 1000; 0 ≤ start ≤ end ≤ 10^9; each list sorted, internally disjoint.
+
+**Why This Subpattern Applies:**
+
+Only the two current intervals can create the next intersection; the earlier-ending one cannot overlap any later interval of the opposite stream.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int[][] intervalIntersection(int[][] firstList, int[][] secondList) {
+        java.util.List<int[]> out = new java.util.ArrayList<>();
+        int i = 0, j = 0;
+        while (i < firstList.length && j < secondList.length) {
+            int left = Math.max(firstList[i][0], secondList[j][0]);
+            int right = Math.min(firstList[i][1], secondList[j][1]);
+            if (left <= right) out.add(new int[]{left, right});
+            if (firstList[i][1] < secondList[j][1]) i++; else j++;
+        }
+        return out.toArray(new int[out.size()][]);
+    }
+}
+```
+
+**Key Logic:**
+
+Intersection is [max(starts), min(ends)] if start ≤ end. Advance whichever interval ends first (either on a tie).
+
+**Time Complexity:**
+
+O(n+m) time
+
+**Space Complexity:**
+
+O(k) output space, O(1) auxiliary excluding output.
+
+---
+
+### LeetCode 1229
+
+**Question:**
+
+Two people provide available time slots [start,end], and a positive meeting duration. Find the earliest starting interval [t,t+duration] that fits entirely within one slot from each person. Return [] when no such meeting exists. Slots for each person do not overlap but are not necessarily sorted.
+
+**Examples:**
+
+- `[[10,50],[60,120],[140,210]], [[0,15],[60,70]], 8 → [60,68]`
+- `[[10,50]], [[0,15]], 10 → []`
+- `[[1,10]], [[3,8]], 5 → [3,8].`
+
+**Constraints:**
+
+1 ≤ slot-list lengths ≤ 10^4; 0 ≤ start < end ≤ 10^9; 1 ≤ duration ≤ 10^6; each person’s slots do not overlap.
+
+**Why This Subpattern Applies:**
+
+After sorting both streams, their current overlap is the earliest possible candidate not yet eliminated.
+
+**Connection to Previous Solution:**
+
+Retain intersection and earlier-end advance; change output to early return when overlap length >= duration, otherwise continue.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public java.util.List<Integer> minAvailableDuration(int[][] slots1, int[][] slots2, int duration) {
+        java.util.Arrays.sort(slots1, java.util.Comparator.comparingInt(a -> a[0]));
+        java.util.Arrays.sort(slots2, java.util.Comparator.comparingInt(a -> a[0]));
+        int i = 0, j = 0;
+        while (i < slots1.length && j < slots2.length) {
+            int start = Math.max(slots1[i][0], slots2[j][0]);
+            int end = Math.min(slots1[i][1], slots2[j][1]);
+            if ((long) end - start >= duration) return java.util.List.of(start, start + duration);
+            if (slots1[i][1] < slots2[j][1]) i++; else j++;
+        }
+        return java.util.List.of();
+    }
+}
+```
+
+**Key Logic:**
+
+Sort each list, compute max start and min end; return [start,start+duration] when end-start ≥ duration; otherwise advance earlier-ending slot.
+
+**Time Complexity:**
+
+O(n log n + m log m) time for sorting
+
+**Space Complexity:**
+
+O(log n + log m) sorting stack, O(1) other auxiliary space.
+
+---
+
+## I3 — Earliest-finish compatible scheduling
+
+### When to Apply
+
+Maximize compatible interval selections or minimize removals. Choosing the earliest finishing compatible interval leaves maximal room for future choices.
+
+### Basic Java Code Snippet
+
+```java
+java.util.Arrays.sort(a, java.util.Comparator.comparingInt(x -> x[1]));
+long lastEnd = Long.MIN_VALUE;
+int kept = 0;
+for (int[] in : a) {
+    if (in[0] >= lastEnd) { // change to > for strict chains
+        kept++; lastEnd = in[1];
+    }
+}
+```
+
+### Core Logic
+
+Maximize compatible interval selections or minimize removals. Choosing the earliest finishing compatible interval leaves maximal room for future choices.
+
+### Questions Covered
+
+LC 435, LC 646
+
+---
+
+### LeetCode 435
+
+**Question:**
+
+Given time intervals, remove the minimum number so that no two remaining intervals overlap. Intervals meeting exactly at an endpoint are compatible. Return the number removed, not the remaining intervals.
+
+**Examples:**
+
+- `[[1,2],[2,3],[3,4],[1,3]] → 1`
+- `[[1,2],[1,2],[1,2]] → 2`
+- `[[1,2],[2,3]] → 0.`
+
+**Constraints:**
+
+1 ≤ intervals.length ≤ 10^5; -5×10^4 ≤ start < end ≤ 5×10^4.
+
+**Why This Subpattern Applies:**
+
+Keeping the interval that finishes earliest leaves maximum room for future intervals, maximizing retained count.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int eraseOverlapIntervals(int[][] intervals) {
+        java.util.Arrays.sort(intervals, java.util.Comparator.comparingInt(a -> a[1]));
+        int kept = 0;
+        long lastEnd = Long.MIN_VALUE;
+        for (int[] in : intervals) {
+            if (in[0] >= lastEnd) { kept++; lastEnd = in[1]; }
+        }
+        return intervals.length - kept;
+    }
+}
+```
+
+**Key Logic:**
+
+Sort by end, accept an interval only if its start ≥ last accepted end; subtract accepted count from total.
+
+**Time Complexity:**
+
+O(n log n) time
+
+**Space Complexity:**
+
+O(log n) sorting stack, O(1) other auxiliary space.
+
+---
+
+### LeetCode 646
+
+**Question:**
+
+Given pairs [left,right] with left < right, build the longest chain in which each subsequent pair has left strictly greater than the preceding pair’s right. You may choose pairs in any order; return maximum chain length.
+
+**Examples:**
+
+- `[[1,2],[2,3],[3,4]] → 2`
+- `[[1,2],[7,8],[4,5]] → 3`
+- `[[1,10],[2,3],[4,5]] → 2.`
+
+**Constraints:**
+
+1 ≤ pairs.length ≤ 1000; -1000 ≤ left < right ≤ 1000.
+
+**Why This Subpattern Applies:**
+
+The earliest-finish greedy choice maximizes remaining options; unlike touching intervals in LC 435, chaining requires strict separation.
+
+**Connection to Previous Solution:**
+
+Keep earliest-end sort and selected-chain count; replace compatibility >= with strict > and return kept count instead of removals.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int findLongestChain(int[][] pairs) {
+        java.util.Arrays.sort(pairs, java.util.Comparator.comparingInt(a -> a[1]));
+        int count = 0;
+        long end = Long.MIN_VALUE;
+        for (int[] p : pairs) {
+            if (p[0] > end) { count++; end = p[1]; }
+        }
+        return count;
+    }
+}
+```
+
+**Key Logic:**
+
+Sort by end; accept a pair only when left > lastEnd. Return number kept rather than number discarded.
+
+**Time Complexity:**
+
+O(n log n) time
+
+**Space Complexity:**
+
+O(log n) sorting stack, O(1) other auxiliary space.
+
+---
+
+## I4 — Minimum points piercing closed intervals
+
+### When to Apply
+
+Choose the fewest points that touch all closed intervals. Placing each point at the earliest finishing unpierced interval’s end is optimal.
+
+### Basic Java Code Snippet
+
+```java
+java.util.Arrays.sort(a, java.util.Comparator.comparingInt(x -> x[1]));
+long arrow = Long.MIN_VALUE;
+int used = 0;
+for (int[] in : a) {
+    if (in[0] > arrow) { arrow = in[1]; used++; }
+}
+// A closed interval beginning at arrow is already pierced.
+```
+
+### Core Logic
+
+Choose the fewest points that touch all closed intervals. Placing each point at the earliest finishing unpierced interval’s end is optimal.
+
+### Questions Covered
+
+LC 452
+
+---
+
+### LeetCode 452
+
+**Question:**
+
+Each balloon occupies a closed horizontal interval [start,end]. A vertical arrow at coordinate x bursts every balloon whose interval contains x. Determine the minimum number of arrows needed to burst all balloons.
+
+**Examples:**
+
+- `[[10,16],[2,8],[1,6],[7,12]] → 2`
+- `[[1,2],[3,4],[5,6],[7,8]] → 4`
+- `[[1,2],[2,3]] → 1.`
+
+**Constraints:**
+
+1 ≤ points.length ≤ 10^5; -2^31 ≤ start < end ≤ 2^31−1.
+
+**Why This Subpattern Applies:**
+
+Choosing the earliest right endpoint stabs the maximum feasible set without harming future choices.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int findMinArrowShots(int[][] points) {
+        java.util.Arrays.sort(points, java.util.Comparator.comparingInt(a -> a[1]));
+        long arrow = Long.MIN_VALUE;
+        int count = 0;
+        for (int[] p : points) {
+            if (p[0] > arrow) { count++; arrow = p[1]; }
+        }
+        return count;
+    }
+}
+```
+
+**Key Logic:**
+
+Sort by right endpoint; whenever start > current arrow position, shoot at that interval’s right endpoint. Equality still overlaps because intervals are closed.
+
+**Time Complexity:**
+
+O(n log n) time
+
+**Space Complexity:**
+
+O(log n) sorting stack and O(1) other auxiliary space.
+
+---
+
+## I5 — Greedy full-range coverage
+
+### When to Apply
+
+Cover an entire continuous target using as few intervals as possible. At each reachable frontier, extend to the farthest end of any eligible interval.
+
+### Basic Java Code Snippet
+
+```java
+// Sort segments by start first (or preprocess farthestRight[start]).
+int i = 0, covered = 0, chosen = 0;
+while (covered < target) {
+    int farthest = covered;
+    while (i < segments.length && segments[i][0] <= covered)
+        farthest = Math.max(farthest, segments[i++][1]);
+    if (farthest == covered) { /* impossible to cover target */ break; }
+    covered = farthest;
+    chosen++;
+}
+```
+
+### Core Logic
+
+Cover an entire continuous target using as few intervals as possible. At each reachable frontier, extend to the farthest end of any eligible interval.
+
+### Questions Covered
+
+LC 1024, LC 1326
+
+---
+
+### LeetCode 1024
+
+**Question:**
+
+Each video clip [start,end] covers a continuous part of a video. You may trim clips freely. Return the minimum number of clips whose union covers every instant from 0 through time, or -1 if impossible.
+
+**Examples:**
+
+- `[[0,2],[4,6],[8,10],[1,9],[1,5],[5,9]], 10 → 3`
+- `[[0,1],[1,2]], 5 → -1`
+- `[[0,4],[2,8]], 8 → 2.`
+
+**Constraints:**
+
+1 ≤ clips.length ≤ 100; 0 ≤ start ≤ end ≤ 100; 0 ≤ time ≤ 100.
+
+**Why This Subpattern Applies:**
+
+At each covered frontier, all clips starting at or before it are candidates; taking the farthest-reaching one cannot increase the minimum count.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int videoStitching(int[][] clips, int time) {
+        java.util.Arrays.sort(clips, java.util.Comparator.comparingInt(a -> a[0]));
+        int i = 0, covered = 0, used = 0;
+        while (covered < time) {
+            int farthest = covered;
+            while (i < clips.length && clips[i][0] <= covered)
+                farthest = Math.max(farthest, clips[i++][1]);
+            if (farthest == covered) return -1;
+            covered = farthest;
+            used++;
+        }
+        return used;
+    }
+}
+```
+
+**Key Logic:**
+
+Sort by start; scan all reachable clips, commit the farthest endpoint, and fail if frontier does not advance. A zero-length target needs zero clips.
+
+**Time Complexity:**
+
+O(n log n) time
+
+**Space Complexity:**
+
+O(log n) sorting stack, O(1) other auxiliary space.
+
+---
+
+### LeetCode 1326
+
+**Question:**
+
+A garden spans [0,n]. Tap i at integer position i waters [i−ranges[i], i+ranges[i]], clipped to garden boundaries. Choose the fewest taps whose watered regions cover the entire garden; return -1 if impossible.
+
+**Examples:**
+
+- `n=5, ranges=[3,4,1,1,0,0] → 1`
+- `n=3, ranges=[0,0,0,0] → -1`
+- `n=7, ranges=[1,2,1,0,2,1,0,1] → 3.`
+
+**Constraints:**
+
+1 ≤ n ≤ 10^4; ranges.length = n+1; 0 ≤ ranges[i] ≤ 100.
+
+**Why This Subpattern Applies:**
+
+Each tap is an interval, so minimum continuous coverage uses the same farthest-frontier greedy invariant.
+
+**Connection to Previous Solution:**
+
+Keep greedy coverage frontier; replace input clips with position-derived intervals (optionally preprocess farthestRight[left] for linear scan).
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int minTaps(int n, int[] ranges) {
+        int[] reach = new int[n + 1];
+        for (int i = 0; i <= n; i++) {
+            int left = Math.max(0, i - ranges[i]);
+            int right = Math.min(n, i + ranges[i]);
+            reach[left] = Math.max(reach[left], right);
+        }
+        int farthest = 0, covered = 0, used = 0;
+        for (int i = 0; i < n; i++) {
+            farthest = Math.max(farthest, reach[i]);
+            if (i == covered) {
+                if (farthest <= i) return -1;
+                used++;
+                covered = farthest;
+            }
+        }
+        return used;
+    }
+}
+```
+
+**Key Logic:**
+
+Convert each tap into a farthest reachable right endpoint indexed by left boundary; sweep positions, updating farthest reach and committing a tap when the current coverage ends.
+
+**Time Complexity:**
+
+O(n) time and O(n) auxiliary space for farthest reach.
+
+**Space Complexity:**
+
+See complexity statement above.
+
+---
+
+## I6 — Event-coordinate sweeping and aggregation
+
+### When to Apply
+
+A count or weighted sum changes only at endpoints. Accumulate ordered event deltas; distinguish closed end+1 from half-open end.
+
+### Basic Java Code Snippet
+
+```java
+java.util.TreeMap<Long, Long> delta = new java.util.TreeMap<>();
+for (int[] in : intervals) {
+    long start = in[0], endExclusive = (long) in[1] + 1;
+    delta.merge(start, 1L, Long::sum);
+    delta.merge(endExclusive, -1L, Long::sum);
+}
+long active = 0, peak = 0;
+for (var entry : delta.entrySet()) {
+    active += entry.getValue();
+    peak = Math.max(peak, active);
+}
+// Above models CLOSED integer ranges; half-open use end itself.
+// For weighted painting replace +/-1 with +/-color; emit between event keys.
+```
+
+### Core Logic
+
+A count or weighted sum changes only at endpoints. Accumulate ordered event deltas; distinguish closed end+1 from half-open end.
+
+### Questions Covered
+
+LC 1854, LC 2406, LC 1943
+
+---
+
+### LeetCode 1854
+
+**Question:**
+
+Each person has a birth year and death year. They count as alive in every year from birth through death−1, not in their death year. Return the earliest year having the maximum living population.
+
+**Examples:**
+
+- `[[1993,1999],[2000,2010]] → 1993`
+- `[[1950,1961],[1960,1971],[1970,1981]] → 1960`
+- `[[1950,1951]] → 1950.`
+
+**Constraints:**
+
+1 ≤ logs.length ≤ 100; 1950 ≤ birth < death ≤ 2050.
+
+**Why This Subpattern Applies:**
+
+The living population changes only at births and deaths, so endpoint deltas recover the count in chronological order.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int maximumPopulation(int[][] logs) {
+        int[] delta = new int[102];
+        for (int[] log : logs) { delta[log[0] - 1950]++; delta[log[1] - 1950]--; }
+        int active = 0, best = 0, answer = 1950;
+        for (int y = 0; y <= 100; y++) {
+            active += delta[y];
+            if (active > best) { best = active; answer = y + 1950; }
+        }
+        return answer;
+    }
+}
+```
+
+**Key Logic:**
+
+Add +1 at birth and −1 at death. Sweep ascending years; update the best year only for a strictly greater count, preserving earliest ties.
+
+**Time Complexity:**
+
+O(n+Y) time and O(Y) auxiliary space
+
+**Space Complexity:**
+
+Y=101 calendar-year positions (constant under constraints).
+
+---
+
+### LeetCode 2406
+
+**Question:**
+
+Given closed integer intervals, partition them into the fewest groups such that no two intervals in the same group share a point. Return the minimum group count. Touching endpoints conflict.
+
+**Examples:**
+
+- `[[5,10],[6,8],[1,5],[2,3],[1,10]] → 3`
+- `[[1,3],[5,6],[8,10],[11,13]] → 1`
+- `[[1,2],[2,3]] → 2.`
+
+**Constraints:**
+
+1 ≤ intervals.length ≤ 10^5; 1 ≤ left ≤ right ≤ 10^6.
+
+**Why This Subpattern Applies:**
+
+The minimum number of groups equals the maximum number of intervals active at one coordinate.
+
+**Connection to Previous Solution:**
+
+chronological event delta/prefix peak; change half-open death cancellation to closed end+1 cancellation.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int minGroups(int[][] intervals) {
+        java.util.TreeMap<Long, Integer> delta = new java.util.TreeMap<>();
+        for (int[] in : intervals) {
+            delta.merge((long) in[0], 1, Integer::sum);
+            delta.merge((long) in[1] + 1, -1, Integer::sum);
+        }
+        int active = 0, best = 0;
+        for (int change : delta.values()) { active += change; best = Math.max(best, active); }
+        return best;
+    }
+}
+```
+
+**Key Logic:**
+
+Convert closed [l,r] to events +1 at l and −1 at r+1; sweep event coordinates to find peak overlap.
+
+**Time Complexity:**
+
+O(n log n) time for ordered events
+
+**Space Complexity:**
+
+O(n) auxiliary space.
+
+---
+
+### LeetCode 1943
+
+**Question:**
+
+Colored painting segments are given as [start,end,color]. Each paints the half-open region [start,end), adding its color value to all overlapping painted segments. Return the maximal nonoverlapping half-open segments [left,right,sum] on which the accumulated color sum is constant and positive. Adjacent segments with identical active color composition should be combined.
+
+**Examples:**
+
+- `[[1,4,5],[4,7,7],[1,7,9]] → [[1,4,14],[4,7,16]]`
+- `[[1,4,5],[1,4,7]] → [[1,4,12]]`
+- `[[1,2,3],[3,4,5]] → [[1,2,3],[3,4,5]].`
+
+**Constraints:**
+
+1 ≤ segments.length ≤ 2×10^4; 1 ≤ start < end ≤ 10^5; 1 ≤ color ≤ 10^9; input colors are distinct.
+
+**Why This Subpattern Applies:**
+
+Between adjacent sorted event coordinates, no active paint changes; a running weighted sum determines the segment value.
+
+**Connection to Previous Solution:**
+
+Replace +1/-1 active count with weighted long deltas; output adjacent coordinate spans and merge adjacent equal-color-sum spans as needed.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public java.util.List<java.util.List<Long>> splitPainting(int[][] segments) {
+        java.util.TreeMap<Integer, Long> delta = new java.util.TreeMap<>();
+        for (int[] s : segments) {
+            delta.merge(s[0], (long) s[2], Long::sum);
+            delta.merge(s[1], -(long) s[2], Long::sum);
+        }
+        java.util.List<java.util.List<Long>> out = new java.util.ArrayList<>();
+        long sum = 0;
+        Integer previous = null;
+        for (var event : delta.entrySet()) {
+            int x = event.getKey();
+            if (previous != null && previous < x && sum != 0)
+                out.add(java.util.List.of((long) previous, (long) x, sum));
+            sum += event.getValue();
+            previous = x;
+        }
+        return out;
+    }
+}
+```
+
+**Key Logic:**
+
+Use long-valued +color/−color endpoint deltas. Emit the previous slab only if positive, and merge adjacent slabs only when the same active color set continues (an unchanged sum alone is insufficient in general).
+
+**Time Complexity:**
+
+O(n log n) time and O(n) auxiliary space including event map and output
+
+**Space Complexity:**
+
+O(k) output segments.
+
+---
+
+## I7 — Nonoverlap booking with ordered neighbors
+
+### When to Apply
+
+Online half-open bookings are disjoint and any overlap must be rejected. Check only the immediate predecessor and successor in a start-ordered map.
+
+### Basic Java Code Snippet
+
+```java
+java.util.TreeMap<Integer, Integer> booked = new java.util.TreeMap<>();
+var before = booked.floorEntry(start);
+var after = booked.ceilingEntry(start);
+boolean ok = (before == null || before.getValue() <= start)
+          && (after == null || after.getKey() >= end);
+if (ok) booked.put(start, end); // half-open [start,end)
+```
+
+### Core Logic
+
+Online half-open bookings are disjoint and any overlap must be rejected. Check only the immediate predecessor and successor in a start-ordered map.
+
+### Questions Covered
+
+LC 729
+
+---
+
+### LeetCode 729
+
+**Question:**
+
+Design MyCalendar with book(start,end). Each booking occupies half-open [start,end); accept it only if it intersects no previously accepted booking. Return true when accepted and false otherwise.
+
+**Examples:**
+
+- `book(10,20) → true`
+- `book(15,25) → false`
+- `book(20,30) → true.`
+
+**Constraints:**
+
+0 ≤ start < end ≤ 10^9; at most 1000 book calls.
+
+**Why This Subpattern Applies:**
+
+Accepted intervals remain disjoint, so only predecessor and successor in start order can conflict with a new reservation.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class MyCalendar {
+    private final java.util.TreeMap<Integer, Integer> booked = new java.util.TreeMap<>();
+    public MyCalendar() {}
+    public boolean book(int start, int end) {
+        var before = booked.floorEntry(start);
+        if (before != null && before.getValue() > start) return false;
+        var after = booked.ceilingEntry(start);
+        if (after != null && after.getKey() < end) return false;
+        booked.put(start, end);
+        return true;
+    }
+}
+```
+
+**Key Logic:**
+
+TreeMap maps start to end; predecessor must end ≤ start and successor must begin ≥ end. Insert only if both checks pass.
+
+**Time Complexity:**
+
+O(log n) time per booking
+
+**Space Complexity:**
+
+O(n) stored intervals.
+
+---
+
+## I8 — Calendar overlap counts and rollback
+
+### When to Apply
+
+Online half-open bookings require concurrency counting or cap enforcement. Tentatively change endpoint deltas, sweep active depth, and rollback if needed.
+
+### Basic Java Code Snippet
+
+```java
+java.util.TreeMap<Integer, Integer> delta = new java.util.TreeMap<>();
+delta.merge(start, 1, Integer::sum);
+delta.merge(end, -1, Integer::sum); // half-open
+int active = 0, maximum = 0;
+for (int change : delta.values()) {
+    active += change;
+    maximum = Math.max(maximum, active);
+}
+// If maximum exceeds allowed, reverse BOTH changes (clean zero entries).
+// If all bookings are accepted, return maximum instead.
+```
+
+### Core Logic
+
+Online half-open bookings require concurrency counting or cap enforcement. Tentatively change endpoint deltas, sweep active depth, and rollback if needed.
+
+### Questions Covered
+
+LC 731, LC 732
+
+---
+
+### LeetCode 731
+
+**Question:**
+
+Design MyCalendarTwo with book(start,end) on half-open intervals. Double bookings are permitted, but no point may be covered by three accepted events. Return false and leave the calendar unchanged if the proposed event creates a triple booking.
+
+**Examples:**
+
+- `book(10,20) → true`
+- `book(50,60) → true`
+- `book(10,40) → true`
+- `book(5,15) → false`
+- `book(5,10) → true`
+- `book(25,55) → true.`
+
+**Constraints:**
+
+0 ≤ start < end ≤ 10^9; at most 1000 book calls.
+
+**Why This Subpattern Applies:**
+
+An ordered difference map tracks active booking multiplicity, allowing tentative insertion and detection of a forbidden count above two.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class MyCalendarTwo {
+    private final java.util.TreeMap<Integer, Integer> delta = new java.util.TreeMap<>();
+    public MyCalendarTwo() {}
+    private void change(int x, int amount) {
+        delta.merge(x, amount, Integer::sum);
+        if (delta.get(x) == 0) delta.remove(x);
+    }
+    public boolean book(int start, int end) {
+        change(start, 1);
+        change(end, -1);
+        int active = 0;
+        for (int d : delta.values()) {
+            active += d;
+            if (active > 2) {
+                change(start, -1);
+                change(end, 1);
+                return false;
+            }
+        }
+        return true;
+    }
+}
+```
+
+**Key Logic:**
+
+Add start +1 and end −1, scan cumulative active count; if it exceeds two, reverse both deltas and reject. Remove zero-valued event keys.
+
+**Time Complexity:**
+
+O(n) time per booking for the event scan plus O(log n) map updates
+
+**Space Complexity:**
+
+O(n) space.
+
+---
+
+### LeetCode 732
+
+**Question:**
+
+Design MyCalendarThree with book(start,end) on half-open intervals. Always accept the event and return k, the maximum number of simultaneously active booked events at any instant so far.
+
+**Examples:**
+
+- `book(10,20) → 1`
+- `book(50,60) → 1`
+- `book(10,40) → 2`
+- `book(5,15) → 3`
+- `book(5,10) → 3`
+- `book(25,55) → 3.`
+
+**Constraints:**
+
+0 ≤ start < end ≤ 10^9; at most 400 book calls.
+
+**Why This Subpattern Applies:**
+
+The maximum prefix sum of chronological endpoint deltas is exactly the peak concurrent booking depth.
+
+**Connection to Previous Solution:**
+
+event-map deltas and running sweep; remove >2 rejection and rollback; return scanned maximum.
+
+**Java Solution:**
+
+```java
+class MyCalendarThree {
+    private final java.util.TreeMap<Integer, Integer> delta = new java.util.TreeMap<>();
+    public MyCalendarThree() {}
+    public int book(int start, int end) {
+        delta.merge(start, 1, Integer::sum);
+        delta.merge(end, -1, Integer::sum);
+        int active = 0, maximum = 0;
+        for (int d : delta.values()) {
+            active += d;
+            maximum = Math.max(maximum, active);
+        }
+        return maximum;
+    }
+}
+```
+
+**Key Logic:**
+
+Keep the same ordered event map and sweep, but always commit the booking; eliminate rejection/rollback and return the maximum active count.
+
+**Time Complexity:**
+
+O(n) per booking for scanning O(n) events
+
+**Space Complexity:**
+
+O(n) stored event coordinates.
+
+---
+
+## I9 — Dynamic disjoint interval union
+
+### When to Apply
+
+Maintain maximal disjoint covered ranges under online additions, queries, or deletions. Find neighbors using TreeMap and merge or split while preserving union invariants.
+
+### Basic Java Code Snippet
+
+```java
+java.util.TreeMap<Integer, Integer> disjoint = new java.util.TreeMap<>();
+// Invariant: each entry maps start -> end of one maximal interval.
+// On [left,right] addition, merge intersecting entries using floor/ceilingEntry.
+// Track covered count with (long)right - left + 1 for closed integers.
+// Range removal requires splitting overlapping entries at the cut boundaries.
+```
+
+### Core Logic
+
+Maintain maximal disjoint covered ranges under online additions, queries, or deletions. Find neighbors using TreeMap and merge or split while preserving union invariants.
+
+### Questions Covered
+
+LC 352, LC 2276, LC 715
+
+---
+
+### LeetCode 352
+
+**Question:**
+
+Design SummaryRanges with addNum(value) inserting a nonnegative integer into a stream and getIntervals() returning sorted maximal disjoint closed intervals representing all distinct inserted integers. Adjacent integers belong in the same interval; duplicate insertions have no effect.
+
+**Examples:**
+
+- `addNum(1), addNum(3), addNum(7), addNum(2), addNum(6) → getIntervals() = [[1,3],[6,7]]`
+- `addNum(1), addNum(1) → [[1,1]]`
+- `no insertions → [].`
+
+**Constraints:**
+
+0 ≤ value ≤ 10^4; at most 3×10^4 calls across methods; at most 100 calls to getIntervals.
+
+**Why This Subpattern Applies:**
+
+A TreeMap of maximal disjoint integer runs allows a new point to merge with at most its left and right neighbors.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class SummaryRanges {
+    private final java.util.TreeMap<Integer, Integer> ranges = new java.util.TreeMap<>();
+    public SummaryRanges() {}
+    public void addNum(int value) {
+        var left = ranges.floorEntry(value);
+        if (left != null && left.getValue() >= value) return;
+        int start = value, end = value;
+        if (left != null && (long) left.getValue() + 1 >= value) {
+            start = left.getKey();
+            ranges.remove(left.getKey());
+        }
+        var right = ranges.ceilingEntry(value);
+        if (right != null && (long) right.getKey() <= (long) end + 1) {
+            end = Math.max(end, right.getValue());
+            ranges.remove(right.getKey());
+        }
+        ranges.put(start, end);
+    }
+    public int[][] getIntervals() {
+        int[][] result = new int[ranges.size()][2];
+        int i = 0;
+        for (var e : ranges.entrySet()) { result[i][0] = e.getKey(); result[i++][1] = e.getValue(); }
+        return result;
+    }
+}
+```
+
+**Key Logic:**
+
+Check floor entry for existing membership; merge left if left.end+1 ≥ value and right if right.start ≤ mergedEnd+1. Return a defensive snapshot.
+
+**Time Complexity:**
+
+O(log k) addNum, O(k) getIntervals time/output
+
+**Space Complexity:**
+
+O(k) stored ranges.
+
+---
+
+### LeetCode 2276
+
+**Question:**
+
+Design CountIntervals supporting add(left,right) for a closed integer interval and count() returning the number of distinct integers covered by at least one added interval. Repeated and overlapping additions must not double-count.
+
+**Examples:**
+
+- `add(2,3), add(7,10), count() → 6`
+- `add(5,8), count() → 8`
+- `add(1,1), count() → 9.`
+
+**Constraints:**
+
+1 ≤ left ≤ right ≤ 10^9; at most 10^5 calls to add/count.
+
+**Why This Subpattern Applies:**
+
+Maintain disjoint covered intervals so total covered cardinality can be updated by subtracting merged intervals and adding the new union length.
+
+**Connection to Previous Solution:**
+
+Generalize one-point insertion to range insertion; loop through potentially multiple intersecting intervals, subtract their old lengths, add merged length.
+
+**Java Solution:**
+
+```java
+class CountIntervals {
+    private final java.util.TreeMap<Integer, Integer> ranges = new java.util.TreeMap<>();
+    private long covered = 0;
+    public CountIntervals() {}
+    public void add(int left, int right) {
+        var e = ranges.floorEntry(left);
+        if (e == null || e.getValue() < left) e = ranges.ceilingEntry(left);
+        while (e != null && e.getKey() <= right) {
+            left = Math.min(left, e.getKey());
+            right = Math.max(right, e.getValue());
+            covered -= (long) e.getValue() - e.getKey() + 1;
+            ranges.remove(e.getKey());
+            e = ranges.ceilingEntry(left);
+        }
+        ranges.put(left, right);
+        covered += (long) right - left + 1;
+    }
+    public int count() { return (int) covered; }
+}
+```
+
+**Key Logic:**
+
+Find floor interval intersecting the new range; repeatedly absorb every interval starting no later than current right, subtract its old length, and insert merged range.
+
+**Time Complexity:**
+
+O((k+1) log n) for add merging k existing intervals (amortized O(log n) per inserted/deleted interval across additions)
+
+**Space Complexity:**
+
+O(1) count; O(n) space.
+
+---
+
+### LeetCode 715
+
+**Question:**
+
+Design RangeModule over real-number coordinates, represented by half-open intervals. addRange(left,right) tracks every point in [left,right); queryRange(left,right) returns whether every point is currently tracked; removeRange(left,right) untracks those points. All operations must preserve coverage elsewhere.
+
+**Examples:**
+
+- `addRange(10,20), removeRange(14,16), queryRange(10,14) → true`
+- `queryRange(13,15) → false`
+- `queryRange(16,17) → true.`
+
+**Constraints:**
+
+1 ≤ left < right ≤ 10^9; at most 10^4 calls.
+
+**Why This Subpattern Applies:**
+
+A TreeMap of disjoint half-open covered ranges supports predecessor containment, union on addition, and splitting on removal.
+
+**Connection to Previous Solution:**
+
+Keep ordered disjoint union structure; add containment lookup and range subtraction/splitting; adapt from closed integer counts to half-open endpoints.
+
+**Java Solution:**
+
+```java
+class RangeModule {
+    private final java.util.TreeMap<Integer, Integer> ranges = new java.util.TreeMap<>();
+    public RangeModule() {}
+    public void addRange(int left, int right) {
+        var e = ranges.floorEntry(left);
+        if (e == null || e.getValue() < left) e = ranges.ceilingEntry(left);
+        while (e != null && e.getKey() <= right) {
+            left = Math.min(left, e.getKey());
+            right = Math.max(right, e.getValue());
+            ranges.remove(e.getKey());
+            e = ranges.ceilingEntry(left);
+        }
+        ranges.put(left, right);
+    }
+    public boolean queryRange(int left, int right) {
+        var e = ranges.floorEntry(left);
+        return e != null && e.getValue() >= right;
+    }
+    public void removeRange(int left, int right) {
+        var e = ranges.floorEntry(left);
+        if (e == null || e.getValue() <= left) e = ranges.ceilingEntry(left);
+        while (e != null && e.getKey() < right) {
+            int start = e.getKey(), end = e.getValue();
+            ranges.remove(start);
+            if (start < left) ranges.put(start, left);
+            if (end > right) { ranges.put(right, end); break; }
+            e = ranges.ceilingEntry(left);
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Add: merge every overlapping range, including predecessor. Query: predecessor end ≥ right. Remove: delete overlaps and reinsert surviving left/right fragments.
+
+**Time Complexity:**
+
+add/remove O((k+1) log n) for k affected ranges
+
+**Space Complexity:**
+
+query O(log n); O(n) stored intervals.
+
+---
+
+## I10 — Successor interval lookup
+
+### When to Apply
+
+For every interval end, find the smallest available start not less than it. Sort starts and use lower-bound binary search with original indices.
+
+### Basic Java Code Snippet
+
+```java
+// orderedStarts: ascending pairs (start, originalIndex)
+int lo = 0, hi = orderedStarts.length;
+while (lo < hi) {
+    int mid = lo + (hi - lo) / 2;
+    if (orderedStarts[mid][0] < targetEnd) lo = mid + 1;
+    else hi = mid;
+}
+// lo == length means no eligible successor.
+```
+
+### Core Logic
+
+For every interval end, find the smallest available start not less than it. Sort starts and use lower-bound binary search with original indices.
+
+### Questions Covered
+
+LC 436
+
+---
+
+### LeetCode 436
+
+**Question:**
+
+For each interval [start,end] with unique start coordinates, find the index of the interval having the smallest start ≥ this interval’s end. If no such interval exists, output -1. Return answers in original input order.
+
+**Examples:**
+
+- `[[1,2]] → [-1]`
+- `[[3,4],[2,3],[1,2]] → [-1,0,1]`
+- `[[1,4],[2,3],[3,4]] → [-1,2,-1].`
+
+**Constraints:**
+
+1 ≤ intervals.length ≤ 2×10^4; -10^6 ≤ start ≤ end ≤ 10^6; all starts distinct.
+
+**Why This Subpattern Applies:**
+
+Each interval asks a successor query among starts; sorting starts and lower-bound binary search directly answers it.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int[] findRightInterval(int[][] intervals) {
+        int n = intervals.length;
+        int[][] starts = new int[n][2];
+        for (int i = 0; i < n; i++) starts[i] = new int[]{intervals[i][0], i};
+        java.util.Arrays.sort(starts, java.util.Comparator.comparingInt(a -> a[0]));
+        int[] ans = new int[n];
+        for (int i = 0; i < n; i++) {
+            int lo = 0, hi = n, target = intervals[i][1];
+            while (lo < hi) {
+                int mid = lo + (hi - lo) / 2;
+                if (starts[mid][0] < target) lo = mid + 1;
+                else hi = mid;
+            }
+            ans[i] = lo == n ? -1 : starts[lo][1];
+        }
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+Build (start,originalIndex) pairs; sort; lower-bound current end and write found original index, or −1.
+
+**Time Complexity:**
+
+O(n log n) time
+
+**Space Complexity:**
+
+O(n) auxiliary space for sorted starts and output.
+
+---
+
+## I11 — Best-value pair of nonoverlapping events
+
+### When to Apply
+
+Choose at most two valued events with inclusive ends. For each second event, binary-search the best completed earlier event using prefix maximums.
+
+### Basic Java Code Snippet
+
+```java
+// Sort events by end; build prefixBest[i] = max value through event i.
+// For each event with start s, binary-search last index j where end[j] < s.
+// answer = max(answer, currentValue + (j >= 0 ? prefixBest[j] : 0));
+```
+
+### Core Logic
+
+Choose at most two valued events with inclusive ends. For each second event, binary-search the best completed earlier event using prefix maximums.
+
+### Questions Covered
+
+LC 2054
+
+---
+
+### LeetCode 2054
+
+**Question:**
+
+Each event [start,end,value] awards its value if attended. Choose at most two events, maximizing total value. Events have inclusive endpoints, so a second event must start strictly after the first event ends. Return maximum obtainable value.
+
+**Examples:**
+
+- `[[1,3,2],[4,5,2],[2,4,3]] → 4`
+- `[[1,3,2],[4,5,2],[1,5,5]] → 5`
+- `[[1,5,3],[1,5,1],[6,6,5]] → 8.`
+
+**Constraints:**
+
+2 ≤ events.length ≤ 10^5; 1 ≤ start ≤ end ≤ 10^9; 1 ≤ value ≤ 10^6.
+
+**Why This Subpattern Applies:**
+
+For each candidate second event, the best compatible earlier event can be answered from a prefix maximum of events sorted by end.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int maxTwoEvents(int[][] events) {
+        java.util.Arrays.sort(events, java.util.Comparator.comparingInt(a -> a[1]));
+        int n = events.length;
+        int[] prefix = new int[n];
+        for (int i = 0; i < n; i++)
+            prefix[i] = Math.max(i == 0 ? 0 : prefix[i - 1], events[i][2]);
+        int best = 0;
+        for (int[] e : events) {
+            int lo = 0, hi = n;
+            while (lo < hi) {
+                int mid = lo + (hi - lo) / 2;
+                if (events[mid][1] < e[0]) lo = mid + 1;
+                else hi = mid;
+            }
+            int previous = lo == 0 ? 0 : prefix[lo - 1];
+            best = Math.max(best, e[2] + previous);
+        }
+        return best;
+    }
+}
+```
+
+**Key Logic:**
+
+Sort events by end; build prefix max values; binary-search last end < current start; combine that best prior value with current value, also considering one event alone.
+
+**Time Complexity:**
+
+O(n log n) time
+
+**Space Complexity:**
+
+O(n) auxiliary space for prefix maxima (sorting stack extra O(log n)).
+
+---
+
+## I12 — Skyline active-height sweep
+
+### When to Apply
+
+A skyline is the maximum active building height, not the sum. Sweep grouped x-events while maintaining a height multiset.
+
+### Basic Java Code Snippet
+
+```java
+java.util.TreeMap<Integer,Integer> heights = new java.util.TreeMap<>();
+heights.put(0, 1); // ground height
+// Sort building start/end events by x; process ALL events at the same x.
+// On start increment height multiplicity; on end decrement/remove it.
+int top = heights.lastKey();
+// Emit [x,top] only when top differs from previous emitted top.
+```
+
+### Core Logic
+
+A skyline is the maximum active building height, not the sum. Sweep grouped x-events while maintaining a height multiset.
+
+### Questions Covered
+
+LC 218
+
+---
+
+### LeetCode 218
+
+**Question:**
+
+Buildings are [left,right,height] rectangles occupying [left,right) on the x-axis. Return the skyline as sorted key points [x,height], where each point records a change in the maximum height of all buildings covering the horizontal position immediately to its right. Include a final height 0 point; avoid consecutive points with equal height.
+
+**Examples:**
+
+- `[[2,9,10],[3,7,15],[5,12,12],[15,20,10],[19,24,8]] → [[2,10],[3,15],[7,12],[12,0],[15,10],[20,8],[24,0]]`
+- `[[0,2,3],[2,5,3]] → [[0,3],[5,0]]`
+- `[[1,2,1]] → [[1,1],[2,0]].`
+
+**Constraints:**
+
+1 ≤ buildings.length ≤ 10^4; 0 ≤ left < right ≤ 2^31−1; 1 ≤ height ≤ 2^31−1.
+
+**Why This Subpattern Applies:**
+
+At each distinct x-coordinate, only the maximum currently active building height determines the skyline; a multiset handles repeated heights.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public java.util.List<java.util.List<Integer>> getSkyline(int[][] buildings) {
+        int[][] events = new int[buildings.length * 2][2];
+        int k = 0;
+        for (int[] b : buildings) {
+            events[k++] = new int[]{b[0], -b[2]};
+            events[k++] = new int[]{b[1], b[2]};
+        }
+        java.util.Arrays.sort(events, java.util.Comparator.comparingInt(a -> a[0]));
+        java.util.TreeMap<Integer, Integer> heights = new java.util.TreeMap<>();
+        heights.put(0, 1);
+        java.util.List<java.util.List<Integer>> result = new java.util.ArrayList<>();
+        int previous = 0;
+        for (int i = 0; i < events.length;) {
+            int x = events[i][0];
+            while (i < events.length && events[i][0] == x) {
+                int h = events[i++][1];
+                if (h < 0) heights.merge(-h, 1, Integer::sum);
+                else {
+                    int count = heights.get(h);
+                    if (count == 1) heights.remove(h);
+                    else heights.put(h, count - 1);
+                }
+            }
+            int current = heights.lastKey();
+            if (current != previous) {
+                result.add(java.util.List.of(x, current));
+                previous = current;
+            }
+        }
+        return result;
+    }
+}
+```
+
+**Key Logic:**
+
+Create start/end events, sort by x, process all events at the same x, then compare active maximum to previous height. Ground height 0 remains in the multiset.
+
+**Time Complexity:**
+
+O(n log n) time for sorting and TreeMap updates
+
+**Space Complexity:**
+
+O(n) auxiliary space for events, active heights, and output.
+
+---
+
+## I13 — Maximal consecutive integer runs
+
+### When to Apply
+
+Sorted distinct integers need maximal consecutive runs. Extend while the next number equals previous+1 using overflow-safe arithmetic.
+
+### Basic Java Code Snippet
+
+```java
+for (int i = 0; i < nums.length; ) {
+    int j = i;
+    while (j + 1 < nums.length && (long)nums[j + 1] == (long)nums[j] + 1)
+        j++;
+    // emit nums[i] alone or nums[i]..nums[j] as the run
+    i = j + 1;
+}
+```
+
+### Core Logic
+
+Sorted distinct integers need maximal consecutive runs. Extend while the next number equals previous+1 using overflow-safe arithmetic.
+
+### Questions Covered
+
+LC 228
+
+---
+
+### LeetCode 228
+
+**Question:**
+
+Given a sorted array of distinct integers, partition it into maximal consecutive runs. Return one string per run: a singleton as "a" or a run of at least two numbers as "a->b". Every number must appear in exactly one output run, in increasing order.
+
+**Examples:**
+
+- `[0,1,2,4,5,7] → ["0->2","4->5","7"]`
+- `[0,2,3,4,6,8,9] → ["0","2->4","6","8->9"]`
+- `[] → [].`
+
+**Constraints:**
+
+0 ≤ nums.length ≤ 20; -2^31 ≤ nums[i] ≤ 2^31−1; sorted ascending with distinct elements.
+
+**Why This Subpattern Applies:**
+
+Consecutive neighbors are exactly those differing by one, so maximal runs can be identified by a single scan.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public java.util.List<String> summaryRanges(int[] nums) {
+        java.util.List<String> result = new java.util.ArrayList<>();
+        for (int i = 0; i < nums.length;) {
+            int j = i;
+            while (j + 1 < nums.length && (long) nums[j + 1] == (long) nums[j] + 1) j++;
+            if (i == j) result.add(Integer.toString(nums[i]));
+            else result.add(nums[i] + "->" + nums[j]);
+            i = j + 1;
+        }
+        return result;
+    }
+}
+```
+
+**Key Logic:**
+
+Start at i, extend j while (long)nums[j+1] == (long)nums[j]+1; emit a singleton or arrow range and advance to j+1.
+
+**Time Complexity:**
+
+O(n) time plus output-string construction
+
+**Space Complexity:**
+
+O(n) output space, O(1) auxiliary excluding output.
+
+---
+
+## Final Locked Question Registry
+
+| Order | Family | LeetCode ID | Included |
+|---:|---|---:|---|
+| 1 | I1 | 56 | Yes |
+| 2 | I1 | 57 | Yes |
+| 3 | I1 | 2580 | Yes |
+| 4 | I2 | 986 | Yes |
+| 5 | I2 | 1229 | Yes |
+| 6 | I3 | 435 | Yes |
+| 7 | I3 | 646 | Yes |
+| 8 | I4 | 452 | Yes |
+| 9 | I5 | 1024 | Yes |
+| 10 | I5 | 1326 | Yes |
+| 11 | I6 | 1854 | Yes |
+| 12 | I6 | 2406 | Yes |
+| 13 | I6 | 1943 | Yes |
+| 14 | I7 | 729 | Yes |
+| 15 | I8 | 731 | Yes |
+| 16 | I8 | 732 | Yes |
+| 17 | I9 | 352 | Yes |
+| 18 | I9 | 2276 | Yes |
+| 19 | I9 | 715 | Yes |
+| 20 | I10 | 436 | Yes |
+| 21 | I11 | 2054 | Yes |
+| 22 | I12 | 218 | Yes |
+| 23 | I13 | 228 | Yes |
+
+**Audit:** 23 of 23 locked IDs included in exact curriculum order; 13 of 13 subpatterns have a reusable starter snippet; no added or duplicated questions.

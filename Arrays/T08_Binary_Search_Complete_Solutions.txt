@@ -1,0 +1,2529 @@
+# T08 — Binary Search: Complete Solutions
+
+**Locked curriculum:** 33 LeetCode questions · 18 algorithm families (B1–B18).
+**Source:** MASTER_DSA_CURRICULUM.md, version 1.8, section C8.
+**Scope:** Reference workbook only. No questions are marked as practiced or completed.
+
+## Table of Contents
+
+- [B1 — Exact search and lower/upper bounds](#b1--exact-search-and-lowerupper-bounds) — [LC 704](#leetcode-704), [LC 35](#leetcode-35), [LC 34](#leetcode-34), [LC 744](#leetcode-744), [LC 278](#leetcode-278)
+- [B2 — Directional API feedback](#b2--directional-api-feedback) — [LC 374](#leetcode-374)
+- [B3 — Rotated-array minimum](#b3--rotated-array-minimum) — [LC 153](#leetcode-153), [LC 154](#leetcode-154)
+- [B4 — Rotated-array target search](#b4--rotated-array-target-search) — [LC 33](#leetcode-33), [LC 81](#leetcode-81)
+- [B5 — Peak and slope-direction search](#b5--peak-and-slope-direction-search) — [LC 852](#leetcode-852), [LC 162](#leetcode-162)
+- [B6 — Parity-aligned partner search](#b6--parity-aligned-partner-search) — [LC 540](#leetcode-540)
+- [B7 — Missing-count order statistics](#b7--missing-count-order-statistics) — [LC 1539](#leetcode-1539)
+- [B8 — Integer numeric boundaries](#b8--integer-numeric-boundaries) — [LC 69](#leetcode-69), [LC 367](#leetcode-367), [LC 441](#leetcode-441)
+- [B9 — Minimum rate / divisible-load capacity](#b9--minimum-rate--divisible-load-capacity) — [LC 875](#leetcode-875), [LC 2064](#leetcode-2064), [LC 1760](#leetcode-1760), [LC 1870](#leetcode-1870)
+- [B10 — Minimum time under cumulative parallel production](#b10--minimum-time-under-cumulative-parallel-production) — [LC 2187](#leetcode-2187)
+- [B11 — Contiguous workload minimax partition](#b11--contiguous-workload-minimax-partition) — [LC 1011](#leetcode-1011), [LC 410](#leetcode-410)
+- [B12 — Threshold feasibility with adjacency](#b12--threshold-feasibility-with-adjacency) — [LC 1482](#leetcode-1482)
+- [B13 — Maximize minimum separation](#b13--maximize-minimum-separation) — [LC 1552](#leetcode-1552), [LC 2517](#leetcode-2517)
+- [B14 — Kth value by count-at-most](#b14--kth-value-by-count-at-most) — [LC 668](#leetcode-668), [LC 719](#leetcode-719)
+- [B15 — Closest-k contiguous rank window](#b15--closest-k-contiguous-rank-window) — [LC 658](#leetcode-658)
+- [B16 — Per-query monotone pairing threshold](#b16--per-query-monotone-pairing-threshold) — [LC 2300](#leetcode-2300)
+- [B17 — Per-key chronological predecessor search](#b17--per-key-chronological-predecessor-search) — [LC 981](#leetcode-981)
+- [B18 — Partition median across two sorted inputs](#b18--partition-median-across-two-sorted-inputs) — [LC 4](#leetcode-4)
+
+## Conventions
+
+Java solutions are independent submissions: compile each code block separately. `n` denotes array length, `M` the maximum input value, and `R` a numeric search range. API-based questions use LeetCode-provided parent classes. LC 981 necessarily uses the judge-required `TimeMap` class instead of `Solution`. Constraints and statements are paraphrased for study.
+
+## B1 — Exact search and lower/upper bounds
+
+### Subpattern B1: Exact search and lower/upper bounds
+
+**When to Apply:**
+
+Sorted values, a monotone predicate on index, or a first-valid boundary; use half-open [lo,hi).
+
+**Basic Java Code Snippet:**
+
+```java
+int lo = 0, hi = a.length;
+while (lo < hi) {
+    int mid = lo + (hi - lo) / 2;
+    if (a[mid] < target) lo = mid + 1;
+    else hi = mid;
+}
+// lo is first index with a[index] >= target (or n).
+```
+
+**Core Logic:**
+
+This template maintains the B1 search invariant: after each iteration, the candidate interval still contains a valid answer if one exists. The comparison or feasibility test eliminates candidates that cannot satisfy the required boundary. Adapt its predicate and endpoint conventions to the individual problem.
+
+**Questions Covered:**
+
+LeetCode 704, LeetCode 35, LeetCode 34, LeetCode 744, LeetCode 278
+
+### LeetCode 704
+
+**Question:**
+
+Given an integer array sorted in ascending order and an integer target, return the index of target if it occurs; otherwise return -1. Every index is zero-based. The array contains distinct values. Your algorithm must run in logarithmic time.
+
+**Examples:**
+
+- `nums=[-1,0,3,5,9,12], target=9 → 4`
+- `nums=[-1,0,3,5,9,12], target=2 → -1`
+- `nums=[5], target=5 → 0.`
+
+**Constraints:**
+
+1 ≤ nums.length ≤ 10⁴; -10⁴ < nums[i], target < 10⁴; distinct sorted nums.
+
+**Why This Subpattern Applies:**
+
+Exact target in sorted array; eliminate half by comparing mid with target. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int search(int[] nums, int target) {
+        int lo = 0, hi = nums.length - 1;
+        while (lo <= hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (nums[mid] == target) return mid;
+            if (nums[mid] < target) lo = mid + 1;
+            else hi = mid - 1;
+        }
+        return -1;
+    }
+}
+```
+
+**Key Logic:**
+
+Maintain an inclusive range that could contain target; comparison discards the impossible half. The range shrinks even when the target is absent.
+
+**Time Complexity:**
+
+O(log n).
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+### LeetCode 35
+
+**Question:**
+
+Given a strictly increasing sorted array and a target, return its existing index; if absent, return the index where it should be inserted to keep the array sorted. The insertion point can be at either end. Use logarithmic time.
+
+**Examples:**
+
+- `nums=[1,3,5,6], target=5 → 2`
+- `target=2 → 1`
+- `target=7 → 4.`
+
+**Constraints:**
+
+1 ≤ nums.length ≤ 10⁴; -10⁴ ≤ nums[i],target ≤ 10⁴; distinct sorted values.
+
+**Why This Subpattern Applies:**
+
+Return insertion location when target may be absent. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Replace success/failure return with half-open first-valid boundary; retain lo when absent.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int searchInsert(int[] nums, int target) {
+        int lo = 0, hi = nums.length;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (nums[mid] < target) lo = mid + 1;
+            else hi = mid;
+        }
+        return lo;
+    }
+}
+```
+
+**Key Logic:**
+
+Half-open interval [lo,hi) preserves the first position with value >= target; lo==n means append. Unlike exact search, absence still yields a meaningful boundary.
+
+**Time Complexity:**
+
+O(log n).
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+### LeetCode 34
+
+**Question:**
+
+In a nondecreasing sorted array that may contain duplicates, find the first and last indices of target. Return [-1,-1] if it is absent. Both boundaries must be found in logarithmic time.
+
+**Examples:**
+
+- `nums=[5,7,7,8,8,10], target=8 → [3,4]`
+- `target=6 → [-1,-1]`
+- `nums=[], target=0 → [-1,-1].`
+
+**Constraints:**
+
+0 ≤ nums.length ≤ 10⁵; -10⁹ ≤ nums[i],target ≤ 10⁹; sorted nondecreasing.
+
+**Why This Subpattern Applies:**
+
+Return first and last index of repeated target. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Extract lowerBound helper and add a second boundary search with <= target instead of < target.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int[] searchRange(int[] nums, int target) {
+        int first = bound(nums, target, false);
+        if (first == nums.length || nums[first] != target) return new int[]{-1,-1};
+        return new int[]{first, bound(nums, target, true) - 1};
+    }
+    private int bound(int[] a, int target, boolean upper) {
+        int lo = 0, hi = a.length;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (a[mid] < target || (upper && a[mid] == target)) lo = mid + 1;
+            else hi = mid;
+        }
+        return lo;
+    }
+}
+```
+
+**Key Logic:**
+
+Lower bound skips values < target; upper bound skips values <= target. Verify first is present before using upper-1, including empty input.
+
+**Time Complexity:**
+
+O(log n).
+
+**Space Complexity:**
+
+O(1) auxiliary; O(1) two-element output.
+
+---
+
+### LeetCode 744
+
+**Question:**
+
+Given sorted letters (duplicates allowed) and a target letter, return the smallest letter strictly greater than target. The alphabet wraps: if no letter is greater, return the first letter.
+
+**Examples:**
+
+- `letters=["c","f","j"], target="a" → "c"`
+- `target="c" → "f"`
+- `target="j" → "c".`
+
+**Constraints:**
+
+2 ≤ letters.length ≤ 10⁴; lowercase English letters; sorted nondecreasing; at least two distinct letters.
+
+**Why This Subpattern Applies:**
+
+Find lexicographically smallest sorted letter strictly greater than target with wraparound. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Reuse upperBound from 34, return element at boundary or first element when boundary==n.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public char nextGreatestLetter(char[] letters, char target) {
+        int lo = 0, hi = letters.length;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (letters[mid] <= target) lo = mid + 1;
+            else hi = mid;
+        }
+        return letters[lo % letters.length];
+    }
+}
+```
+
+**Key Logic:**
+
+This is upper bound: equality must move right because the result must be strictly greater. Modulo maps the n boundary to index zero.
+
+**Time Complexity:**
+
+O(log n).
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+### LeetCode 278
+
+**Question:**
+
+Versions 1 through n are ordered; at some version, a defect first appears and all later versions are defective. An inherited boolean API isBadVersion(version) reports defect status. Return the earliest defective version while minimizing API calls.
+
+**Examples:**
+
+- `n=5, firstBad=4 → 4`
+- `n=1, firstBad=1 → 1`
+- `n=10, firstBad=7 → 7.`
+
+**Constraints:**
+
+1 ≤ firstBad ≤ n ≤ 2³¹-1; isBadVersion(int) is provided by the judge.
+
+**Why This Subpattern Applies:**
+
+First true version in a false→true monotone API. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Replace indexed comparison with monotone boolean API; use first-true boundary without array access.
+
+**Java Solution:**
+
+```java
+/* The isBadVersion API is defined in the parent class VersionControl. */
+public class Solution extends VersionControl {
+    public int firstBadVersion(int n) {
+        int lo = 1, hi = n;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (isBadVersion(mid)) hi = mid;
+            else lo = mid + 1;
+        }
+        return lo;
+    }
+}
+```
+
+**Key Logic:**
+
+Predicate is false before the answer and true from the answer onward. Retain mid when it is bad; discard it when good. Midpoint avoids integer overflow.
+
+**Time Complexity:**
+
+O(log n) API calls.
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+## B2 — Directional API feedback
+
+### Subpattern B2: Directional API feedback
+
+**When to Apply:**
+
+No direct array access; an external oracle tells whether guess is too high, too low, or correct.
+
+**Basic Java Code Snippet:**
+
+```java
+int lo = 1, hi = n;
+while (lo <= hi) {
+    int mid = lo + (hi - lo) / 2;
+    int cmp = guess(mid); // API
+    if (cmp == 0) break;
+    if (cmp < 0) hi = mid - 1;
+    else lo = mid + 1;
+}
+```
+
+**Core Logic:**
+
+This template maintains the B2 search invariant: after each iteration, the candidate interval still contains a valid answer if one exists. The comparison or feasibility test eliminates candidates that cannot satisfy the required boundary. Adapt its predicate and endpoint conventions to the individual problem.
+
+**Questions Covered:**
+
+LeetCode 374
+
+### LeetCode 374
+
+**Question:**
+
+A hidden integer pick lies between 1 and n. Call the provided guess(num) API: it returns -1 when your guess is too high, 1 when too low, and 0 when correct. Find the hidden integer.
+
+**Examples:**
+
+- `n=10, pick=6 → 6`
+- `n=1, pick=1 → 1`
+- `n=2, pick=1 → 1.`
+
+**Constraints:**
+
+1 ≤ pick ≤ n ≤ 2³¹-1; guess(int) is provided by the judge.
+
+**Why This Subpattern Applies:**
+
+Identify hidden target using sign of external guess API. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+/* The guess API is defined in the parent class GuessGame. */
+public class Solution extends GuessGame {
+    public int guessNumber(int n) {
+        int lo = 1, hi = n;
+        while (lo <= hi) {
+            int mid = lo + (hi - lo) / 2;
+            int direction = guess(mid);
+            if (direction == 0) return mid;
+            if (direction < 0) hi = mid - 1;
+            else lo = mid + 1;
+        }
+        return -1;
+    }
+}
+```
+
+**Key Logic:**
+
+Three-valued oracle supplies direction directly: -1 eliminates mid and all larger values, +1 eliminates mid and all smaller values.
+
+**Time Complexity:**
+
+O(log n) API calls.
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+## B3 — Rotated-array minimum
+
+### Subpattern B3: Rotated-array minimum
+
+**When to Apply:**
+
+One rotation pivot splits sorted runs; compare mid against right endpoint to retain minimum-containing half.
+
+**Basic Java Code Snippet:**
+
+```java
+int lo = 0, hi = a.length - 1;
+while (lo < hi) {
+    int mid = lo + (hi - lo) / 2;
+    if (a[mid] > a[hi]) lo = mid + 1;
+    else hi = mid; // duplicate variant needs equality handling
+}
+// a[lo] is minimum for nonempty input.
+```
+
+**Core Logic:**
+
+This template maintains the B3 search invariant: after each iteration, the candidate interval still contains a valid answer if one exists. The comparison or feasibility test eliminates candidates that cannot satisfy the required boundary. Adapt its predicate and endpoint conventions to the individual problem.
+
+**Questions Covered:**
+
+LeetCode 153, LeetCode 154
+
+### LeetCode 153
+
+**Question:**
+
+An ascending array of distinct integers has been rotated an unknown number of times. Return its minimum value. A zero-rotation array is allowed; aim for logarithmic time.
+
+**Examples:**
+
+- `nums=[3,4,5,1,2] → 1`
+- `nums=[4,5,6,7,0,1,2] → 0`
+- `nums=[11,13,15,17] → 11.`
+
+**Constraints:**
+
+1 ≤ nums.length ≤ 5000; -5000 ≤ nums[i] ≤ 5000; distinct values; rotated sorted.
+
+**Why This Subpattern Applies:**
+
+Minimum value in rotated sorted array with distinct values. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int findMin(int[] nums) {
+        int lo = 0, hi = nums.length - 1;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (nums[mid] > nums[hi]) lo = mid + 1;
+            else hi = mid;
+        }
+        return nums[lo];
+    }
+}
+```
+
+**Key Logic:**
+
+If mid exceeds the rightmost value, the rotation pivot lies strictly right of mid; otherwise the minimum is at mid or to its left.
+
+**Time Complexity:**
+
+O(log n).
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+### LeetCode 154
+
+**Question:**
+
+An ascending array may contain duplicate values and has been rotated. Return its minimum element. Duplicates can make the pivot location ambiguous.
+
+**Examples:**
+
+- `nums=[1,3,5] → 1`
+- `nums=[2,2,2,0,1] → 0`
+- `nums=[3,3,1,3] → 1.`
+
+**Constraints:**
+
+1 ≤ nums.length ≤ 5000; -5000 ≤ nums[i] ≤ 5000; duplicates permitted; rotated sorted.
+
+**Why This Subpattern Applies:**
+
+Minimum under rotated array duplicates. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Add ambiguity branch hi-- on equality; accept worst-case O(n) with duplicates.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int findMin(int[] nums) {
+        int lo = 0, hi = nums.length - 1;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (nums[mid] > nums[hi]) lo = mid + 1;
+            else if (nums[mid] < nums[hi]) hi = mid;
+            else hi--;
+        }
+        return nums[lo];
+    }
+}
+```
+
+**Key Logic:**
+
+Equality cannot reveal which side contains the pivot; removing one equal right endpoint retains at least one minimum. All-equal inputs cause linear degradation.
+
+**Time Complexity:**
+
+O(log n) typical, O(n) worst.
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+## B4 — Rotated-array target search
+
+### Subpattern B4: Rotated-array target search
+
+**When to Apply:**
+
+Exactly one half is sorted (with distinct values); use target range membership to decide which half to discard.
+
+**Basic Java Code Snippet:**
+
+```java
+int lo = 0, hi = a.length - 1;
+while (lo <= hi) {
+    int mid = lo + (hi - lo) / 2;
+    if (a[mid] == target) break;
+    if (a[lo] <= a[mid]) {
+        // left half sorted: decide using target in [a[lo],a[mid])
+    } else {
+        // right half sorted: decide using target in (a[mid],a[hi]]
+    }
+}
+```
+
+**Core Logic:**
+
+This template maintains the B4 search invariant: after each iteration, the candidate interval still contains a valid answer if one exists. The comparison or feasibility test eliminates candidates that cannot satisfy the required boundary. Adapt its predicate and endpoint conventions to the individual problem.
+
+**Questions Covered:**
+
+LeetCode 33, LeetCode 81
+
+### LeetCode 33
+
+**Question:**
+
+A strictly increasing array was rotated at an unknown pivot. Given a target, return its index, or -1 if absent, in logarithmic time.
+
+**Examples:**
+
+- `nums=[4,5,6,7,0,1,2], target=0 → 4`
+- `target=3 → -1`
+- `nums=[1], target=0 → -1.`
+
+**Constraints:**
+
+1 ≤ nums.length ≤ 5000; -10⁴ ≤ nums[i],target ≤ 10⁴; distinct values; rotated sorted.
+
+**Why This Subpattern Applies:**
+
+Locate target in rotated sorted array of distinct values. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int search(int[] nums, int target) {
+        int lo = 0, hi = nums.length - 1;
+        while (lo <= hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (nums[mid] == target) return mid;
+            if (nums[lo] <= nums[mid]) {
+                if (nums[lo] <= target && target < nums[mid]) hi = mid - 1;
+                else lo = mid + 1;
+            } else {
+                if (nums[mid] < target && target <= nums[hi]) lo = mid + 1;
+                else hi = mid - 1;
+            }
+        }
+        return -1;
+    }
+}
+```
+
+**Key Logic:**
+
+One half is sorted with distinct values. Check whether target lies within that half’s value range; otherwise search the other half.
+
+**Time Complexity:**
+
+O(log n).
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+### LeetCode 81
+
+**Question:**
+
+A nondecreasing array with possible duplicates has been rotated. Return whether target occurs anywhere. Duplicates may obscure which half is sorted.
+
+**Examples:**
+
+- `nums=[2,5,6,0,0,1,2], target=0 → true`
+- `target=3 → false`
+- `nums=[1,0,1,1,1], target=0 → true.`
+
+**Constraints:**
+
+1 ≤ nums.length ≤ 5000; -10⁴ ≤ nums[i],target ≤ 10⁴; duplicates allowed; rotated sorted.
+
+**Why This Subpattern Applies:**
+
+Determine presence when duplicate values obscure which half is sorted. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Insert equality ambiguity branch lo++ and hi-- before normal half selection; worst-case O(n).
+
+**Java Solution:**
+
+```java
+class Solution {
+    public boolean search(int[] nums, int target) {
+        int lo = 0, hi = nums.length - 1;
+        while (lo <= hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (nums[mid] == target) return true;
+            if (nums[lo] == nums[mid] && nums[mid] == nums[hi]) {
+                lo++; hi--;
+            } else if (nums[lo] <= nums[mid]) {
+                if (nums[lo] <= target && target < nums[mid]) hi = mid - 1;
+                else lo = mid + 1;
+            } else {
+                if (nums[mid] < target && target <= nums[hi]) lo = mid + 1;
+                else hi = mid - 1;
+            }
+        }
+        return false;
+    }
+}
+```
+
+**Key Logic:**
+
+When both ends equal mid, neither half can be certified sorted; trimming both equal endpoints is safe after mid!=target.
+
+**Time Complexity:**
+
+O(log n) typical, O(n) worst.
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+## B5 — Peak and slope-direction search
+
+### Subpattern B5: Peak and slope-direction search
+
+**When to Apply:**
+
+A neighbor comparison determines which direction is guaranteed to contain a peak.
+
+**Basic Java Code Snippet:**
+
+```java
+int lo = 0, hi = a.length - 1;
+while (lo < hi) {
+    int mid = lo + (hi - lo) / 2;
+    if (a[mid] < a[mid + 1]) lo = mid + 1;
+    else hi = mid;
+}
+// lo is a peak (strict-neighbor conditions as specified).
+```
+
+**Core Logic:**
+
+This template maintains the B5 search invariant: after each iteration, the candidate interval still contains a valid answer if one exists. The comparison or feasibility test eliminates candidates that cannot satisfy the required boundary. Adapt its predicate and endpoint conventions to the individual problem.
+
+**Questions Covered:**
+
+LeetCode 852, LeetCode 162
+
+### LeetCode 852
+
+**Question:**
+
+An array is a mountain: it strictly increases to one interior peak and then strictly decreases. Return the index of the peak without scanning the entire array.
+
+**Examples:**
+
+- `arr=[0,1,0] → 1`
+- `arr=[0,2,1,0] → 1`
+- `arr=[0,10,5,2] → 1.`
+
+**Constraints:**
+
+3 ≤ arr.length ≤ 10⁵; 0 ≤ arr[i] ≤ 10⁶; guaranteed strict mountain.
+
+**Why This Subpattern Applies:**
+
+Peak of strictly increasing then strictly decreasing mountain. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int peakIndexInMountainArray(int[] arr) {
+        int lo = 0, hi = arr.length - 1;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (arr[mid] < arr[mid + 1]) lo = mid + 1;
+            else hi = mid;
+        }
+        return lo;
+    }
+}
+```
+
+**Key Logic:**
+
+An ascending edge means the peak lies to its right; a descending edge means the peak is at mid or left. hi>mid guarantees mid+1 exists.
+
+**Time Complexity:**
+
+O(log n).
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+### LeetCode 162
+
+**Question:**
+
+Return the index of any peak: an element strictly greater than its neighbors. Treat outside-array neighbors as negative infinity. Adjacent values are guaranteed unequal; multiple peaks may exist. Your algorithm must be logarithmic.
+
+**Examples:**
+
+- `nums=[1,2,3,1] → 2`
+- `nums=[1,2,1,3,5,6,4] → 1 or 5`
+- `nums=[1] → 0.`
+
+**Constraints:**
+
+1 ≤ nums.length ≤ 1000; -2³¹ ≤ nums[i] ≤ 2³¹-1; adjacent elements differ.
+
+**Why This Subpattern Applies:**
+
+Any peak in array with unequal adjacent elements. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Remove global mountain-shape assumption; same local slope update now finds any valid peak.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int findPeakElement(int[] nums) {
+        int lo = 0, hi = nums.length - 1;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (nums[mid] < nums[mid + 1]) lo = mid + 1;
+            else hi = mid;
+        }
+        return lo;
+    }
+}
+```
+
+**Key Logic:**
+
+Even without a single global mountain, moving uphill leads to some peak. Descending mid→mid+1 guarantees a peak in the left interval.
+
+**Time Complexity:**
+
+O(log n).
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+## B6 — Parity-aligned partner search
+
+### Subpattern B6: Parity-aligned partner search
+
+**When to Apply:**
+
+Sorted adjacent pairs shift parity after a single unpaired element.
+
+**Basic Java Code Snippet:**
+
+```java
+int lo = 0, hi = a.length / 2;
+while (lo < hi) {
+    int mid = lo + (hi - lo) / 2;
+    if (a[2 * mid] == a[2 * mid + 1]) lo = mid + 1;
+    else hi = mid;
+}
+// a[2*lo] is the unpaired item.
+```
+
+**Core Logic:**
+
+This template maintains the B6 search invariant: after each iteration, the candidate interval still contains a valid answer if one exists. The comparison or feasibility test eliminates candidates that cannot satisfy the required boundary. Adapt its predicate and endpoint conventions to the individual problem.
+
+**Questions Covered:**
+
+LeetCode 540
+
+### LeetCode 540
+
+**Question:**
+
+A sorted array has every value occurring exactly twice in adjacent positions except one value occurring once. Find that single value in logarithmic time using constant extra space.
+
+**Examples:**
+
+- `nums=[1,1,2,3,3,4,4,8,8] → 2`
+- `nums=[3,3,7,7,10,11,11] → 10`
+- `nums=[9] → 9.`
+
+**Constraints:**
+
+1 ≤ nums.length ≤ 10⁵; odd length; 0 ≤ nums[i] ≤ 10⁵; exactly one singleton.
+
+**Why This Subpattern Applies:**
+
+Exactly one nonduplicate among sorted adjacent pairs. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int singleNonDuplicate(int[] nums) {
+        int lo = 0, hi = nums.length - 1;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if ((mid & 1) == 1) mid--;
+            if (nums[mid] == nums[mid + 1]) lo = mid + 2;
+            else hi = mid;
+        }
+        return nums[lo];
+    }
+}
+```
+
+**Key Logic:**
+
+Before the singleton, pairs begin at even indices. Force mid even; a matching pair lies entirely before the singleton, otherwise the singleton is at or before mid.
+
+**Time Complexity:**
+
+O(log n).
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+## B7 — Missing-count order statistics
+
+### Subpattern B7: Missing-count order statistics
+
+**When to Apply:**
+
+In increasing distinct positive values, missing numbers before index i equal a[i]-i-1, which is monotone.
+
+**Basic Java Code Snippet:**
+
+```java
+int lo = 0, hi = a.length;
+while (lo < hi) {
+    int mid = lo + (hi - lo) / 2;
+    if ((long)a[mid] - mid - 1 < k) lo = mid + 1;
+    else hi = mid;
+}
+// first position with missingBefore >= k; calculate kth missing.
+```
+
+**Core Logic:**
+
+This template maintains the B7 search invariant: after each iteration, the candidate interval still contains a valid answer if one exists. The comparison or feasibility test eliminates candidates that cannot satisfy the required boundary. Adapt its predicate and endpoint conventions to the individual problem.
+
+**Questions Covered:**
+
+LeetCode 1539
+
+### LeetCode 1539
+
+**Question:**
+
+Given a strictly increasing sorted array of positive integers and a positive k, find the kth positive integer missing from the array. Missing values begin at 1 and continue beyond the final array element.
+
+**Examples:**
+
+- `arr=[2,3,4,7,11], k=5 → 9`
+- `arr=[1,2,3,4], k=2 → 6`
+- `arr=[5], k=1 → 1.`
+
+**Constraints:**
+
+1 ≤ arr.length ≤ 1000; 1 ≤ arr[i] ≤ 1000; 1 ≤ k ≤ 1000; strictly increasing.
+
+**Why This Subpattern Applies:**
+
+Kth positive number absent from sorted positive values. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int findKthPositive(int[] arr, int k) {
+        int lo = 0, hi = arr.length;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            int missing = arr[mid] - mid - 1;
+            if (missing < k) lo = mid + 1;
+            else hi = mid;
+        }
+        return lo + k;
+    }
+}
+```
+
+**Key Logic:**
+
+At index i, missing positives through arr[i] equal arr[i]-(i+1). Find first index with at least k missing; the kth missing value equals k plus the number of present array values before it.
+
+**Time Complexity:**
+
+O(log n).
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+## B8 — Integer numeric boundaries
+
+### Subpattern B8: Integer numeric boundaries
+
+**When to Apply:**
+
+Candidate integer x has monotone square/triangular capacity; search boundary using long-safe arithmetic.
+
+**Basic Java Code Snippet:**
+
+```java
+long lo = 0, hi = upperBound;
+while (lo < hi) {
+    long mid = lo + (hi - lo + 1) / 2;
+    if (mid <= value / Math.max(1L, mid)) lo = mid;
+    else hi = mid - 1;
+}
+// greatest x with x*x <= value (special-case value 0).
+```
+
+**Core Logic:**
+
+This template maintains the B8 search invariant: after each iteration, the candidate interval still contains a valid answer if one exists. The comparison or feasibility test eliminates candidates that cannot satisfy the required boundary. Adapt its predicate and endpoint conventions to the individual problem.
+
+**Questions Covered:**
+
+LeetCode 69, LeetCode 367, LeetCode 441
+
+### LeetCode 69
+
+**Question:**
+
+Given nonnegative integer x, return floor(sqrt(x)) as an integer, without using a built-in power or square-root function.
+
+**Examples:**
+
+- `x=4 → 2`
+- `x=8 → 2`
+- `x=0 → 0.`
+
+**Constraints:**
+
+0 ≤ x ≤ 2³¹-1.
+
+**Why This Subpattern Applies:**
+
+Integer floor square root without floating point. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int mySqrt(int x) {
+        int lo = 0, hi = x, ans = 0;
+        while (lo <= hi) {
+            int mid = lo + (hi - lo) / 2;
+            if ((long) mid * mid <= x) {
+                ans = mid; lo = mid + 1;
+            } else hi = mid - 1;
+        }
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+Square feasibility is true up to floor sqrt and false afterwards. Keep the last feasible mid; long multiplication prevents overflow.
+
+**Time Complexity:**
+
+O(log(x+1)).
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+### LeetCode 367
+
+**Question:**
+
+Given a positive integer num, determine whether it is the square of an integer. Do not use a built-in square-root function.
+
+**Examples:**
+
+- `num=16 → true`
+- `num=14 → false`
+- `num=1 → true.`
+
+**Constraints:**
+
+1 ≤ num ≤ 2³¹-1.
+
+**Why This Subpattern Applies:**
+
+Determine whether an integer is a perfect square. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Keep last-true sqrt search; replace floor-result output with exact-square equality check.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public boolean isPerfectSquare(int num) {
+        int lo = 1, hi = num, root = 0;
+        while (lo <= hi) {
+            int mid = lo + (hi - lo) / 2;
+            long sq = (long) mid * mid;
+            if (sq <= num) { root = mid; lo = mid + 1; }
+            else hi = mid - 1;
+        }
+        return (long) root * root == num;
+    }
+}
+```
+
+**Key Logic:**
+
+Reuse the greatest feasible integer square-root boundary; exact equality distinguishes perfect squares from values between squares.
+
+**Time Complexity:**
+
+O(log num).
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+### LeetCode 441
+
+**Question:**
+
+You have n coins and build a staircase with row 1 requiring one coin, row 2 requiring two, and so on. Return the maximum number of complete rows; leftover coins cannot count as a full row.
+
+**Examples:**
+
+- `n=5 → 2 (1+2, two left)`
+- `n=8 → 3 (1+2+3)`
+- `n=1 → 1.`
+
+**Constraints:**
+
+1 ≤ n ≤ 2³¹-1.
+
+**Why This Subpattern Applies:**
+
+Count complete staircase rows from n units. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Replace square feasibility with triangular-number capacity and return boundary count.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int arrangeCoins(int n) {
+        long lo = 0, hi = n, ans = 0;
+        while (lo <= hi) {
+            long mid = lo + (hi - lo) / 2;
+            if (mid * (mid + 1) / 2 <= n) {
+                ans = mid; lo = mid + 1;
+            } else hi = mid - 1;
+        }
+        return (int) ans;
+    }
+}
+```
+
+**Key Logic:**
+
+The total cost of r rows is the triangular number r(r+1)/2. Binary-search its last feasible row count with 64-bit arithmetic.
+
+**Time Complexity:**
+
+O(log n).
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+## B9 — Minimum rate / divisible-load capacity
+
+### Subpattern B9: Minimum rate / divisible-load capacity
+
+**When to Apply:**
+
+Larger per-unit capacity monotonically reduces required groups/time; sum ceiling divisions and test budget.
+
+**Basic Java Code Snippet:**
+
+```java
+long lo = 1, hi = maxCandidate;
+while (lo < hi) {
+    long mid = lo + (hi - lo) / 2;
+    long used = 0;
+    for (int load : loads) used += (load + mid - 1) / mid;
+    if (used <= budget) hi = mid;
+    else lo = mid + 1;
+}
+```
+
+**Core Logic:**
+
+This template maintains the B9 search invariant: after each iteration, the candidate interval still contains a valid answer if one exists. The comparison or feasibility test eliminates candidates that cannot satisfy the required boundary. Adapt its predicate and endpoint conventions to the individual problem.
+
+**Questions Covered:**
+
+LeetCode 875, LeetCode 2064, LeetCode 1760, LeetCode 1870
+
+### LeetCode 875
+
+**Question:**
+
+Koko has piles of bananas and h hours. Each hour she selects one pile and eats up to k bananas from it; she cannot switch piles during that hour. Find the minimum positive integer eating speed k that finishes all piles within h hours.
+
+**Examples:**
+
+- `piles=[3,6,7,11], h=8 → 4`
+- `piles=[30,11,23,4,20], h=5 → 30`
+- `same piles, h=6 → 23.`
+
+**Constraints:**
+
+1 ≤ piles.length ≤ h ≤ 10⁹; 1 ≤ piles[i] ≤ 10⁹; piles.length ≤ 10⁴.
+
+**Why This Subpattern Applies:**
+
+Smallest speed that completes all piles within allotted hours. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int minEatingSpeed(int[] piles, int h) {
+        int lo = 1, hi = 0;
+        for (int p : piles) hi = Math.max(hi, p);
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            long hours = 0;
+            for (int p : piles) hours += (p - 1L) / mid + 1;
+            if (hours <= h) hi = mid;
+            else lo = mid + 1;
+        }
+        return lo;
+    }
+}
+```
+
+**Key Logic:**
+
+Hours needed is sum ceil(pile/speed). Faster speeds never need more hours, so find first feasible speed. Long sum handles large piles.
+
+**Time Complexity:**
+
+O(n log M), M=max pile.
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+### LeetCode 2064
+
+**Question:**
+
+There are n retail stores and quantities of different product types. Each store can receive at most one type, but any positive number of items of that type. Distribute all products to minimize the maximum number of items assigned to any store.
+
+**Examples:**
+
+- `n=6, quantities=[11,6] → 3`
+- `n=7, quantities=[15,10,10] → 5`
+- `n=1, quantities=[100000] → 100000.`
+
+**Constraints:**
+
+1 ≤ quantities.length ≤ n ≤ 10⁵; 1 ≤ quantities[i] ≤ 10⁵.
+
+**Why This Subpattern Applies:**
+
+Smallest per-store max product quantity when each store takes one product type. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Preserve ceiling-division sum; reinterpret load units as stores and budget as number of stores.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int minimizedMaximum(int n, int[] quantities) {
+        int lo = 1, hi = 0;
+        for (int q : quantities) hi = Math.max(hi, q);
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            long stores = 0;
+            for (int q : quantities) stores += (q - 1L) / mid + 1;
+            if (stores <= n) hi = mid;
+            else lo = mid + 1;
+        }
+        return lo;
+    }
+}
+```
+
+**Key Logic:**
+
+For maximum load cap mid, type q requires ceil(q/mid) distinct stores. Sum these counts and compare to available stores.
+
+**Time Complexity:**
+
+O(t log M), t=types, M=max quantity.
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+### LeetCode 1760
+
+**Question:**
+
+You have bags with positive numbers of balls and may perform at most maxOperations operations. One operation splits a bag into two nonempty bags. Minimize the largest number of balls in any resulting bag.
+
+**Examples:**
+
+- `nums=[9], maxOperations=2 → 3`
+- `nums=[2,4,8,2], maxOperations=4 → 2`
+- `nums=[7], maxOperations=0 → 7.`
+
+**Constraints:**
+
+1 ≤ nums.length ≤ 10⁵; 1 ≤ nums[i] ≤ 10⁹; 1 ≤ maxOperations ≤ 10⁹ (zero also handled).
+
+**Why This Subpattern Applies:**
+
+Smallest allowed maximum balls per bag after limited splits. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Replace ceil(load/x) groups with ceil(load/x)-1 split-operation count; handle x>=1.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int minimumSize(int[] nums, int maxOperations) {
+        int lo = 1, hi = 0;
+        for (int x : nums) hi = Math.max(hi, x);
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            long ops = 0;
+            for (int x : nums) ops += (x - 1L) / mid;
+            if (ops <= maxOperations) hi = mid;
+            else lo = mid + 1;
+        }
+        return lo;
+    }
+}
+```
+
+**Key Logic:**
+
+To make every resulting bag at most mid, a bag of x needs ceil(x/mid)-1 splits, equivalently (x-1)/mid. Larger caps require no more operations.
+
+**Time Complexity:**
+
+O(n log M).
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+### LeetCode 1870
+
+**Question:**
+
+You must ride trains with integer distances in order. Each train except the last must depart at the next integer hour, so after finishing an intermediate ride you wait until the next integer hour. The last train requires no waiting after arrival. Find the smallest positive integer speed arriving within hour, or -1 if impossible.
+
+**Examples:**
+
+- `dist=[1,3,2], hour=6 → 1`
+- `hour=2.7 → 3`
+- `hour=1.9 → -1.`
+
+**Constraints:**
+
+1 ≤ dist.length ≤ 10⁵; 1 ≤ dist[i] ≤ 10⁵; 1 ≤ hour ≤ 10⁹, at most two decimal places; answer ≤ 10⁷ if possible.
+
+**Why This Subpattern Applies:**
+
+Smallest integer speed meeting a deadline with waiting between trains. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Keep rate search but replace all-ceiling sum with ceiling for intermediate segments and exact final fractional time; guard impossible hour.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int minSpeedOnTime(int[] dist, double hour) {
+        int n = dist.length;
+        if (hour <= n - 1) return -1;
+        int lo = 1, hi = 10_000_000;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (possible(dist, hour, mid)) hi = mid;
+            else lo = mid + 1;
+        }
+        return possible(dist, hour, lo) ? lo : -1;
+    }
+    private boolean possible(int[] dist, double hour, int speed) {
+        double spent = 0;
+        for (int i = 0; i < dist.length - 1; i++) {
+            spent += (dist[i] - 1L) / speed + 1;
+            if (spent > hour) return false;
+        }
+        return spent + (double) dist[dist.length - 1] / speed <= hour + 1e-9;
+    }
+}
+```
+
+**Key Logic:**
+
+Intermediate travel times round up to whole hours; the final segment remains fractional. Fewer than n-1 hours cannot work, and speed is bounded by 10⁷.
+
+**Time Complexity:**
+
+O(n log 10⁷).
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+## B10 — Minimum time under cumulative parallel production
+
+### Subpattern B10: Minimum time under cumulative parallel production
+
+**When to Apply:**
+
+Increasing time increases total completed tasks; seek first time total reaches threshold.
+
+**Basic Java Code Snippet:**
+
+```java
+long lo = 1, hi = upperTime;
+while (lo < hi) {
+    long mid = lo + (hi - lo) / 2;
+    long complete = 0;
+    for (int t : workerTime) {
+        complete += mid / t;
+        if (complete >= required) break;
+    }
+    if (complete >= required) hi = mid;
+    else lo = mid + 1;
+}
+```
+
+**Core Logic:**
+
+This template maintains the B10 search invariant: after each iteration, the candidate interval still contains a valid answer if one exists. The comparison or feasibility test eliminates candidates that cannot satisfy the required boundary. Adapt its predicate and endpoint conventions to the individual problem.
+
+**Questions Covered:**
+
+LeetCode 2187
+
+### LeetCode 2187
+
+**Question:**
+
+Workers have individual time[i] per trip and can work simultaneously, repeatedly making trips. Find the minimum integer time by which their combined completed trips reach totalTrips.
+
+**Examples:**
+
+- `time=[1,2,3], totalTrips=5 → 3`
+- `time=[2], totalTrips=1 → 2`
+- `time=[5,10,10], totalTrips=9 → 25.`
+
+**Constraints:**
+
+1 ≤ time.length ≤ 10⁵; 1 ≤ time[i], totalTrips ≤ 10⁷.
+
+**Why This Subpattern Applies:**
+
+Minimum time for workers to complete required trips in parallel. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public long minimumTime(int[] time, int totalTrips) {
+        long fastest = Long.MAX_VALUE;
+        for (int t : time) fastest = Math.min(fastest, t);
+        long lo = 1, hi = fastest * totalTrips;
+        while (lo < hi) {
+            long mid = lo + (hi - lo) / 2;
+            long trips = 0;
+            for (int t : time) {
+                trips += mid / t;
+                if (trips >= totalTrips) break;
+            }
+            if (trips >= totalTrips) hi = mid;
+            else lo = mid + 1;
+        }
+        return lo;
+    }
+}
+```
+
+**Key Logic:**
+
+At time T, worker i completes floor(T/time[i]) trips. This count only grows with T. Fastest worker alone supplies a valid upper bound; early exit avoids excessive accumulation.
+
+**Time Complexity:**
+
+O(n log(min(time)·totalTrips)).
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+## B11 — Contiguous workload minimax partition
+
+### Subpattern B11: Contiguous workload minimax partition
+
+**When to Apply:**
+
+As allowable maximum segment load increases, greedy number of segments needed never increases.
+
+**Basic Java Code Snippet:**
+
+```java
+long lo = maxElement, hi = totalSum;
+while (lo < hi) {
+    long cap = lo + (hi - lo) / 2;
+    int parts = 1; long current = 0;
+    for (int x : a) {
+        if (current + x > cap) { parts++; current = 0; }
+        current += x;
+    }
+    if (parts <= allowedParts) hi = cap;
+    else lo = cap + 1;
+}
+```
+
+**Core Logic:**
+
+This template maintains the B11 search invariant: after each iteration, the candidate interval still contains a valid answer if one exists. The comparison or feasibility test eliminates candidates that cannot satisfy the required boundary. Adapt its predicate and endpoint conventions to the individual problem.
+
+**Questions Covered:**
+
+LeetCode 1011, LeetCode 410
+
+### LeetCode 1011
+
+**Question:**
+
+Packages have weights in fixed order. Each day a ship takes a consecutive prefix of remaining packages without exceeding capacity; packages cannot be split. Find minimum ship capacity needed to deliver all packages within days days.
+
+**Examples:**
+
+- `weights=[1,2,3,4,5,6,7,8,9,10], days=5 → 15`
+- `weights=[3,2,2,4,1,4], days=3 → 6`
+- `weights=[1,2,3,1,1], days=4 → 3.`
+
+**Constraints:**
+
+1 ≤ weights.length ≤ 5·10⁴; 1 ≤ weights[i] ≤ 500; 1 ≤ days ≤ weights.length.
+
+**Why This Subpattern Applies:**
+
+Minimum shipping capacity to process packages in order within D days. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int shipWithinDays(int[] weights, int days) {
+        int lo = 0, hi = 0;
+        for (int w : weights) { lo = Math.max(lo, w); hi += w; }
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            int used = 1, load = 0;
+            for (int w : weights) {
+                if (load + w > mid) { used++; load = 0; }
+                load += w;
+            }
+            if (used <= days) hi = mid;
+            else lo = mid + 1;
+        }
+        return lo;
+    }
+}
+```
+
+**Key Logic:**
+
+Trial capacity partitions the ordered sequence greedily into the fewest possible days. Capacity below max weight is impossible; total weight always suffices.
+
+**Time Complexity:**
+
+O(n log S), S=sum weights.
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+### LeetCode 410
+
+**Question:**
+
+Split a nonnegative integer array into exactly k nonempty consecutive subarrays. Minimize the largest sum among these subarrays; every element must belong to exactly one part.
+
+**Examples:**
+
+- `nums=[7,2,5,10,8], k=2 → 18`
+- `nums=[1,2,3,4,5], k=2 → 9`
+- `nums=[1,4,4], k=3 → 4.`
+
+**Constraints:**
+
+1 ≤ nums.length ≤ 1000; 0 ≤ nums[i] ≤ 10⁶; 1 ≤ k ≤ nums.length.
+
+**Why This Subpattern Applies:**
+
+Smallest largest subarray sum when dividing nonnegative array into k nonempty parts. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Keep identical feasibility sweep; replace day terminology with exact k segments and justify split feasibility for nonnegative values.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int splitArray(int[] nums, int k) {
+        long lo = 0, hi = 0;
+        for (int x : nums) { lo = Math.max(lo, x); hi += x; }
+        while (lo < hi) {
+            long mid = lo + (hi - lo) / 2;
+            int parts = 1;
+            long sum = 0;
+            for (int x : nums) {
+                if (sum + x > mid) { parts++; sum = 0; }
+                sum += x;
+            }
+            if (parts <= k) hi = mid;
+            else lo = mid + 1;
+        }
+        return (int) lo;
+    }
+}
+```
+
+**Key Logic:**
+
+Greedy makes the minimum number of contiguous parts under a proposed cap. If this is ≤k, additional splits can reach exactly k because elements are nonnegative and k≤n.
+
+**Time Complexity:**
+
+O(n log S), S=sum nums.
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+## B12 — Threshold feasibility with adjacency
+
+### Subpattern B12: Threshold feasibility with adjacency
+
+**When to Apply:**
+
+Candidate threshold determines active positions; count consecutive runs to create required disjoint groups.
+
+**Basic Java Code Snippet:**
+
+```java
+int lo = minimumValue, hi = maximumValue;
+while (lo < hi) {
+    int day = lo + (hi - lo) / 2;
+    int consecutive = 0, groups = 0;
+    for (int x : a) {
+        if (x <= day) {
+            if (++consecutive == groupSize) { groups++; consecutive = 0; }
+        } else consecutive = 0;
+    }
+    if (groups >= requiredGroups) hi = day;
+    else lo = day + 1;
+}
+```
+
+**Core Logic:**
+
+This template maintains the B12 search invariant: after each iteration, the candidate interval still contains a valid answer if one exists. The comparison or feasibility test eliminates candidates that cannot satisfy the required boundary. Adapt its predicate and endpoint conventions to the individual problem.
+
+**Questions Covered:**
+
+LeetCode 1482
+
+### LeetCode 1482
+
+**Question:**
+
+Each flower blooms on bloomDay[i]. A bouquet requires k adjacent flowers, and a flower may belong to at most one bouquet. Find the earliest day when m bouquets can be assembled; return -1 if there are too few flowers overall.
+
+**Examples:**
+
+- `bloomDay=[1,10,3,10,2], m=3,k=1 → 3`
+- `m=3,k=2 → -1`
+- `bloomDay=[7,7,7,7,12,7,7],m=2,k=3 → 12.`
+
+**Constraints:**
+
+1 ≤ bloomDay.length ≤ 10⁵; 1 ≤ bloomDay[i] ≤ 10⁹; 1 ≤ m ≤ 10⁶; 1 ≤ k ≤ bloomDay.length.
+
+**Why This Subpattern Applies:**
+
+Earliest day to build m disjoint bouquets of k adjacent flowers. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int minDays(int[] bloomDay, int m, int k) {
+        if ((long) m * k > bloomDay.length) return -1;
+        int lo = Integer.MAX_VALUE, hi = 0;
+        for (int d : bloomDay) { lo = Math.min(lo, d); hi = Math.max(hi, d); }
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            int run = 0, bouquets = 0;
+            for (int d : bloomDay) {
+                if (d <= mid) {
+                    if (++run == k) { bouquets++; run = 0; }
+                } else run = 0;
+            }
+            if (bouquets >= m) hi = mid;
+            else lo = mid + 1;
+        }
+        return lo;
+    }
+}
+```
+
+**Key Logic:**
+
+For a candidate day, consecutive bloomed flowers form disjoint k-sized groups. Increasing day never reduces available bouquets. Multiplication is cast to long to avoid overflow.
+
+**Time Complexity:**
+
+O(n log R), R=max day-min day+1.
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+## B13 — Maximize minimum separation
+
+### Subpattern B13: Maximize minimum separation
+
+**When to Apply:**
+
+Larger candidate separation makes greedy placement of a fixed number of items harder.
+
+**Basic Java Code Snippet:**
+
+```java
+java.util.Arrays.sort(a);
+int lo = 0, hi = a[a.length - 1] - a[0];
+while (lo < hi) {
+    int dist = lo + (hi - lo + 1) / 2;
+    int placed = 1, last = a[0];
+    for (int i = 1; i < a.length; i++)
+        if ((long)a[i] - last >= dist) { placed++; last = a[i]; }
+    if (placed >= needed) lo = dist;
+    else hi = dist - 1;
+}
+```
+
+**Core Logic:**
+
+This template maintains the B13 search invariant: after each iteration, the candidate interval still contains a valid answer if one exists. The comparison or feasibility test eliminates candidates that cannot satisfy the required boundary. Adapt its predicate and endpoint conventions to the individual problem.
+
+**Questions Covered:**
+
+LeetCode 1552, LeetCode 2517
+
+### LeetCode 1552
+
+**Question:**
+
+Given distinct positions along a line, place m balls at chosen positions to maximize the minimum absolute distance between any pair of placed balls.
+
+**Examples:**
+
+- `position=[1,2,3,4,7], m=3 → 3`
+- `position=[5,4,3,2,1,1000000000], m=2 → 999999999`
+- `position=[1,10],m=2 → 9.`
+
+**Constraints:**
+
+2 ≤ position.length ≤ 10⁵; 1 ≤ position[i] ≤ 10⁹; positions distinct; 2 ≤ m ≤ position.length.
+
+**Why This Subpattern Applies:**
+
+Maximum possible minimum distance among m balls in selected positions. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.Arrays;
+class Solution {
+    public int maxDistance(int[] position, int m) {
+        Arrays.sort(position);
+        int lo = 1, hi = position[position.length - 1] - position[0];
+        while (lo < hi) {
+            int mid = lo + (hi - lo + 1) / 2;
+            int count = 1, last = position[0];
+            for (int p : position) {
+                if (p - last >= mid) { count++; last = p; }
+            }
+            if (count >= m) lo = mid;
+            else hi = mid - 1;
+        }
+        return lo;
+    }
+}
+```
+
+**Key Logic:**
+
+For a proposed gap, place the first ball at the earliest position and each next as early as possible. Feasibility decreases as gap increases; upper midpoint finds the last feasible gap.
+
+**Time Complexity:**
+
+O(n log n + n log R), R=position range.
+
+**Space Complexity:**
+
+O(1) auxiliary excluding sorting stack; Java Arrays.sort(int[]) uses O(log n) stack worst-case.
+
+---
+
+### LeetCode 2517
+
+**Question:**
+
+Choose k distinct items from an array of prices. The score (tastiness) is the minimum absolute price difference between any two chosen items. Maximize that score.
+
+**Examples:**
+
+- `price=[13,5,1,8,21,2],k=3 → 8`
+- `price=[1,3,1],k=2 → 2`
+- `price=[7,7,7],k=2 → 0.`
+
+**Constraints:**
+
+2 ≤ price.length ≤ 10⁵; 1 ≤ price[i] ≤ 10⁹; 2 ≤ k ≤ price.length; duplicates allowed.
+
+**Why This Subpattern Applies:**
+
+Maximum minimum absolute difference between selected item prices. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Reuse identical sorted spacing feasibility; adapt collection and number of selections.
+
+**Java Solution:**
+
+```java
+import java.util.Arrays;
+class Solution {
+    public int maximumTastiness(int[] price, int k) {
+        Arrays.sort(price);
+        int lo = 0, hi = price[price.length - 1] - price[0];
+        while (lo < hi) {
+            int mid = lo + (hi - lo + 1) / 2;
+            int chosen = 1, last = price[0];
+            for (int p : price) {
+                if (p - last >= mid) { chosen++; last = p; }
+            }
+            if (chosen >= k) lo = mid;
+            else hi = mid - 1;
+        }
+        return lo;
+    }
+}
+```
+
+**Key Logic:**
+
+Same earliest-possible greedy placement as balls, but equal prices permit zero optimum. Use lo=0 instead of 1.
+
+**Time Complexity:**
+
+O(n log n + n log R).
+
+**Space Complexity:**
+
+O(log n) sorting stack; O(1) otherwise.
+
+---
+
+## B14 — Kth value by count-at-most
+
+### Subpattern B14: Kth value by count-at-most
+
+**When to Apply:**
+
+Cannot materialize huge sorted multiset; count how many implicit values are <= candidate, then search first with count >= k.
+
+**Basic Java Code Snippet:**
+
+```java
+long lo = minValue, hi = maxValue;
+while (lo < hi) {
+    long mid = lo + (hi - lo) / 2;
+    long count = countAtMost(mid); // monotone in mid
+    if (count >= k) hi = mid;
+    else lo = mid + 1;
+}
+```
+
+**Core Logic:**
+
+This template maintains the B14 search invariant: after each iteration, the candidate interval still contains a valid answer if one exists. The comparison or feasibility test eliminates candidates that cannot satisfy the required boundary. Adapt its predicate and endpoint conventions to the individual problem.
+
+**Questions Covered:**
+
+LeetCode 668, LeetCode 719
+
+### LeetCode 668
+
+**Question:**
+
+Consider an implicit m×n table whose entry at row i, column j equals i·j for 1-based indices. Without constructing the table, return its kth smallest entry counting duplicates as separate cells.
+
+**Examples:**
+
+- `m=3,n=3,k=5 → 3`
+- `m=2,n=3,k=6 → 6`
+- `m=1,n=4,k=2 → 2.`
+
+**Constraints:**
+
+1 ≤ m,n ≤ 3·10⁴; 1 ≤ k ≤ m·n ≤ 10⁹.
+
+**Why This Subpattern Applies:**
+
+Kth smallest entry in implicit m-by-n multiplication table. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int findKthNumber(int m, int n, int k) {
+        int lo = 1, hi = m * n;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            long count = 0;
+            for (int row = 1; row <= m; row++) {
+                count += Math.min(n, mid / row);
+            }
+            if (count >= k) hi = mid;
+            else lo = mid + 1;
+        }
+        return lo;
+    }
+}
+```
+
+**Key Logic:**
+
+Row i contains min(n, floor(value/i)) entries no greater than value. Binary-search first numeric threshold whose cumulative rank reaches k.
+
+**Time Complexity:**
+
+O(m log(mn)).
+
+**Space Complexity:**
+
+O(1).
+
+---
+
+### LeetCode 719
+
+**Question:**
+
+Given an integer array, consider absolute differences for every unordered pair of distinct indices. Sort those differences conceptually, including duplicates, and return the kth smallest difference.
+
+**Examples:**
+
+- `nums=[1,3,1],k=1 → 0`
+- `nums=[1,1,1],k=2 → 0`
+- `nums=[1,6,1],k=3 → 5.`
+
+**Constraints:**
+
+2 ≤ nums.length ≤ 10⁴; 0 ≤ nums[i] ≤ 10⁶; 1 ≤ k ≤ n(n-1)/2.
+
+**Why This Subpattern Applies:**
+
+Kth smallest pairwise absolute difference. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Keep countAtMost(mid)>=k binary search; replace multiplication-table row counts with O(n) sorted two-pointer pair-distance counts.
+
+**Java Solution:**
+
+```java
+import java.util.Arrays;
+class Solution {
+    public int smallestDistancePair(int[] nums, int k) {
+        Arrays.sort(nums);
+        int lo = 0, hi = nums[nums.length - 1] - nums[0];
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            long count = 0;
+            for (int left = 0, right = 0; right < nums.length; right++) {
+                while (nums[right] - nums[left] > mid) left++;
+                count += right - left;
+            }
+            if (count >= k) hi = mid;
+            else lo = mid + 1;
+        }
+        return lo;
+    }
+}
+```
+
+**Key Logic:**
+
+After sorting, the left pointer advances to retain exactly earlier values within candidate distance. Each right contributes right-left pairs; count is monotone in distance.
+
+**Time Complexity:**
+
+O(n log n + n log R).
+
+**Space Complexity:**
+
+O(log n) sorting stack; O(1) otherwise.
+
+---
+
+## B15 — Closest-k contiguous rank window
+
+### Subpattern B15: Closest-k contiguous rank window
+
+**When to Apply:**
+
+The k nearest values in a sorted array form an ordered window; predicate compares boundary losses as its start shifts.
+
+**Basic Java Code Snippet:**
+
+```java
+int lo = 0, hi = a.length - k;
+while (lo < hi) {
+    int mid = lo + (hi - lo) / 2;
+    if ((long)x - a[mid] > (long)a[mid + k] - x) lo = mid + 1;
+    else hi = mid;
+}
+// answer is k-long block starting at lo.
+```
+
+**Core Logic:**
+
+This template maintains the B15 search invariant: after each iteration, the candidate interval still contains a valid answer if one exists. The comparison or feasibility test eliminates candidates that cannot satisfy the required boundary. Adapt its predicate and endpoint conventions to the individual problem.
+
+**Questions Covered:**
+
+LeetCode 658
+
+### LeetCode 658
+
+**Question:**
+
+Given a sorted array, an integer k, and target x, return k elements closest to x, sorted ascending. If two values have equal distance, prefer the smaller value. The selected k values form a contiguous window in the sorted array.
+
+**Examples:**
+
+- `arr=[1,2,3,4,5],k=4,x=3 → [1,2,3,4]`
+- `x=-1 → [1,2,3,4]`
+- `arr=[1,1,2,3,4,5],k=3,x=2 → [1,2,3].`
+
+**Constraints:**
+
+1 ≤ k ≤ arr.length ≤ 10⁴; -10⁴ ≤ arr[i],x ≤ 10⁴; sorted ascending.
+
+**Why This Subpattern Applies:**
+
+K closest values with sorted output and tie preference for smaller value. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.ArrayList;
+import java.util.List;
+class Solution {
+    public List<Integer> findClosestElements(int[] arr, int k, int x) {
+        int lo = 0, hi = arr.length - k;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (x - arr[mid] > arr[mid + k] - x) lo = mid + 1;
+            else hi = mid;
+        }
+        List<Integer> answer = new ArrayList<>(k);
+        for (int i = lo; i < lo + k; i++) answer.add(arr[i]);
+        return answer;
+    }
+}
+```
+
+**Key Logic:**
+
+Compare the element that would leave the current k-window against the one that would enter after shifting right. Strict > moves right; equality stays left to honor smaller-value ties.
+
+**Time Complexity:**
+
+O(log(n-k+1)+k).
+
+**Space Complexity:**
+
+O(k) output; O(1) auxiliary.
+
+---
+
+## B16 — Per-query monotone pairing threshold
+
+### Subpattern B16: Per-query monotone pairing threshold
+
+**When to Apply:**
+
+Sorted partners permit lowerBound(threshold) to count how many choices satisfy an increasing condition.
+
+**Basic Java Code Snippet:**
+
+```java
+java.util.Arrays.sort(partners);
+for (int x : queries) {
+    long threshold = (target + x - 1L) / x; // positive x and target
+    int first = lowerBound(partners, threshold);
+    int valid = partners.length - first;
+}
+```
+
+**Core Logic:**
+
+This template maintains the B16 search invariant: after each iteration, the candidate interval still contains a valid answer if one exists. The comparison or feasibility test eliminates candidates that cannot satisfy the required boundary. Adapt its predicate and endpoint conventions to the individual problem.
+
+**Questions Covered:**
+
+LeetCode 2300
+
+### LeetCode 2300
+
+**Question:**
+
+Each spell and potion has positive strength. A pair succeeds if spell×potion ≥ success. For each spell in original order, return the number of potions forming a successful pair.
+
+**Examples:**
+
+- `spells=[5,1,3],potions=[1,2,3,4,5],success=7 → [4,0,3]`
+- `spells=[3,1,2],potions=[8,5,8],success=16 → [2,0,2]`
+- `spells=[1],potions=[1],success=1 → [1].`
+
+**Constraints:**
+
+1 ≤ spells.length,potions.length ≤ 10⁵; 1 ≤ strengths ≤ 10⁵; 1 ≤ success ≤ 10¹⁰.
+
+**Why This Subpattern Applies:**
+
+For each positive spell count potions with product >= success. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.Arrays;
+class Solution {
+    public int[] successfulPairs(int[] spells, int[] potions, long success) {
+        Arrays.sort(potions);
+        int[] result = new int[spells.length];
+        for (int i = 0; i < spells.length; i++) {
+            long threshold = (success - 1) / spells[i] + 1;
+            int lo = 0, hi = potions.length;
+            while (lo < hi) {
+                int mid = lo + (hi - lo) / 2;
+                if (potions[mid] < threshold) lo = mid + 1;
+                else hi = mid;
+            }
+            result[i] = potions.length - lo;
+        }
+        return result;
+    }
+}
+```
+
+**Key Logic:**
+
+Avoid overflow by converting product condition to potion≥ceil(success/spell). A lower bound locates the first successful potion; the sorted suffix is successful.
+
+**Time Complexity:**
+
+O(p log p + s log p).
+
+**Space Complexity:**
+
+O(s) output plus O(log p) sorting stack.
+
+---
+
+## B17 — Per-key chronological predecessor search
+
+### Subpattern B17: Per-key chronological predecessor search
+
+**When to Apply:**
+
+Each key has timestamp-sorted writes; query asks last timestamp <= given time.
+
+**Basic Java Code Snippet:**
+
+```java
+// For one key with sorted timestamps:
+int lo = 0, hi = timestamps.size();
+while (lo < hi) {
+    int mid = lo + (hi - lo) / 2;
+    if (timestamps.get(mid) <= queryTime) lo = mid + 1;
+    else hi = mid;
+}
+// predecessor index is lo - 1 (if >=0).
+```
+
+**Core Logic:**
+
+This template maintains the B17 search invariant: after each iteration, the candidate interval still contains a valid answer if one exists. The comparison or feasibility test eliminates candidates that cannot satisfy the required boundary. Adapt its predicate and endpoint conventions to the individual problem.
+
+**Questions Covered:**
+
+LeetCode 981
+
+### LeetCode 981
+
+**Question:**
+
+Implement a time-based key-value store. set(key,value,timestamp) saves a value at a timestamp; get(key,timestamp) returns the value associated with the greatest stored timestamp not exceeding the query, or an empty string if none. Calls to set for a given key arrive with strictly increasing timestamps.
+
+**Examples:**
+
+- `set("foo","bar",1)`
+- `get("foo",1) → "bar"`
+- `get("foo",3) → "bar"`
+- `set("foo","bar2",4)`
+- `get("foo",4) → "bar2"`
+- `get("foo",5) → "bar2".`
+
+**Constraints:**
+
+1 ≤ key.length,value.length ≤ 100; lowercase letters/digits; 1 ≤ timestamp ≤ 10⁷; ≤2·10⁵ calls; set timestamps strictly increasing per key.
+
+**Why This Subpattern Applies:**
+
+Time-indexed key/value records with latest value no later than timestamp. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+class TimeMap {
+    private static class Entry {
+        final int timestamp;
+        final String value;
+        Entry(int timestamp, String value) {
+            this.timestamp = timestamp;
+            this.value = value;
+        }
+    }
+    private final Map<String, List<Entry>> history = new HashMap<>();
+    public TimeMap() {}
+    public void set(String key, String value, int timestamp) {
+        history.computeIfAbsent(key, k -> new ArrayList<>())
+               .add(new Entry(timestamp, value));
+    }
+    public String get(String key, int timestamp) {
+        List<Entry> entries = history.get(key);
+        if (entries == null) return "";
+        int lo = 0, hi = entries.size();
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (entries.get(mid).timestamp <= timestamp) lo = mid + 1;
+            else hi = mid;
+        }
+        return lo == 0 ? "" : entries.get(lo - 1).value;
+    }
+}
+```
+
+**Key Logic:**
+
+Each key has an append-only sorted timestamp list. get computes upperBound(queryTime)-1, which is the latest record not after the query. The judge requires class TimeMap, not class Solution, for this design problem.
+
+**Time Complexity:**
+
+set O(1) amortized; get O(log r) for r records under key, expected O(1) map lookup.
+
+**Space Complexity:**
+
+O(N) stored entries across all keys.
+
+---
+
+## B18 — Partition median across two sorted inputs
+
+### Subpattern B18: Partition median across two sorted inputs
+
+**When to Apply:**
+
+Partition arrays so left contains half and max(left) <= min(right); binary-search cut of smaller array.
+
+**Basic Java Code Snippet:**
+
+```java
+int lo = Math.max(0, leftSize - b.length);
+int hi = Math.min(leftSize, a.length);
+while (lo <= hi) {
+    int cutA = lo + (hi - lo) / 2;
+    int cutB = leftSize - cutA;
+    // compare a[cutA-1], a[cutA] with b[cutB-1], b[cutB];
+    // move cutA left or right until both cross inequalities hold
+}
+```
+
+**Core Logic:**
+
+This template maintains the B18 search invariant: after each iteration, the candidate interval still contains a valid answer if one exists. The comparison or feasibility test eliminates candidates that cannot satisfy the required boundary. Adapt its predicate and endpoint conventions to the individual problem.
+
+**Questions Covered:**
+
+LeetCode 4
+
+### LeetCode 4
+
+**Question:**
+
+Given two individually sorted integer arrays, return the median of all their values as though merged, but do not actually merge them. If the total number of values is odd, take the middle; if even, average the two middle values. Target O(log(m+n)) time.
+
+**Examples:**
+
+- `nums1=[1,3],nums2=[2] → 2.0`
+- `nums1=[1,2],nums2=[3,4] → 2.5`
+- `nums1=[],nums2=[1] → 1.0.`
+
+**Constraints:**
+
+0 ≤ m,n ≤ 1000; 1 ≤ m+n ≤ 2000; -10⁶ ≤ nums1[i],nums2[i] ≤ 10⁶; each sorted ascending.
+
+**Why This Subpattern Applies:**
+
+Median of two individually sorted arrays without merging. The required search predicate or ordering lets us discard part of the remaining candidates without missing the answer.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public double findMedianSortedArrays(int[] nums1, int[] nums2) {
+        if (nums1.length > nums2.length) return findMedianSortedArrays(nums2, nums1);
+        int m = nums1.length, n = nums2.length;
+        int leftSize = (m + n + 1) / 2;
+        int lo = 0, hi = m;
+        while (lo <= hi) {
+            int cutA = lo + (hi - lo) / 2;
+            int cutB = leftSize - cutA;
+            int aLeft = cutA == 0 ? Integer.MIN_VALUE : nums1[cutA - 1];
+            int aRight = cutA == m ? Integer.MAX_VALUE : nums1[cutA];
+            int bLeft = cutB == 0 ? Integer.MIN_VALUE : nums2[cutB - 1];
+            int bRight = cutB == n ? Integer.MAX_VALUE : nums2[cutB];
+            if (aLeft <= bRight && bLeft <= aRight) {
+                int leftMax = Math.max(aLeft, bLeft);
+                if (((m + n) & 1) == 1) return leftMax;
+                return ((double) leftMax + Math.min(aRight, bRight)) / 2.0;
+            }
+            if (aLeft > bRight) hi = cutA - 1;
+            else lo = cutA + 1;
+        }
+        throw new IllegalStateException("Sorted input invariant violated");
+    }
+}
+```
+
+**Key Logic:**
+
+Choose a left partition containing half the total values, rounding up. Cross inequalities guarantee every left value ≤ every right value; shift the cut in the shorter array until valid. Sentinels handle empty sides.
+
+**Time Complexity:**
+
+O(log(min(m,n)+1)).
+
+**Space Complexity:**
+
+O(1) auxiliary; one constant-depth recursive swap.
+
+---
+
+## Final Question Registry
+
+**Expected and included:** 33 questions, 18 families. **Order:** exact master order.
+
+| Seq | Family | LeetCode | Included |
+|---:|---|---:|---|
+| 01 | B1 | 704 | Yes |
+| 02 | B1 | 35 | Yes |
+| 03 | B1 | 34 | Yes |
+| 04 | B1 | 744 | Yes |
+| 05 | B1 | 278 | Yes |
+| 06 | B2 | 374 | Yes |
+| 07 | B3 | 153 | Yes |
+| 08 | B3 | 154 | Yes |
+| 09 | B4 | 33 | Yes |
+| 10 | B4 | 81 | Yes |
+| 11 | B5 | 852 | Yes |
+| 12 | B5 | 162 | Yes |
+| 13 | B6 | 540 | Yes |
+| 14 | B7 | 1539 | Yes |
+| 15 | B8 | 69 | Yes |
+| 16 | B8 | 367 | Yes |
+| 17 | B8 | 441 | Yes |
+| 18 | B9 | 875 | Yes |
+| 19 | B9 | 2064 | Yes |
+| 20 | B9 | 1760 | Yes |
+| 21 | B9 | 1870 | Yes |
+| 22 | B10 | 2187 | Yes |
+| 23 | B11 | 1011 | Yes |
+| 24 | B11 | 410 | Yes |
+| 25 | B12 | 1482 | Yes |
+| 26 | B13 | 1552 | Yes |
+| 27 | B13 | 2517 | Yes |
+| 28 | B14 | 668 | Yes |
+| 29 | B14 | 719 | Yes |
+| 30 | B15 | 658 | Yes |
+| 31 | B16 | 2300 | Yes |
+| 32 | B17 | 981 | Yes |
+| 33 | B18 | 4 | Yes |
+
+**Locked ID verification:** 704, 35, 34, 744, 278, 374, 153, 154, 33, 81, 852, 162, 540, 1539, 69, 367, 441, 875, 2064, 1760, 1870, 2187, 1011, 410, 1482, 1552, 2517, 668, 719, 658, 2300, 981, 4.
+
+**Progress remains unchanged:** 0/33 in the master curriculum.
