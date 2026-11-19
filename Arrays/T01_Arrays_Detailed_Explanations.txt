@@ -1397,4 +1397,3 @@ class Solution {
 
 **Time Complexity:** O(n + digits(k)), including output reversal; under the given bounds, O(n).  
 **Space Complexity:** O(n + digits(k)) for the returned list; O(1) auxiliary beyond output.
-
