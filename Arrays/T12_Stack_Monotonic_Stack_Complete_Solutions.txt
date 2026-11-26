@@ -1,0 +1,2235 @@
+# T12 — Stack & Monotonic Stack: Complete Java 21 Solutions Workbook
+> **Curriculum authority:** `MASTER_DSA_CURRICULUM.md` → C12, locked T12 registry.  
+> **Scope:** 42 LeetCode questions, 24 non-overlapping algorithm families (ST1–ST24), in the exact locked order.  
+> **Style:** LeetCode-ready `Java 21`; each submission is independent (paste only its code into LeetCode).  
+> **Verification:** All 42 individual Java submissions compiled successfully with `javac`. Compilation is not equivalent to passing LeetCode hidden tests.  
+
+## How to use this workbook
+Work through each family in order. At the family start, study the reusable starter invariant; then solve the foundational LC problem without looking at the full code. For subsequent problems, focus on the explicit **exact code-logic evolution** from the prior problem *in the same family*. Transitions between families are intentionally labeled **NEW ALGORITHM FAMILY**, not represented as artificial solution links. The recognition and evolution lines below are extracted from the locked project registry; prose, examples, caveats, and completed solutions extend that plan.
+
+## Table of contents
+- [Locked registry](#locked-registry)
+- [ST1 — Delimiter validation, depth and nested scores](#st1)
+- [ST2 — Minimum edits to balance parentheses](#st2)
+- [ST3 — Balanced bracket swaps](#st3)
+- [ST4 — Adjacent stack cancellation and grouped runs](#st4)
+- [ST5 — Explicit delete-marker reduction](#st5)
+- [ST6 — Stack-based canonical paths](#st6)
+- [ST7 — Validating external stack operation sequences](#st7)
+- [ST8 — Augmented minimum stack](#st8)
+- [ST9 — Lazy bulk updates on a bounded stack](#st9)
+- [ST10 — Frequency-priority stack](#st10)
+- [ST11 — Reverse Polish expression evaluation](#st11)
+- [ST12 — Infix arithmetic with precedence and parentheses](#st12)
+- [ST13 — Nested encoded-string frames](#st13)
+- [ST14 — Paired parentheses with direction-switch traversal](#st14)
+- [ST15 — Nearest qualifying element with monotonic index stack](#st15)
+- [ST16 — Monotonic stack with accumulated visibility](#st16)
+- [ST17 — Second-greater deferred resolution](#st17)
+- [ST18 — Online previous-greater span compression](#st18)
+- [ST19 — Previous/next smaller boundaries and histogram spans](#st19)
+- [ST20 — Monotonic boundary contribution accounting](#st20)
+- [ST21 — Lexicographically optimal removal stack](#st21)
+- [ST22 — Collisions resolved by surviving stack top](#st22)
+- [ST23 — 132-pattern range-candidate stack](#st23)
+- [ST24 — Longest balanced-parentheses segment](#st24)
+- [Verification and quality audit](#verification-and-quality-audit)
+
+## Locked registry
+
+| Seq | LeetCode | Family | Core technique |
+|---:|---:|:---:|---|
+| 01 | 20 | ST1 | Mixed bracket types: nesting and matching opener matter |
+| 02 | 1021 | ST1 | Remove outermost parentheses from primitive balanced groups |
+| 03 | 1614 | ST1 | Find maximum nesting depth |
+| 04 | 856 | ST1 | Evaluate nested parentheses score: primitive pair contributes 1, wrapping doubles, concatenation adds |
+| 05 | 921 | ST2 | Minimum single-parenthesis insertions for balanced string |
+| 06 | 1249 | ST2 | Remove minimal parentheses and preserve all letters |
+| 07 | 1541 | ST2 | Every opening requires TWO consecutive closing parentheses |
+| 08 | 1963 | ST3 | Minimum arbitrary swaps for an equal-count square-bracket string |
+| 09 | 1047 | ST4 | Delete adjacent equal pairs repeatedly |
+| 10 | 1544 | ST4 | Delete adjacent ASCII letters equal ignoring case but with opposite case |
+| 11 | 1209 | ST4 | Delete adjacent groups when run reaches k |
+| 12 | 2390 | ST5 | Delete every `*` and its previous surviving character |
+| 13 | 71 | ST6 | Normalize absolute Unix path with repeated slashes, `.` and `..` |
+| 14 | 946 | ST7 | Decide whether one pop sequence can arise from a specified push sequence |
+| 15 | 155 | ST8 | Support constant-time minimum in a mutable stack |
+| 16 | 1381 | ST9 | Fixed-capacity push/pop plus increment bottom k elements |
+| 17 | 895 | ST10 | Pop most frequent item with recency tie-break |
+| 18 | 150 | ST11 | Evaluate postfix arithmetic |
+| 19 | 227 | ST12 | Evaluate non-parenthesized +,-,*,/ expression with whitespace |
+| 20 | 224 | ST12 | Evaluate +,- and nested parentheses |
+| 21 | 394 | ST13 | Decode nested count[substring] repetition |
+| 22 | 1190 | ST14 | Reverse nested parenthesized substrings without repeated copying |
+| 23 | 496 | ST15 | Next greater for queried subset of distinct values in a larger array |
+| 24 | 503 | ST15 | Next greater in circular array |
+| 25 | 739 | ST15 | Days until strictly warmer temperature |
+| 26 | 1475 | ST15 | Apply first subsequent price <= current as discount |
+| 27 | 1944 | ST16 | Count people visible to right until a blocking height |
+| 28 | 2454 | ST17 | Find second strictly greater value after each element |
+| 29 | 901 | ST18 | Online stock price span |
+| 30 | 84 | ST19 | Largest rectangle in histogram |
+| 31 | 1793 | ST19 | Maximize subarray minimum × length, requiring index k included |
+| 32 | 2334 | ST19 | Find subarray whose minimum × length exceeds threshold |
+| 33 | 1856 | ST19 | Maximum subarray min-product: minimum times subarray SUM |
+| 34 | 907 | ST20 | Sum minimum of every contiguous subarray |
+| 35 | 2104 | ST20 | Sum(maximum-minimum) across subarrays |
+| 36 | 2281 | ST20 | Sum minimum × sum of each subarray |
+| 37 | 1673 | ST21 | Find lexicographically smallest subsequence of exact length k while preserving order |
+| 38 | 402 | ST21 | Remove k digits from decimal string to minimize numeric value |
+| 39 | 316 | ST21 | Delete duplicate letters to leave each distinct letter exactly once, lexicographically smallest |
+| 40 | 735 | ST22 | Simulate opposite-moving asteroid collisions |
+| 41 | 456 | ST23 | Detect i<j<k and a[i]<a[k]<a[j] |
+| 42 | 32 | ST24 | Longest valid contiguous parentheses substring |
+
+<a id="st1"></a>
+## ST1 — Delimiter validation, depth and nested scores
+
+**Family boundary:** NEW ALGORITHM FAMILY. Do not assume a direct implementation transition from the previous family.
+
+**Recognition rule:** Use when nested opening/closing tokens must be checked, stripped, counted, or evaluated by depth.
+
+### Basic reusable Java 21 pattern (independent teaching snippet)
+
+This small snippet is deliberately a base invariant, not a substitute for the complete solutions below. It compiles when placed inside a Java class.
+
+```java
+class FamilyStarter {
+    static boolean balanced(String s) { java.util.ArrayDeque<Character> st = new java.util.ArrayDeque<>(); for (char c : s.toCharArray()) { if (c == '(') st.push(c); else if (c == ')') { if (st.isEmpty()) return false; st.pop(); } } return st.isEmpty(); }
+}
+```
+
+### 01. LeetCode 20
+
+**Problem statement (paraphrased):** Mixed bracket types: nesting and matching opener matter; `ArrayDeque<Character>` pushes openers, matches closes; O(n) time/space.
+
+**Examples:**
+
+1. Input: `s = "()[]{}"` → Output: `true`
+2. Input: `s = "([)]"` → Output: `false`
+
+**Constraints and important guarantees:** Parenthesis characters are drawn from `()[]{}`; reject unexpected closing types and leftovers. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when nested opening/closing tokens must be checked, stripped, counted, or evaluated by depth.
+
+**Exact evolution from previous question in this family:** **BASE:** maintain unmatched opener stack; reject mismatched/stray close and leftover open.
+
+**Algorithm and why it works:** Store only unmatched openers; the most recent opener must match the next closer.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public boolean isValid(String s) {
+        java.util.Deque<Character> st = new java.util.ArrayDeque<>();
+        for (char c : s.toCharArray()) {
+            if (c == '(' || c == '[' || c == '{') st.push(c);
+            else {
+                if (st.isEmpty()) return false;
+                char open = st.pop();
+                if ((c == ')' && open != '(') || (c == ']' && open != '[')
+                        || (c == '}' && open != '{')) return false;
+            }
+        }
+        return st.isEmpty();
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+### 02. LeetCode 1021
+
+**Problem statement (paraphrased):** Remove outermost parentheses from primitive balanced groups; depth counter emits only positions strictly inside outer depth; O(n)/O(1) auxiliary beyond output.
+
+**Examples:**
+
+1. Input: `s = "(()())(())"` → Output: `"()()()"`
+2. Input: `s = "(()())(())(()(()))"` → Output: `"()()()()(())"`
+
+**Constraints and important guarantees:** `s` is a valid nonempty parentheses sequence split into primitives. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when nested opening/closing tokens must be checked, stripped, counted, or evaluated by depth.
+
+**Exact evolution from previous question in this family:** Specialize matched-parentheses invariant to one bracket type; replace opener stack with numeric depth and conditional output on open/close.
+
+**Algorithm and why it works:** Increment depth on `(` and decrement on `)`; emit only characters whose depth is internal to a primitive.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public String removeOuterParentheses(String s) {
+        StringBuilder out = new StringBuilder(); int depth = 0;
+        for (char c : s.toCharArray()) {
+            if (c == '(') { if (depth > 0) out.append(c); depth++; }
+            else { depth--; if (depth > 0) out.append(c); }
+        }
+        return out.toString();
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(1) auxiliary; O(n) output**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+### 03. LeetCode 1614
+
+**Problem statement (paraphrased):** Find maximum nesting depth; scan parentheses and maintain running and maximum depth; O(n)/O(1).
+
+**Examples:**
+
+1. Input: `s = "(1+(2*3)+((8)/4))+1"` → Output: `3`
+2. Input: `s = "1+(2*3)/(2-1)"` → Output: `1`
+
+**Constraints and important guarantees:** `s` is a valid parentheses string mixed with non-parenthesis characters. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when nested opening/closing tokens must be checked, stripped, counted, or evaluated by depth.
+
+**Exact evolution from previous question in this family:** Reuse depth updates; replace emitting inner characters with maxDepth aggregation.
+
+**Algorithm and why it works:** The largest value reached by running nesting depth is the answer.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public int maxDepth(String s) {
+        int depth = 0, best = 0;
+        for (char c : s.toCharArray()) {
+            if (c == '(') best = Math.max(best, ++depth);
+            else if (c == ')') depth--;
+        }
+        return best;
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(1)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+### 04. LeetCode 856
+
+**Problem statement (paraphrased):** Evaluate nested parentheses score: primitive pair contributes 1, wrapping doubles, concatenation adds; use score stack per open parenthesis; O(n) time/space.
+
+**Examples:**
+
+1. Input: `s = "()"` → Output: `1`
+2. Input: `s = "(()(()))"` → Output: `6`
+
+**Constraints and important guarantees:** `s` is a balanced parentheses string; scores fit a signed 32-bit integer. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when nested opening/closing tokens must be checked, stripped, counted, or evaluated by depth.
+
+**Exact evolution from previous question in this family:** Replace max-depth aggregation with per-level score frames; on close combine `max(2*inner,1)` with parent score.
+
+**Algorithm and why it works:** Each open starts a zero-score child; closing adds 1 for `()` or twice the child score.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public int scoreOfParentheses(String s) {
+        java.util.Deque<Integer> st = new java.util.ArrayDeque<>();
+        int score = 0;
+        for (char c : s.toCharArray()) {
+            if (c == '(') { st.push(score); score = 0; }
+            else score = st.pop() + Math.max(1, 2 * score);
+        }
+        return score;
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+<a id="st2"></a>
+## ST2 — Minimum edits to balance parentheses
+
+**Family boundary:** NEW ALGORITHM FAMILY. Do not assume a direct implementation transition from the previous family.
+
+**Recognition rule:** Use when invalid parentheses must be counted, removed, or repaired under explicit pairing rules.
+
+### Basic reusable Java 21 pattern (independent teaching snippet)
+
+This small snippet is deliberately a base invariant, not a substitute for the complete solutions below. It compiles when placed inside a Java class.
+
+```java
+class FamilyStarter {
+    static int missing(String s) { int opens = 0, edits = 0; for (char c : s.toCharArray()) { if (c == '(') opens++; else if (c == ')') { if (opens > 0) opens--; else edits++; } } return edits + opens; }
+}
+```
+
+### 05. LeetCode 921
+
+**Problem statement (paraphrased):** Minimum single-parenthesis insertions for balanced string; count unmatched closing and remaining open; O(n)/O(1).
+
+**Examples:**
+
+1. Input: `s = "())"` → Output: `1`
+2. Input: `s = "((("` → Output: `3`
+
+**Constraints and important guarantees:** `s` contains only `(` and `)`; insertions may be anywhere. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when invalid parentheses must be counted, removed, or repaired under explicit pairing rules.
+
+**Exact evolution from previous question in this family:** **BASE:** maintain count of unmatched opens and needed closing/opening repairs.
+
+**Algorithm and why it works:** Any stray close must receive an inserted open; remaining opens need appended closes.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public int minAddToMakeValid(String s) {
+        int opens = 0, insertions = 0;
+        for (char c : s.toCharArray()) {
+            if (c == '(') opens++;
+            else if (opens > 0) opens--;
+            else insertions++;
+        }
+        return insertions + opens;
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(1)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+### 06. LeetCode 1249
+
+**Problem statement (paraphrased):** Remove minimal parentheses and preserve all letters; mark unmatched closes in forward pass and unmatched opens via stack/backward pass; build filtered result.
+
+**Examples:**
+
+1. Input: `s = "lee(t(c)o)de)"` → Output: `"lee(t(c)o)de"`
+2. Input: `s = "a)b(c)d"` → Output: `"ab(c)d"`
+
+**Constraints and important guarantees:** `s` includes lowercase letters and parentheses; any minimum-removal valid result is accepted. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when invalid parentheses must be counted, removed, or repaired under explicit pairing rules.
+
+**Exact evolution from previous question in this family:** Change repair counting into index marking and reconstruction; preserve validity invariant but return corrected string.
+
+**Algorithm and why it works:** Mark unmatched closing indices as they arrive and unmatched opening indices left on the stack.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public String minRemoveToMakeValid(String s) {
+        boolean[] remove = new boolean[s.length()];
+        java.util.Deque<Integer> open = new java.util.ArrayDeque<>();
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c == '(') open.push(i);
+            else if (c == ')') {
+                if (open.isEmpty()) remove[i] = true;
+                else open.pop();
+            }
+        }
+        while (!open.isEmpty()) remove[open.pop()] = true;
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) if (!remove[i]) out.append(s.charAt(i));
+        return out.toString();
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+### 07. LeetCode 1541
+
+**Problem statement (paraphrased):** Every opening requires TWO consecutive closing parentheses; count required closings, fix odd demand before an opening and missing demand when a close arrives; O(n)/O(1).
+
+**Examples:**
+
+1. Input: `s = "(()))"` → Output: `1`
+2. Input: `s = "))())("` → Output: `3`
+
+**Constraints and important guarantees:** Every `(` requires exactly two consecutive `)`; input contains parentheses only. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when invalid parentheses must be counted, removed, or repaired under explicit pairing rules.
+
+**Exact evolution from previous question in this family:** Replace ordinary one-close pairing with two-close grammar and adjust odd pending-close requirement; accumulate insertions.
+
+**Algorithm and why it works:** `need` tracks how many closing characters are still owed; odd demand before `(` requires one insertion.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public int minInsertions(String s) {
+        int need = 0, edits = 0;
+        for (char c : s.toCharArray()) {
+            if (c == '(') {
+                if ((need & 1) != 0) { edits++; need--; }
+                need += 2;
+            } else {
+                need--;
+                if (need < 0) { edits++; need = 1; }
+            }
+        }
+        return edits + need;
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(1)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+<a id="st3"></a>
+## ST3 — Balanced bracket swaps
+
+**Family boundary:** NEW ALGORITHM FAMILY. Do not assume a direct implementation transition from the previous family.
+
+**Recognition rule:** Use when the string has equal counts but arbitrary order and swaps, not insertions/deletions, restore validity.
+
+### Basic reusable Java 21 pattern (independent teaching snippet)
+
+This small snippet is deliberately a base invariant, not a substitute for the complete solutions below. It compiles when placed inside a Java class.
+
+```java
+class FamilyStarter {
+    static int arbitrarySwaps(String s) { int open = 0, swaps = 0; for (char c : s.toCharArray()) { if (c == '[') open++; else if (open > 0) open--; else { swaps++; open = 1; } } return swaps; }
+}
+```
+
+### 08. LeetCode 1963
+
+**Problem statement (paraphrased):** Minimum arbitrary swaps for an equal-count square-bracket string; greedily repair each unmatched closing bracket; O(n)/O(1).
+
+**Examples:**
+
+1. Input: `s = "]["` → Output: `1`
+2. Input: `s = "]]][[["` → Output: `2`
+
+**Constraints and important guarantees:** Input has equally many `[` and `]`, and arbitrary positions may be swapped. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when the string has equal counts but arbitrary order and swaps, not insertions/deletions, restore validity.
+
+**Exact evolution from previous question in this family:** NEW ALGORITHM FAMILY: count illegal prefix deficits under arbitrary swap operations, not insertion or deletion.
+
+**Algorithm and why it works:** A stray `]` consumes one swap with an available later `[`, leaving one effective opener.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public int minSwaps(String s) {
+        int availableOpen = 0, swaps = 0;
+        for (char c : s.toCharArray()) {
+            if (c == '[') availableOpen++;
+            else if (availableOpen > 0) availableOpen--;
+            else { swaps++; availableOpen = 1; }
+        }
+        return swaps;
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(1)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+<a id="st4"></a>
+## ST4 — Adjacent stack cancellation and grouped runs
+
+**Family boundary:** NEW ALGORITHM FAMILY. Do not assume a direct implementation transition from the previous family.
+
+**Recognition rule:** Use when an incoming symbol may annihilate the latest retained symbol, possibly using counts.
+
+### Basic reusable Java 21 pattern (independent teaching snippet)
+
+This small snippet is deliberately a base invariant, not a substitute for the complete solutions below. It compiles when placed inside a Java class.
+
+```java
+class FamilyStarter {
+    static String cancelPairs(String s) { StringBuilder st = new StringBuilder(); for (char c : s.toCharArray()) { int n = st.length(); if (n > 0 && st.charAt(n - 1) == c) st.deleteCharAt(n - 1); else st.append(c); } return st.toString(); }
+}
+```
+
+### 09. LeetCode 1047
+
+**Problem statement (paraphrased):** Delete adjacent equal pairs repeatedly; push if unmatched, pop if current equals top; O(n).
+
+**Examples:**
+
+1. Input: `s = "abbaca"` → Output: `"ca"`
+2. Input: `s = "azxxzy"` → Output: `"ay"`
+
+**Constraints and important guarantees:** The string contains lowercase English letters; pairs cancel repeatedly. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when an incoming symbol may annihilate the latest retained symbol, possibly using counts.
+
+**Exact evolution from previous question in this family:** **BASE:** stack holds irreducible surviving prefix; compare incoming char with last survivor.
+
+**Algorithm and why it works:** Keep the reduced prefix as a stack so new adjacent pairs are detected after removals.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public String removeDuplicates(String s) {
+        StringBuilder st = new StringBuilder();
+        for (char c : s.toCharArray()) {
+            int n = st.length();
+            if (n > 0 && st.charAt(n - 1) == c) st.deleteCharAt(n - 1);
+            else st.append(c);
+        }
+        return st.toString();
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+### 10. LeetCode 1544
+
+**Problem statement (paraphrased):** Delete adjacent ASCII letters equal ignoring case but with opposite case; same stack, replace equality with case-opposite ASCII predicate.
+
+**Examples:**
+
+1. Input: `s = "leEeetcode"` → Output: `"leetcode"`
+2. Input: `s = "abBAcC"` → Output: `""`
+
+**Constraints and important guarantees:** The string uses English letters; a good string has no adjacent opposite-case equal letters. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when an incoming symbol may annihilate the latest retained symbol, possibly using counts.
+
+**Exact evolution from previous question in this family:** Keep push/pop stream; change cancellation condition to same letter with different case.
+
+**Algorithm and why it works:** For ASCII letters opposite cases differ by exactly 32; cancel only that pairing.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public String makeGood(String s) {
+        StringBuilder st = new StringBuilder();
+        for (char c : s.toCharArray()) {
+            int n = st.length();
+            if (n > 0 && Math.abs(st.charAt(n - 1) - c) == 32) st.deleteCharAt(n - 1);
+            else st.append(c);
+        }
+        return st.toString();
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+### 11. LeetCode 1209
+
+**Problem statement (paraphrased):** Delete adjacent groups when run reaches k; store (character,runCount), increase top count or push new run, pop at k.
+
+**Examples:**
+
+1. Input: `s = "deeedbbcccbdaa", k = 3` → Output: `"aa"`
+2. Input: `s = "pbbcggttciiippooaais", k = 2` → Output: `"ps"`
+
+**Constraints and important guarantees:** `k >= 2`; deletion repeats until no run of length `k` remains. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when an incoming symbol may annihilate the latest retained symbol, possibly using counts.
+
+**Exact evolution from previous question in this family:** Generalize top symbol into (symbol,count) run frames; pop only when count reaches k instead of cancelling immediately.
+
+**Algorithm and why it works:** Store a count for each currently surviving run and remove it exactly when count reaches `k`.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public String removeDuplicates(String s, int k) {
+        char[] chars = new char[s.length()];
+        int[] counts = new int[s.length()]; int size = 0;
+        for (char c : s.toCharArray()) {
+            if (size > 0 && chars[size - 1] == c) {
+                if (++counts[size - 1] == k) size--;
+            } else { chars[size] = c; counts[size] = 1; size++; }
+        }
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < size; i++) out.append(String.valueOf(chars[i]).repeat(counts[i]));
+        return out.toString();
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+<a id="st5"></a>
+## ST5 — Explicit delete-marker reduction
+
+**Family boundary:** NEW ALGORITHM FAMILY. Do not assume a direct implementation transition from the previous family.
+
+**Recognition rule:** Use when each special marker unconditionally removes one preceding retained character.
+
+### Basic reusable Java 21 pattern (independent teaching snippet)
+
+This small snippet is deliberately a base invariant, not a substitute for the complete solutions below. It compiles when placed inside a Java class.
+
+```java
+class FamilyStarter {
+    static String applyStars(String s) { StringBuilder st = new StringBuilder(); for (char c : s.toCharArray()) { if (c == '*') st.deleteCharAt(st.length() - 1); else st.append(c); } return st.toString(); }
+}
+```
+
+### 12. LeetCode 2390
+
+**Problem statement (paraphrased):** Delete every `*` and its previous surviving character; use `StringBuilder` as an editable stack, append normal chars and delete last on star; O(n).
+
+**Examples:**
+
+1. Input: `s = "leet**cod*e"` → Output: `"lecoe"`
+2. Input: `s = "erase*****"` → Output: `""`
+
+**Constraints and important guarantees:** Every `*` has a preceding removable letter; stars themselves disappear. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when each special marker unconditionally removes one preceding retained character.
+
+**Exact evolution from previous question in this family:** NEW ALGORITHM FAMILY: a marker commands pop rather than comparing two adjacent payload characters.
+
+**Algorithm and why it works:** A star is an unconditional pop of the most recent surviving character.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public String removeStars(String s) {
+        StringBuilder out = new StringBuilder();
+        for (char c : s.toCharArray()) {
+            if (c == '*') out.setLength(out.length() - 1);
+            else out.append(c);
+        }
+        return out.toString();
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+<a id="st6"></a>
+## ST6 — Stack-based canonical paths
+
+**Family boundary:** NEW ALGORITHM FAMILY. Do not assume a direct implementation transition from the previous family.
+
+**Recognition rule:** Use when separators and parent-directory tokens require undoing the last path component.
+
+### Basic reusable Java 21 pattern (independent teaching snippet)
+
+This small snippet is deliberately a base invariant, not a substitute for the complete solutions below. It compiles when placed inside a Java class.
+
+```java
+class FamilyStarter {
+    static String normalize(String path) { java.util.Deque<String> dirs = new java.util.ArrayDeque<>(); for (String x : path.split("/")) { if (x.isEmpty() || x.equals(".")) continue; if (x.equals("..")) { if (!dirs.isEmpty()) dirs.removeLast(); } else dirs.addLast(x); } return "/" + String.join("/", dirs); }
+}
+```
+
+### 13. LeetCode 71
+
+**Problem statement (paraphrased):** Normalize absolute Unix path with repeated slashes, `.` and `..`; push valid directory names, pop parent when available; O(n).
+
+**Examples:**
+
+1. Input: `path = "/home//foo/"` → Output: `"/home/foo"`
+2. Input: `path = "/a/./b/../../c/"` → Output: `"/c"`
+
+**Constraints and important guarantees:** Path is absolute Unix-style; `...` is a literal directory while `.` and `..` have special meanings. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when separators and parent-directory tokens require undoing the last path component.
+
+**Exact evolution from previous question in this family:** NEW ALGORITHM FAMILY: tokens represent reversible directory navigation, rather than single-character cancellations.
+
+**Algorithm and why it works:** Discard empty and `.` tokens, undo one directory for `..`, and join remaining components.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public String simplifyPath(String path) {
+        java.util.Deque<String> dirs = new java.util.ArrayDeque<>();
+        for (String part : path.split("/")) {
+            if (part.isEmpty() || part.equals(".")) continue;
+            if (part.equals("..")) { if (!dirs.isEmpty()) dirs.removeLast(); }
+            else dirs.addLast(part);
+        }
+        return "/" + String.join("/", dirs);
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+<a id="st7"></a>
+## ST7 — Validating external stack operation sequences
+
+**Family boundary:** NEW ALGORITHM FAMILY. Do not assume a direct implementation transition from the previous family.
+
+**Recognition rule:** Use when a push order is fixed and a target pop order must be simulated.
+
+### Basic reusable Java 21 pattern (independent teaching snippet)
+
+This small snippet is deliberately a base invariant, not a substitute for the complete solutions below. It compiles when placed inside a Java class.
+
+```java
+class FamilyStarter {
+    static boolean possible(int[] pushed, int[] popped) { java.util.Deque<Integer> st = new java.util.ArrayDeque<>(); int j = 0; for (int x : pushed) { st.push(x); while (!st.isEmpty() && j < popped.length && st.peek() == popped[j]) { st.pop(); j++; } } return j == popped.length; }
+}
+```
+
+### 14. LeetCode 946
+
+**Problem statement (paraphrased):** Decide whether one pop sequence can arise from a specified push sequence; greedily pop whenever stack top equals next required item; O(n).
+
+**Examples:**
+
+1. Input: `pushed = [1,2,3,4,5], popped = [4,5,3,2,1]` → Output: `true`
+2. Input: `pushed = [1,2,3,4,5], popped = [4,3,5,1,2]` → Output: `false`
+
+**Constraints and important guarantees:** `pushed` and `popped` are permutations of distinct values with equal lengths. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when a push order is fixed and a target pop order must be simulated.
+
+**Exact evolution from previous question in this family:** NEW ALGORITHM FAMILY: simulate mandatory push order and greedily consume next desired pop, instead of parsing text.
+
+**Algorithm and why it works:** After each mandatory push, greedily pop as long as the top matches the next target item.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public boolean validateStackSequences(int[] pushed, int[] popped) {
+        java.util.Deque<Integer> st = new java.util.ArrayDeque<>(); int next = 0;
+        for (int x : pushed) {
+            st.push(x);
+            while (!st.isEmpty() && next < popped.length && st.peek() == popped[next]) {
+                st.pop(); next++;
+            }
+        }
+        return next == popped.length;
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+<a id="st8"></a>
+## ST8 — Augmented minimum stack
+
+**Family boundary:** NEW ALGORITHM FAMILY. Do not assume a direct implementation transition from the previous family.
+
+**Recognition rule:** Use when push/pop/top and minimum-of-current-stack must all be O(1).
+
+### Basic reusable Java 21 pattern (independent teaching snippet)
+
+This small snippet is deliberately a base invariant, not a substitute for the complete solutions below. It compiles when placed inside a Java class.
+
+```java
+class FamilyStarter {
+    static class MinTracker { java.util.Deque<int[]> st = new java.util.ArrayDeque<>(); void push(int x) { st.push(new int[]{x, st.isEmpty() ? x : Math.min(x, st.peek()[1])}); } void pop() { st.pop(); } int min() { return st.peek()[1]; } }
+}
+```
+
+### 15. LeetCode 155
+
+**Problem statement (paraphrased):** Support constant-time minimum in a mutable stack; maintain parallel stack of prefix minima; O(1) each operation.
+
+**Examples:**
+
+1. Input: `push(-2), push(0), push(-3), getMin()` → Output: `-3`
+2. Input: `then pop(), top(), getMin()` → Output: `0, -2`
+
+**Constraints and important guarantees:** Calls to `pop`, `top`, and `getMin` occur only on nonempty stacks. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when push/pop/top and minimum-of-current-stack must all be O(1).
+
+**Exact evolution from previous question in this family:** NEW ALGORITHM FAMILY: augment every pushed frame with the minimum for its stack prefix.
+
+**Algorithm and why it works:** Store each item alongside its prefix minimum; removing the top exposes the previous minimum.
+
+**Optimized Java 21 submission:**
+
+```java
+class MinStack {
+    private final java.util.Deque<int[]> st = new java.util.ArrayDeque<>();
+    public MinStack() {}
+    public void push(int val) {
+        int min = st.isEmpty() ? val : Math.min(val, st.peek()[1]);
+        st.push(new int[]{val, min});
+    }
+    public void pop() { st.pop(); }
+    public int top() { return st.peek()[0]; }
+    public int getMin() { return st.peek()[1]; }
+}
+```
+
+**Complexity:** Time **O(1) per operation**; space **O(n) total**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+<a id="st9"></a>
+## ST9 — Lazy bulk updates on a bounded stack
+
+**Family boundary:** NEW ALGORITHM FAMILY. Do not assume a direct implementation transition from the previous family.
+
+**Recognition rule:** Use when incrementing the bottom k entries must be fast without touching every element.
+
+### Basic reusable Java 21 pattern (independent teaching snippet)
+
+This small snippet is deliberately a base invariant, not a substitute for the complete solutions below. It compiles when placed inside a Java class.
+
+```java
+class FamilyStarter {
+    static class LazyBottom { int[] a, lazy; int n; LazyBottom(int capacity) { a = new int[capacity]; lazy = new int[capacity]; } void push(int x) { if (n < a.length) a[n++] = x; } void addBottom(int k, int v) { int i = Math.min(k, n) - 1; if (i >= 0) lazy[i] += v; } int pop() { if (n == 0) return -1; int i = --n, value = a[i] + lazy[i]; if (i > 0) lazy[i-1] += lazy[i]; lazy[i] = 0; return value; } }
+}
+```
+
+### 16. LeetCode 1381
+
+**Problem statement (paraphrased):** Fixed-capacity push/pop plus increment bottom k elements; lazy increment by depth and propagate deferred effects downward on pop; O(1) each operation.
+
+**Examples:**
+
+1. Input: `maxSize=3; push(1), push(2), pop()` → Output: `2`
+2. Input: `push(2), push(3), increment(2,100), pop()` → Output: `3`
+
+**Constraints and important guarantees:** Capacity is fixed; pushing when full does nothing and popping empty returns `-1`. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when incrementing the bottom k entries must be fast without touching every element.
+
+**Exact evolution from previous question in this family:** NEW ALGORITHM FAMILY: deferred updates indexed by stack depth, not prefix-minimum augmentation.
+
+**Algorithm and why it works:** Defer bottom-`k` increments at the last affected depth and propagate them one level on pop.
+
+**Optimized Java 21 submission:**
+
+```java
+class CustomStack {
+    private final int[] values, lazy; private int size;
+    public CustomStack(int maxSize) {
+        values = new int[maxSize]; lazy = new int[maxSize];
+    }
+    public void push(int x) { if (size < values.length) values[size++] = x; }
+    public int pop() {
+        if (size == 0) return -1;
+        int i = --size, answer = values[i] + lazy[i];
+        if (i > 0) lazy[i - 1] += lazy[i];
+        lazy[i] = 0;
+        return answer;
+    }
+    public void increment(int k, int val) {
+        int index = Math.min(k, size) - 1;
+        if (index >= 0) lazy[index] += val;
+    }
+}
+```
+
+**Complexity:** Time **O(1) per operation**; space **O(capacity)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+<a id="st10"></a>
+## ST10 — Frequency-priority stack
+
+**Family boundary:** NEW ALGORITHM FAMILY. Do not assume a direct implementation transition from the previous family.
+
+**Recognition rule:** Use when pop must choose most-frequent value, breaking ties by most recent insertion.
+
+### Basic reusable Java 21 pattern (independent teaching snippet)
+
+This small snippet is deliberately a base invariant, not a substitute for the complete solutions below. It compiles when placed inside a Java class.
+
+```java
+class FamilyStarter {
+    static class FrequencyBuckets { java.util.Map<Integer,Integer> f = new java.util.HashMap<>(); java.util.Map<Integer,java.util.Deque<Integer>> b = new java.util.HashMap<>(); int max; void push(int x) { int n=f.merge(x,1,Integer::sum); b.computeIfAbsent(n,k->new java.util.ArrayDeque<>()).push(x); max=Math.max(max,n); } int pop() { int x=b.get(max).pop(); f.put(x,f.get(x)-1); if (b.get(max).isEmpty()) max--; return x; } }
+}
+```
+
+### 17. LeetCode 895
+
+**Problem statement (paraphrased):** Pop most frequent item with recency tie-break; buckets of stacks indexed by frequency plus per-value frequency map; expected O(1) each operation.
+
+**Examples:**
+
+1. Input: `push(5),push(7),push(5),push(7),push(4),push(5); pop()` → Output: `5`
+2. Input: `pop(),pop(),pop() on same instance` → Output: `7, 5, 4`
+
+**Constraints and important guarantees:** At least one element exists for each pop; ties at maximum frequency favor recency. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when pop must choose most-frequent value, breaking ties by most recent insertion.
+
+**Exact evolution from previous question in this family:** NEW ALGORITHM FAMILY: maintain stack-per-frequency priority groups, not a single ordinary stack.
+
+**Algorithm and why it works:** Buckets group insertion events by their reached frequency, so the highest bucket top is the answer.
+
+**Optimized Java 21 submission:**
+
+```java
+class FreqStack {
+    private final java.util.Map<Integer,Integer> freq = new java.util.HashMap<>();
+    private final java.util.Map<Integer,java.util.Deque<Integer>> groups = new java.util.HashMap<>();
+    private int maximumFrequency = 0;
+    public FreqStack() {}
+    public void push(int val) {
+        int f = freq.merge(val, 1, Integer::sum);
+        groups.computeIfAbsent(f, key -> new java.util.ArrayDeque<>()).push(val);
+        maximumFrequency = Math.max(maximumFrequency, f);
+    }
+    public int pop() {
+        int val = groups.get(maximumFrequency).pop();
+        freq.put(val, freq.get(val) - 1);
+        if (groups.get(maximumFrequency).isEmpty()) maximumFrequency--;
+        return val;
+    }
+}
+```
+
+**Complexity:** Time **expected O(1) per operation**; space **O(n) total**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+<a id="st11"></a>
+## ST11 — Reverse Polish expression evaluation
+
+**Family boundary:** NEW ALGORITHM FAMILY. Do not assume a direct implementation transition from the previous family.
+
+**Recognition rule:** Use when every operator follows its operands and no precedence/parentheses parser is needed.
+
+### Basic reusable Java 21 pattern (independent teaching snippet)
+
+This small snippet is deliberately a base invariant, not a substitute for the complete solutions below. It compiles when placed inside a Java class.
+
+```java
+class FamilyStarter {
+    static int postfix(String[] tokens) { java.util.Deque<Integer> st = new java.util.ArrayDeque<>(); for (String x : tokens) { if (x.equals("+")) st.push(st.pop()+st.pop()); else st.push(Integer.parseInt(x)); } return st.pop(); } // Minimal '+'-only reduction; extend to -, *, / with ordered operands.
+}
+```
+
+### 18. LeetCode 150
+
+**Problem statement (paraphrased):** Evaluate postfix arithmetic; push integers, pop right then left operand for operator, push result; O(tokens) time/space.
+
+**Examples:**
+
+1. Input: `tokens = ["2","1","+","3","*"]` → Output: `9`
+2. Input: `tokens = ["4","13","5","/","+"]` → Output: `6`
+
+**Constraints and important guarantees:** Tokens form a valid RPN expression; integer division truncates toward zero. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when every operator follows its operands and no precedence/parentheses parser is needed.
+
+**Exact evolution from previous question in this family:** NEW ALGORITHM FAMILY: postfix operands are available when each operator arrives; direct operand-stack reduction.
+
+**Algorithm and why it works:** On an operator, pop right operand before left operand; push their result.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public int evalRPN(String[] tokens) {
+        java.util.Deque<Integer> st = new java.util.ArrayDeque<>();
+        for (String t : tokens) {
+            switch (t) {
+                case "+", "-", "*", "/" -> {
+                    int right = st.pop(), left = st.pop();
+                    int v = switch (t) {
+                        case "+" -> left + right;
+                        case "-" -> left - right;
+                        case "*" -> left * right;
+                        default -> left / right;
+                    };
+                    st.push(v);
+                }
+                default -> st.push(Integer.parseInt(t));
+            }
+        }
+        return st.pop();
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+<a id="st12"></a>
+## ST12 — Infix arithmetic with precedence and parentheses
+
+**Family boundary:** NEW ALGORITHM FAMILY. Do not assume a direct implementation transition from the previous family.
+
+**Recognition rule:** Use when operators occur between numbers and must be evaluated in precedence and grouping order.
+
+### Basic reusable Java 21 pattern (independent teaching snippet)
+
+This small snippet is deliberately a base invariant, not a substitute for the complete solutions below. It compiles when placed inside a Java class.
+
+```java
+class FamilyStarter {
+    static int addSubtract(String s) { int result=0, sign=1, value=0; for (int i=0;i<=s.length();i++) { char c=i==s.length()?'+':s.charAt(i); if (Character.isDigit(c)) value=value*10+c-'0'; else if (c=='+' || c=='-') { result+=sign*value; value=0; sign=c=='+'?1:-1; } } return result; } // Add precedence or parentheses frames as needed.
+}
+```
+
+### 19. LeetCode 227
+
+**Problem statement (paraphrased):** Evaluate non-parenthesized +,-,*,/ expression with whitespace; hold pending term for multiplication/division, accumulate additive terms; O(n).
+
+**Examples:**
+
+1. Input: `s = "3+2*2"` → Output: `7`
+2. Input: `s = " 3/2 "` → Output: `1`
+
+**Constraints and important guarantees:** Expression contains nonnegative integers, `+ - * /`, spaces, and no parentheses; result fits `int`. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when operators occur between numbers and must be evaluated in precedence and grouping order.
+
+**Exact evolution from previous question in this family:** **BASE:** defer low-precedence additions and apply multiplication/division to the current term immediately.
+
+**Algorithm and why it works:** Accumulate completed additive terms; multiplication and division modify the pending term immediately.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public int calculate(String s) {
+        int total = 0, term = 0, number = 0;
+        char op = '+';
+        for (int i = 0; i <= s.length(); i++) {
+            char c = i == s.length() ? '+' : s.charAt(i);
+            if (c == ' ') continue;
+            if (Character.isDigit(c)) { number = number * 10 + (c - '0'); continue; }
+            switch (op) {
+                case '+' -> { total += term; term = number; }
+                case '-' -> { total += term; term = -number; }
+                case '*' -> term *= number;
+                case '/' -> term /= number;
+            }
+            op = c; number = 0;
+        }
+        return total + term;
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(1)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+### 20. LeetCode 224
+
+**Problem statement (paraphrased):** Evaluate +,- and nested parentheses; preserve additive evaluation but push preceding sign/result context for nested groups; handle unary signs; O(n).
+
+**Examples:**
+
+1. Input: `s = "1 + 1"` → Output: `2`
+2. Input: `s = "(1+(4+5+2)-3)+(6+8)"` → Output: `23`
+
+**Constraints and important guarantees:** Expression contains `+ -`, parentheses and spaces, including unary minus; no `*` or `/`. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when operators occur between numbers and must be evaluated in precedence and grouping order.
+
+**Exact evolution from previous question in this family:** Replace multiplication/division term precedence with parenthesized sign/result frames; on `)` restore outer context; distinguish unary signs.
+
+**Algorithm and why it works:** When entering a group save outer sum and preceding sign; at close multiply group by sign and add outer sum.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public int calculate(String s) {
+        java.util.Deque<Integer> context = new java.util.ArrayDeque<>();
+        int sum = 0, sign = 1, i = 0;
+        while (i < s.length()) {
+            char c = s.charAt(i);
+            if (c == ' ') { i++; continue; }
+            if (Character.isDigit(c)) {
+                long num = 0;
+                while (i < s.length() && Character.isDigit(s.charAt(i))) {
+                    num = num * 10 + s.charAt(i++) - '0';
+                }
+                sum += sign * (int)num;
+                continue;
+            }
+            if (c == '+') sign = 1;
+            else if (c == '-') sign = -1;
+            else if (c == '(') {
+                context.push(sum); context.push(sign);
+                sum = 0; sign = 1;
+            } else if (c == ')') {
+                sum = context.pop() * sum + context.pop();
+            }
+            i++;
+        }
+        return sum;
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+<a id="st13"></a>
+## ST13 — Nested encoded-string frames
+
+**Family boundary:** NEW ALGORITHM FAMILY. Do not assume a direct implementation transition from the previous family.
+
+**Recognition rule:** Use when opening delimiters save earlier output state and closers combine a nested fragment.
+
+### Basic reusable Java 21 pattern (independent teaching snippet)
+
+This small snippet is deliberately a base invariant, not a substitute for the complete solutions below. It compiles when placed inside a Java class.
+
+```java
+class FamilyStarter {
+    static String repeat(String s, int times) { StringBuilder out = new StringBuilder(); for (int i = 0; i < times; i++) out.append(s); return out.toString(); } // Nested variants save parent builders and repetition counts on a stack.
+}
+```
+
+### 21. LeetCode 394
+
+**Problem statement (paraphrased):** Decode nested count[substring] repetition; push count and parent builder on `[`, repeat child on `]`; O(output length).
+
+**Examples:**
+
+1. Input: `s = "3[a]2[bc]"` → Output: `"aaabcbc"`
+2. Input: `s = "3[a2[c]]"` → Output: `"accaccacc"`
+
+**Constraints and important guarantees:** Encoding uses positive repeat counts followed by brackets, with valid nesting and lowercase letters. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when opening delimiters save earlier output state and closers combine a nested fragment.
+
+**Exact evolution from previous question in this family:** **BASE:** explicit nested frames carry parent output and opening metadata.
+
+**Algorithm and why it works:** Store parent builders and multipliers for each nested frame, then combine on closing bracket.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public String decodeString(String s) {
+        java.util.Deque<Integer> counts = new java.util.ArrayDeque<>();
+        java.util.Deque<StringBuilder> parents = new java.util.ArrayDeque<>();
+        StringBuilder current = new StringBuilder(); int number = 0;
+        for (char c : s.toCharArray()) {
+            if (Character.isDigit(c)) number = number * 10 + c - '0';
+            else if (c == '[') {
+                counts.push(number); parents.push(current);
+                current = new StringBuilder(); number = 0;
+            } else if (c == ']') {
+                StringBuilder parent = parents.pop();
+                int repeat = counts.pop();
+                for (int j = 0; j < repeat; j++) parent.append(current);
+                current = parent;
+            } else current.append(c);
+        }
+        return current.toString();
+    }
+}
+```
+
+**Complexity:** Time **O(decoded output size + encoded input size)**; space **O(decoded output size + nesting depth)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+<a id="st14"></a>
+## ST14 — Paired parentheses with direction-switch traversal
+
+**Family boundary:** NEW ALGORITHM FAMILY. Do not assume a direct implementation transition from the previous family.
+
+**Recognition rule:** Use when nested substring reversals can be represented by switching scan direction at matching parentheses.
+
+### Basic reusable Java 21 pattern (independent teaching snippet)
+
+This small snippet is deliberately a base invariant, not a substitute for the complete solutions below. It compiles when placed inside a Java class.
+
+```java
+class FamilyStarter {
+    static int[] matching(String s) { int[] mate = new int[s.length()]; java.util.Deque<Integer> opens = new java.util.ArrayDeque<>(); for (int i=0;i<s.length();i++) { if(s.charAt(i)=='(') opens.push(i); else if(s.charAt(i)==')') {int j=opens.pop();mate[i]=j;mate[j]=i;} } return mate; }
+}
+```
+
+### 22. LeetCode 1190
+
+**Problem statement (paraphrased):** Reverse nested parenthesized substrings without repeated copying; precompute matching parentheses using stack, traverse positions with direction flips; O(n) time/space.
+
+**Examples:**
+
+1. Input: `s = "(abcd)"` → Output: `"dcba"`
+2. Input: `s = "(u(love)i)"` → Output: `"iloveu"`
+
+**Constraints and important guarantees:** Parentheses are balanced; reverse contents of each pair then remove parentheses. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when nested substring reversals can be represented by switching scan direction at matching parentheses.
+
+**Exact evolution from previous question in this family:** NEW ALGORITHM FAMILY: bracket-pair index jumps and traversal direction, NOT a builder-frame transform from ST13.
+
+**Algorithm and why it works:** Pair delimiters first; a jump to the matching delimiter with direction flip simulates reversal without copying.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public String reverseParentheses(String s) {
+        int n = s.length(); int[] mate = new int[n];
+        java.util.Deque<Integer> open = new java.util.ArrayDeque<>();
+        for (int i = 0; i < n; i++) {
+            if (s.charAt(i) == '(') open.push(i);
+            else if (s.charAt(i) == ')') {
+                int j = open.pop(); mate[i] = j; mate[j] = i;
+            }
+        }
+        StringBuilder out = new StringBuilder();
+        for (int i = 0, direction = 1; i >= 0 && i < n; i += direction) {
+            char c = s.charAt(i);
+            if (c == '(' || c == ')') { i = mate[i]; direction = -direction; }
+            else out.append(c);
+        }
+        return out.toString();
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+<a id="st15"></a>
+## ST15 — Nearest qualifying element with monotonic index stack
+
+**Family boundary:** NEW ALGORITHM FAMILY. Do not assume a direct implementation transition from the previous family.
+
+**Recognition rule:** Use when each index wants the next larger/smaller value to its right, perhaps circularly or as a distance.
+
+### Basic reusable Java 21 pattern (independent teaching snippet)
+
+This small snippet is deliberately a base invariant, not a substitute for the complete solutions below. It compiles when placed inside a Java class.
+
+```java
+class FamilyStarter {
+    static int[] nextGreater(int[] a) { int[] ans=new int[a.length]; java.util.Arrays.fill(ans,-1); java.util.Deque<Integer> st=new java.util.ArrayDeque<>(); for(int i=0;i<a.length;i++){while(!st.isEmpty()&&a[i]>a[st.peek()]) ans[st.pop()]=a[i];st.push(i);}return ans;}
+}
+```
+
+### 23. LeetCode 496
+
+**Problem statement (paraphrased):** Next greater for queried subset of distinct values in a larger array; decreasing stack of values and HashMap<value,nextGreater>; O(n+m).
+
+**Examples:**
+
+1. Input: `nums1=[4,1,2], nums2=[1,3,4,2]` → Output: `[-1,3,-1]`
+2. Input: `nums1=[2,4], nums2=[1,2,3,4]` → Output: `[3,-1]`
+
+**Constraints and important guarantees:** `nums1` is a subset of `nums2` and values in both arrays are distinct. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when each index wants the next larger/smaller value to its right, perhaps circularly or as a distance.
+
+**Exact evolution from previous question in this family:** **BASE:** current larger value resolves smaller unresolved stack tops; map each resolved value to next greater.
+
+**Algorithm and why it works:** Scan nums2, resolving any smaller unresolved value when a larger one arrives; look up subset answers.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public int[] nextGreaterElement(int[] nums1, int[] nums2) {
+        java.util.Map<Integer,Integer> next = new java.util.HashMap<>();
+        java.util.Deque<Integer> st = new java.util.ArrayDeque<>();
+        for (int x : nums2) {
+            while (!st.isEmpty() && st.peek() < x) next.put(st.pop(), x);
+            st.push(x);
+        }
+        int[] ans = new int[nums1.length];
+        for (int i = 0; i < nums1.length; i++) ans[i] = next.getOrDefault(nums1[i], -1);
+        return ans;
+    }
+}
+```
+
+**Complexity:** Time **O(n+m)**; space **O(n+m)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+### 24. LeetCode 503
+
+**Problem statement (paraphrased):** Next greater in circular array; keep unresolved indices, scan 2n positions modulo n, push indices only first pass.
+
+**Examples:**
+
+1. Input: `nums = [1,2,1]` → Output: `[2,-1,2]`
+2. Input: `nums = [1,2,3,4,3]` → Output: `[2,3,4,-1,4]`
+
+**Constraints and important guarantees:** Array is treated circularly; next greater must be strictly greater, not equal. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when each index wants the next larger/smaller value to its right, perhaps circularly or as a distance.
+
+**Exact evolution from previous question in this family:** Change keyed-value stack/map to index stack/answer array and add second modulo-index traversal for wraparound.
+
+**Algorithm and why it works:** Use unresolved indices and a second modulo pass to cover wraparound without pushing duplicates.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public int[] nextGreaterElements(int[] nums) {
+        int n = nums.length; int[] ans = new int[n];
+        java.util.Arrays.fill(ans, -1);
+        java.util.Deque<Integer> st = new java.util.ArrayDeque<>();
+        for (int i = 0; i < 2 * n; i++) {
+            int j = i % n;
+            while (!st.isEmpty() && nums[st.peek()] < nums[j]) ans[st.pop()] = nums[j];
+            if (i < n) st.push(j);
+        }
+        return ans;
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+### 25. LeetCode 739
+
+**Problem statement (paraphrased):** Days until strictly warmer temperature; linear next-greater scan over indices, answer is distance currentIndex-poppedIndex.
+
+**Examples:**
+
+1. Input: `temperatures=[73,74,75,71,69,72,76,73]` → Output: `[1,1,4,2,1,1,0,0]`
+2. Input: `temperatures=[30,40,50,60]` → Output: `[1,1,1,0]`
+
+**Constraints and important guarantees:** Temperatures are integers; waiting time is 0 if no warmer future day exists. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when each index wants the next larger/smaller value to its right, perhaps circularly or as a distance.
+
+**Exact evolution from previous question in this family:** Remove circular second pass; retain index stack and change resolved output from next value to index distance.
+
+**Algorithm and why it works:** Resolve an earlier index when the current temperature is higher; record the index gap.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public int[] dailyTemperatures(int[] temperatures) {
+        int n = temperatures.length; int[] ans = new int[n];
+        java.util.Deque<Integer> st = new java.util.ArrayDeque<>();
+        for (int i = 0; i < n; i++) {
+            while (!st.isEmpty() && temperatures[i] > temperatures[st.peek()]) {
+                int j = st.pop(); ans[j] = i - j;
+            }
+            st.push(i);
+        }
+        return ans;
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+### 26. LeetCode 1475
+
+**Problem statement (paraphrased):** Apply first subsequent price <= current as discount; use monotonic increasing unresolved-price stack, pop when incoming <= top, subtract incoming price.
+
+**Examples:**
+
+1. Input: `prices=[8,4,6,2,3]` → Output: `[4,2,4,2,3]`
+2. Input: `prices=[1,2,3,4,5]` → Output: `[1,2,3,4,5]`
+
+**Constraints and important guarantees:** Prices are positive; first later price less than or equal to current is the discount. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when each index wants the next larger/smaller value to its right, perhaps circularly or as a distance.
+
+**Exact evolution from previous question in this family:** Invert comparator from strict greater to less-than-or-equal and replace waiting-distance output with discounted price.
+
+**Algorithm and why it works:** Switch the monotonic comparator to `<=` so equal prices qualify as discounts.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public int[] finalPrices(int[] prices) {
+        int[] ans = prices.clone();
+        java.util.Deque<Integer> st = new java.util.ArrayDeque<>();
+        for (int i = 0; i < prices.length; i++) {
+            while (!st.isEmpty() && prices[i] <= prices[st.peek()]) {
+                ans[st.pop()] -= prices[i];
+            }
+            st.push(i);
+        }
+        return ans;
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+<a id="st16"></a>
+## ST16 — Monotonic stack with accumulated visibility
+
+**Family boundary:** NEW ALGORITHM FAMILY. Do not assume a direct implementation transition from the previous family.
+
+**Recognition rule:** Use when elements block one another and each incoming height resolves previously unblocked ones.
+
+### Basic reusable Java 21 pattern (independent teaching snippet)
+
+This small snippet is deliberately a base invariant, not a substitute for the complete solutions below. It compiles when placed inside a Java class.
+
+```java
+class FamilyStarter {
+    static int[] visibleRight(int[] h) { int[] ans=new int[h.length]; java.util.Deque<Integer> st=new java.util.ArrayDeque<>(); for(int i=h.length-1;i>=0;i--){while(!st.isEmpty()&&st.peek()<h[i]){st.pop();ans[i]++;} if(!st.isEmpty())ans[i]++;st.push(h[i]);}return ans;}
+}
+```
+
+### 27. LeetCode 1944
+
+**Problem statement (paraphrased):** Count people visible to right until a blocking height; scan right-to-left with decreasing-height stack, pop shorter visible people and count one remaining taller/equal blocker; O(n).
+
+**Examples:**
+
+1. Input: `heights=[10,6,8,5,11,9]` → Output: `[3,1,2,1,1,0]`
+2. Input: `heights=[5,1,2,3,10]` → Output: `[4,1,1,1,0]`
+
+**Constraints and important guarantees:** Heights are distinct positive integers; visibility stops after the first sufficiently tall blocker. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when elements block one another and each incoming height resolves previously unblocked ones.
+
+**Exact evolution from previous question in this family:** NEW ALGORITHM FAMILY: stack pops contribute visibility count and a surviving blocker contributes at most one.
+
+**Algorithm and why it works:** Right-to-left: each shorter popped person is visible, and an unpopped blocker adds one.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public int[] canSeePersonsCount(int[] heights) {
+        int n = heights.length; int[] ans = new int[n];
+        java.util.Deque<Integer> st = new java.util.ArrayDeque<>();
+        for (int i = n - 1; i >= 0; i--) {
+            while (!st.isEmpty() && st.peek() < heights[i]) { st.pop(); ans[i]++; }
+            if (!st.isEmpty()) ans[i]++;
+            st.push(heights[i]);
+        }
+        return ans;
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+<a id="st17"></a>
+## ST17 — Second-greater deferred resolution
+
+**Family boundary:** NEW ALGORITHM FAMILY. Do not assume a direct implementation transition from the previous family.
+
+**Recognition rule:** Use when the second, not first, greater element is needed and candidates pass through two unresolved stages.
+
+### Basic reusable Java 21 pattern (independent teaching snippet)
+
+This small snippet is deliberately a base invariant, not a substitute for the complete solutions below. It compiles when placed inside a Java class.
+
+```java
+class FamilyStarter {
+    static int[] secondGreater(int[] a) { int[] ans=new int[a.length];java.util.Arrays.fill(ans,-1);java.util.Deque<Integer> first=new java.util.ArrayDeque<>(),second=new java.util.ArrayDeque<>();for(int i=0;i<a.length;i++){while(!second.isEmpty()&&a[second.peek()]<a[i])ans[second.pop()]=a[i];java.util.Deque<Integer> moved=new java.util.ArrayDeque<>();while(!first.isEmpty()&&a[first.peek()]<a[i])moved.push(first.pop());while(!moved.isEmpty())second.push(moved.pop());first.push(i);}return ans;}
+}
+```
+
+### 28. LeetCode 2454
+
+**Problem statement (paraphrased):** Find second strictly greater value after each element; maintain first-greater and waiting-for-second monotone stacks, preserving transfer order; O(n).
+
+**Examples:**
+
+1. Input: `nums=[2,4,0,9,6]` → Output: `[9,6,6,-1,-1]`
+2. Input: `nums=[3,3]` → Output: `[-1,-1]`
+
+**Constraints and important guarantees:** Greater means strictly greater, and a second greater element is required in index order. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when the second, not first, greater element is needed and candidates pass through two unresolved stages.
+
+**Exact evolution from previous question in this family:** NEW ALGORITHM FAMILY: two staged stacks for first/second greater, not visibility-blocker counting.
+
+**Algorithm and why it works:** Move an index from first-waiting to second-waiting on its first greater; resolve only when a later greater arrives.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public int[] secondGreaterElement(int[] nums) {
+        int n = nums.length; int[] ans = new int[n];
+        java.util.Arrays.fill(ans, -1);
+        java.util.Deque<Integer> first = new java.util.ArrayDeque<>();
+        java.util.Deque<Integer> second = new java.util.ArrayDeque<>();
+        java.util.Deque<Integer> moved = new java.util.ArrayDeque<>();
+        for (int i = 0; i < n; i++) {
+            while (!second.isEmpty() && nums[second.peek()] < nums[i])
+                ans[second.pop()] = nums[i];
+            while (!first.isEmpty() && nums[first.peek()] < nums[i]) moved.push(first.pop());
+            while (!moved.isEmpty()) second.push(moved.pop());
+            first.push(i);
+        }
+        return ans;
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+<a id="st18"></a>
+## ST18 — Online previous-greater span compression
+
+**Family boundary:** NEW ALGORITHM FAMILY. Do not assume a direct implementation transition from the previous family.
+
+**Recognition rule:** Use when each incoming value absorbs a maximal suffix of previous values no larger than it.
+
+### Basic reusable Java 21 pattern (independent teaching snippet)
+
+This small snippet is deliberately a base invariant, not a substitute for the complete solutions below. It compiles when placed inside a Java class.
+
+```java
+class FamilyStarter {
+    static class Span { java.util.Deque<int[]> st=new java.util.ArrayDeque<>(); int next(int price){int span=1;while(!st.isEmpty()&&st.peek()[0]<=price)span+=st.pop()[1];st.push(new int[]{price,span});return span;} }
+}
+```
+
+### 29. LeetCode 901
+
+**Problem statement (paraphrased):** Online stock price span; monotonic decreasing stack of (price,span) pairs, pop and aggregate dominated spans; amortized O(1) per call.
+
+**Examples:**
+
+1. Input: `next(100),next(80),next(60),next(70)` → Output: `1,1,1,2`
+2. Input: `next(60),next(75),next(85) on same instance` → Output: `1,4,6`
+
+**Constraints and important guarantees:** Online `next(price)` operations are performed sequentially; equal prior prices belong to the span. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when each incoming value absorbs a maximal suffix of previous values no larger than it.
+
+**Exact evolution from previous question in this family:** NEW ALGORITHM FAMILY: compress lengths of removed suffix blocks, rather than storing unresolved next-greater indices.
+
+**Algorithm and why it works:** Aggregate all dominated `<= price` spans into one compressed pair.
+
+**Optimized Java 21 submission:**
+
+```java
+class StockSpanner {
+    private final java.util.Deque<int[]> st = new java.util.ArrayDeque<>();
+    public StockSpanner() {}
+    public int next(int price) {
+        int span = 1;
+        while (!st.isEmpty() && st.peek()[0] <= price) span += st.pop()[1];
+        st.push(new int[]{price, span});
+        return span;
+    }
+}
+```
+
+**Complexity:** Time **amortized O(1) per next**; space **O(n) total**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+<a id="st19"></a>
+## ST19 — Previous/next smaller boundaries and histogram spans
+
+**Family boundary:** NEW ALGORITHM FAMILY. Do not assume a direct implementation transition from the previous family.
+
+**Recognition rule:** Use when a contiguous block is limited by the nearest strictly lower boundary around a chosen height.
+
+### Basic reusable Java 21 pattern (independent teaching snippet)
+
+This small snippet is deliberately a base invariant, not a substitute for the complete solutions below. It compiles when placed inside a Java class.
+
+```java
+class FamilyStarter {
+    static long largestArea(int[] h) { long best=0;java.util.Deque<Integer> st=new java.util.ArrayDeque<>();for(int i=0;i<=h.length;i++){int curr=i==h.length?0:h[i];while(!st.isEmpty()&&h[st.peek()]>curr){int bar=st.pop(),left=st.isEmpty()?-1:st.peek();best=Math.max(best,(long)h[bar]*(i-left-1));}st.push(i);}return best;}
+}
+```
+
+### 30. LeetCode 84
+
+**Problem statement (paraphrased):** Largest rectangle in histogram; increasing index stack, pop when smaller bar arrives, area=height*maximal-width; O(n).
+
+**Examples:**
+
+1. Input: `heights=[2,1,5,6,2,3]` → Output: `10`
+2. Input: `heights=[2,4]` → Output: `4`
+
+**Constraints and important guarantees:** Heights are nonnegative; the rectangle consists of consecutive bars. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when a contiguous block is limited by the nearest strictly lower boundary around a chosen height.
+
+**Exact evolution from previous question in this family:** **BASE:** stack gives previous smaller boundary and current scan index gives next smaller boundary.
+
+**Algorithm and why it works:** Popping a bar reveals its maximal width between the previous smaller bar and current smaller bar.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public int largestRectangleArea(int[] heights) {
+        int n = heights.length, best = 0;
+        java.util.Deque<Integer> st = new java.util.ArrayDeque<>();
+        for (int i = 0; i <= n; i++) {
+            int current = i == n ? 0 : heights[i];
+            while (!st.isEmpty() && heights[st.peek()] > current) {
+                int height = heights[st.pop()];
+                int left = st.isEmpty() ? -1 : st.peek();
+                best = Math.max(best, height * (i - left - 1));
+            }
+            st.push(i);
+        }
+        return best;
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+### 31. LeetCode 1793
+
+**Problem statement (paraphrased):** Maximize subarray minimum × length, requiring index k included; reuse nearest-smaller boundaries for each minimum and consider spans containing k; O(n).
+
+**Examples:**
+
+1. Input: `nums=[1,4,3,7,4,5], k=3` → Output: `15`
+2. Input: `nums=[5,5,4,5,4,1,1,1], k=0` → Output: `20`
+
+**Constraints and important guarantees:** `nums` are positive; chosen subarray must include index `k`. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when a contiguous block is limited by the nearest strictly lower boundary around a chosen height.
+
+**Exact evolution from previous question in this family:** Keep histogram boundary extraction; filter candidate spans to those whose maximal minimum-width interval includes k.
+
+**Algorithm and why it works:** At each popped minimum consider its full admissible span only if that span covers `k`.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public int maximumScore(int[] nums, int k) {
+        int n = nums.length, best = 0;
+        java.util.Deque<Integer> st = new java.util.ArrayDeque<>();
+        for (int right = 0; right <= n; right++) {
+            int cur = right == n ? 0 : nums[right];
+            while (!st.isEmpty() && nums[st.peek()] > cur) {
+                int mid = st.pop();
+                int left = st.isEmpty() ? -1 : st.peek();
+                if (left < k && k < right)
+                    best = Math.max(best, nums[mid] * (right - left - 1));
+            }
+            st.push(right);
+        }
+        return best;
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+### 32. LeetCode 2334
+
+**Problem statement (paraphrased):** Find subarray whose minimum × length exceeds threshold; reuse maximal span under each minimum; return any qualifying span length.
+
+**Examples:**
+
+1. Input: `nums=[1,3,4,3,1], threshold=6` → Output: `3`
+2. Input: `nums=[1,1,1,1], threshold=7` → Output: `-1`
+
+**Constraints and important guarantees:** `nums` contain positive values; return any qualifying length or `-1`. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when a contiguous block is limited by the nearest strictly lower boundary around a chosen height.
+
+**Exact evolution from previous question in this family:** Reuse constrained-minimum span width; replace maximum score selection with threshold feasibility and return width.
+
+**Algorithm and why it works:** For each popped minimum compute its maximal width; test its min-times-width against the threshold.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public int validSubarraySize(int[] nums, int threshold) {
+        int n = nums.length;
+        java.util.Deque<Integer> st = new java.util.ArrayDeque<>();
+        for (int right = 0; right <= n; right++) {
+            int cur = right == n ? 0 : nums[right];
+            while (!st.isEmpty() && nums[st.peek()] > cur) {
+                int mid = st.pop();
+                int left = st.isEmpty() ? -1 : st.peek();
+                int length = right - left - 1;
+                if ((long)nums[mid] * length > threshold) return length;
+            }
+            st.push(right);
+        }
+        return -1;
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+### 33. LeetCode 1856
+
+**Problem statement (paraphrased):** Maximum subarray min-product: minimum times subarray SUM; use nearest-smaller boundaries and prefix sums to replace width by range sum; O(n).
+
+**Examples:**
+
+1. Input: `nums=[1,2,3,2]` → Output: `14`
+2. Input: `nums=[2,3,3,1,2]` → Output: `18`
+
+**Constraints and important guarantees:** Values are positive; compare the full unmodded minimum-times-sum products, mod only at the end. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when a contiguous block is limited by the nearest strictly lower boundary around a chosen height.
+
+**Exact evolution from previous question in this family:** Retain nearest-smaller interval boundaries; replace `minimum*width` with `minimum*(prefix[right]-prefix[left])`, track maximum modulo after comparison.
+
+**Algorithm and why it works:** Compute prefix sums so each popped minimum multiplies its maximal interval sum rather than width.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public int maxSumMinProduct(int[] nums) {
+        int n = nums.length; long[] prefix = new long[n + 1];
+        for (int i = 0; i < n; i++) prefix[i + 1] = prefix[i] + nums[i];
+        long best = 0;
+        java.util.Deque<Integer> st = new java.util.ArrayDeque<>();
+        for (int right = 0; right <= n; right++) {
+            int cur = right == n ? 0 : nums[right];
+            while (!st.isEmpty() && nums[st.peek()] > cur) {
+                int mid = st.pop();
+                int left = st.isEmpty() ? -1 : st.peek();
+                long sum = prefix[right] - prefix[left + 1];
+                best = Math.max(best, sum * nums[mid]);
+            }
+            st.push(right);
+        }
+        return (int)(best % 1_000_000_007);
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+<a id="st20"></a>
+## ST20 — Monotonic boundary contribution accounting
+
+**Family boundary:** NEW ALGORITHM FAMILY. Do not assume a direct implementation transition from the previous family.
+
+**Recognition rule:** Use when aggregating minima/maxima over ALL subarrays without enumerating them.
+
+### Basic reusable Java 21 pattern (independent teaching snippet)
+
+This small snippet is deliberately a base invariant, not a substitute for the complete solutions below. It compiles when placed inside a Java class.
+
+```java
+class FamilyStarter {
+    static long sumOfMinimums(int[] a) { long total=0;java.util.Deque<Integer> st=new java.util.ArrayDeque<>();for(int i=0;i<=a.length;i++){while(!st.isEmpty()&&(i==a.length||a[st.peek()]>=a[i])){int j=st.pop(),left=st.isEmpty()?-1:st.peek();total+=(long)a[j]*(j-left)*(i-j);}st.push(i);}return total;}
+}
+```
+
+### 34. LeetCode 907
+
+**Problem statement (paraphrased):** Sum minimum of every contiguous subarray; previous strictly smaller + next smaller-or-equal spans; multiply contribution mod 1e9+7; O(n).
+
+**Examples:**
+
+1. Input: `arr=[3,1,2,4]` → Output: `17`
+2. Input: `arr=[11,81,94,43,3]` → Output: `444`
+
+**Constraints and important guarantees:** Return result modulo 1,000,000,007; duplicates require consistent ownership. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when aggregating minima/maxima over ALL subarrays without enumerating them.
+
+**Exact evolution from previous question in this family:** **BASE:** count (left choices × right choices) for each element as uniquely assigned minimum.
+
+**Algorithm and why it works:** When popping with `>=`, each index owns `(mid-left)*(right-mid)` subarrays for which it is the chosen minimum.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public int sumSubarrayMins(int[] arr) {
+        final long MOD = 1_000_000_007L;
+        long result = 0;
+        java.util.Deque<Integer> st = new java.util.ArrayDeque<>();
+        for (int right = 0; right <= arr.length; right++) {
+            while (!st.isEmpty() && (right == arr.length || arr[st.peek()] >= arr[right])) {
+                int mid = st.pop();
+                int left = st.isEmpty() ? -1 : st.peek();
+                long ways = (long)(mid - left) * (right - mid);
+                result = (result + arr[mid] * ways) % MOD;
+            }
+            st.push(right);
+        }
+        return (int)result;
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+### 35. LeetCode 2104
+
+**Problem statement (paraphrased):** Sum(maximum-minimum) across subarrays; compute both max and min contributions using opposite monotonic inequalities, subtract; O(n).
+
+**Examples:**
+
+1. Input: `nums=[1,2,3]` → Output: `4`
+2. Input: `nums=[1,3,3]` → Output: `4`
+
+**Constraints and important guarantees:** Input may contain negative numbers and duplicates; result must be a 64-bit `long`. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when aggregating minima/maxima over ALL subarrays without enumerating them.
+
+**Exact evolution from previous question in this family:** Reuse minimum contribution counts; add symmetric maximum contribution using decreasing stack and subtract totals.
+
+**Algorithm and why it works:** Use matched tie-breaking for all-subarray maximum contributions and minimum contributions, then subtract.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public long subArrayRanges(int[] nums) {
+        return contribution(nums, true) - contribution(nums, false);
+    }
+    private long contribution(int[] a, boolean max) {
+        java.util.Deque<Integer> st = new java.util.ArrayDeque<>(); long sum = 0;
+        for (int right = 0; right <= a.length; right++) {
+            while (!st.isEmpty() && (right == a.length ||
+                    (max ? a[st.peek()] <= a[right] : a[st.peek()] >= a[right]))) {
+                int mid = st.pop(), left = st.isEmpty() ? -1 : st.peek();
+                sum += (long)a[mid] * (mid - left) * (right - mid);
+            }
+            st.push(right);
+        }
+        return sum;
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+### 36. LeetCode 2281
+
+**Problem statement (paraphrased):** Sum minimum × sum of each subarray; keep minimum contribution boundaries, add prefix-of-prefix sums for weighted sum of all intervals assigned to each minimum; O(n).
+
+**Examples:**
+
+1. Input: `strength=[1,3,1,2]` → Output: `44`
+2. Input: `strength=[5,4,6]` → Output: `213`
+
+**Constraints and important guarantees:** Strength values are positive; output is modulo 1,000,000,007. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when aggregating minima/maxima over ALL subarrays without enumerating them.
+
+**Exact evolution from previous question in this family:** Return to minimum ownership spans; replace plain interval-count factor with weighted interval-sum formula from double prefix sums.
+
+**Algorithm and why it works:** Minimum-owned ranges remain; double prefix sums aggregate sums of every interval assigned to each minimum.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public int totalStrength(int[] strength) {
+        final long MOD = 1_000_000_007L;
+        int n = strength.length;
+        long[] p = new long[n + 1], pp = new long[n + 2];
+        for (int i = 0; i < n; i++) p[i + 1] = (p[i] + strength[i]) % MOD;
+        for (int i = 0; i <= n; i++) pp[i + 1] = (pp[i] + p[i]) % MOD;
+        int[] left = new int[n], right = new int[n];
+        java.util.Deque<Integer> st = new java.util.ArrayDeque<>();
+        for (int i = 0; i < n; i++) {
+            while (!st.isEmpty() && strength[st.peek()] >= strength[i]) st.pop();
+            left[i] = st.isEmpty() ? -1 : st.peek(); st.push(i);
+        }
+        st.clear();
+        for (int i = n - 1; i >= 0; i--) {
+            while (!st.isEmpty() && strength[st.peek()] > strength[i]) st.pop();
+            right[i] = st.isEmpty() ? n : st.peek(); st.push(i);
+        }
+        long answer = 0;
+        for (int i = 0; i < n; i++) {
+            int l = left[i], r = right[i];
+            long rightSum = (pp[r + 1] - pp[i + 1] + MOD) % MOD;
+            long leftSum = (pp[i + 1] - pp[l + 1] + MOD) % MOD;
+            long weighted = (rightSum * (i - l) % MOD - leftSum * (r - i) % MOD + MOD) % MOD;
+            answer = (answer + strength[i] * weighted) % MOD;
+        }
+        return (int)answer;
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+<a id="st21"></a>
+## ST21 — Lexicographically optimal removal stack
+
+**Family boundary:** NEW ALGORITHM FAMILY. Do not assume a direct implementation transition from the previous family.
+
+**Recognition rule:** Use when deleting a bounded number of elements creates the lexicographically smallest feasible remaining sequence.
+
+### Basic reusable Java 21 pattern (independent teaching snippet)
+
+This small snippet is deliberately a base invariant, not a substitute for the complete solutions below. It compiles when placed inside a Java class.
+
+```java
+class FamilyStarter {
+    static String removeDigits(String digits, int k) { StringBuilder st=new StringBuilder();for(char c:digits.toCharArray()){while(k>0&&st.length()>0&&st.charAt(st.length()-1)>c){st.setLength(st.length()-1);k--;}st.append(c);}while(k-->0)st.setLength(st.length()-1);return st.toString();}
+}
+```
+
+### 37. LeetCode 1673
+
+**Problem statement (paraphrased):** Find lexicographically smallest subsequence of exact length k while preserving order; stack pop larger prior values when enough elements remain to fill k; O(n).
+
+**Examples:**
+
+1. Input: `nums=[3,5,2,6], k=2` → Output: `[2,6]`
+2. Input: `nums=[2,4,3,3,5,4,9,6], k=4` → Output: `[2,3,3,4]`
+
+**Constraints and important guarantees:** Keep exactly `k` elements in original relative order; duplicate numbers may occur. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when deleting a bounded number of elements creates the lexicographically smallest feasible remaining sequence.
+
+**Exact evolution from previous question in this family:** **BASE:** monotone lexicographic stack with removal budget n-k and must-fill length.
+
+**Algorithm and why it works:** Pop a larger selected value only if enough remaining elements can still fill the target length.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public int[] mostCompetitive(int[] nums, int k) {
+        int n = nums.length; int[] st = new int[k]; int size = 0;
+        for (int i = 0; i < n; i++) {
+            while (size > 0 && st[size - 1] > nums[i] && size - 1 + n - i >= k) size--;
+            if (size < k) st[size++] = nums[i];
+        }
+        return st;
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(k)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+### 38. LeetCode 402
+
+**Problem statement (paraphrased):** Remove k digits from decimal string to minimize numeric value; monotonic digit stack pops larger preceding digits, removes leftover tail, strips leading zeros.
+
+**Examples:**
+
+1. Input: `num="1432219", k=3` → Output: `"1219"`
+2. Input: `num="10200", k=1` → Output: `"200"`
+
+**Constraints and important guarantees:** Digits represent a nonnegative integer; removing exactly `k` digits may lead to zero. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when deleting a bounded number of elements creates the lexicographically smallest feasible remaining sequence.
+
+**Exact evolution from previous question in this family:** Reuse removal-budget pop; change input symbols to digits, choose numeric string output and normalize leading zeros.
+
+**Algorithm and why it works:** Remove larger preceding digits while budget remains; remove leftovers from end, then trim leading zeros.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public String removeKdigits(String num, int k) {
+        StringBuilder st = new StringBuilder();
+        for (char digit : num.toCharArray()) {
+            while (k > 0 && st.length() > 0 && st.charAt(st.length() - 1) > digit) {
+                st.deleteCharAt(st.length() - 1); k--;
+            }
+            st.append(digit);
+        }
+        while (k-- > 0) st.deleteCharAt(st.length() - 1);
+        int first = 0;
+        while (first < st.length() && st.charAt(first) == '0') first++;
+        return first == st.length() ? "0" : st.substring(first);
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+### 39. LeetCode 316
+
+**Problem statement (paraphrased):** Delete duplicate letters to leave each distinct letter exactly once, lexicographically smallest; pop larger top only if it appears again later; track remaining counts and inStack.
+
+**Examples:**
+
+1. Input: `s="bcabc"` → Output: `"abc"`
+2. Input: `s="cbacdcbc"` → Output: `"acdb"`
+
+**Constraints and important guarantees:** String contains lowercase letters; each distinct letter must appear exactly once. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when deleting a bounded number of elements creates the lexicographically smallest feasible remaining sequence.
+
+**Exact evolution from previous question in this family:** Replace fixed deletion budget with last-occurrence eligibility plus uniqueness; only pop top when it can be reinserted later.
+
+**Algorithm and why it works:** Only evict a larger stack letter if a future occurrence can restore it; skip letters already in stack.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public String removeDuplicateLetters(String s) {
+        int[] remaining = new int[26]; boolean[] used = new boolean[26];
+        for (char c : s.toCharArray()) remaining[c - 'a']++;
+        StringBuilder st = new StringBuilder();
+        for (char c : s.toCharArray()) {
+            int id = c - 'a'; remaining[id]--;
+            if (used[id]) continue;
+            while (st.length() > 0 && st.charAt(st.length() - 1) > c &&
+                    remaining[st.charAt(st.length() - 1) - 'a'] > 0) {
+                used[st.charAt(st.length() - 1) - 'a'] = false;
+                st.setLength(st.length() - 1);
+            }
+            st.append(c); used[id] = true;
+        }
+        return st.toString();
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(1) alphabet auxiliary; O(n) output**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+<a id="st22"></a>
+## ST22 — Collisions resolved by surviving stack top
+
+**Family boundary:** NEW ALGORITHM FAMILY. Do not assume a direct implementation transition from the previous family.
+
+**Recognition rule:** Use when objects moving toward each other can collide, eliminating one or both, and each survivor can collide again.
+
+### Basic reusable Java 21 pattern (independent teaching snippet)
+
+This small snippet is deliberately a base invariant, not a substitute for the complete solutions below. It compiles when placed inside a Java class.
+
+```java
+class FamilyStarter {
+    static int[] collide(int[] a) { int[] st=new int[a.length];int n=0;for(int x:a){boolean alive=true;while(alive&&x<0&&n>0&&st[n-1]>0){if(st[n-1]<-x)n--;else{if(st[n-1]==-x)n--;alive=false;}}if(alive)st[n++]=x;}return java.util.Arrays.copyOf(st,n);}
+}
+```
+
+### 40. LeetCode 735
+
+**Problem statement (paraphrased):** Simulate opposite-moving asteroid collisions; only top positive and incoming negative can collide; repeatedly remove smaller magnitude, resolve tie; O(n).
+
+**Examples:**
+
+1. Input: `asteroids=[5,10,-5]` → Output: `[5,10]`
+2. Input: `asteroids=[8,-8]` → Output: `[]`
+
+**Constraints and important guarantees:** Each nonzero integer indicates asteroid magnitude and direction; equal magnitudes both vanish. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when objects moving toward each other can collide, eliminating one or both, and each survivor can collide again.
+
+**Exact evolution from previous question in this family:** NEW ALGORITHM FAMILY: a pop may trigger another physical collision, not a lexicographic deletion rule.
+
+**Algorithm and why it works:** Collision is possible only for a positive stack top followed by a negative incoming asteroid.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public int[] asteroidCollision(int[] asteroids) {
+        int[] st = new int[asteroids.length]; int size = 0;
+        for (int x : asteroids) {
+            boolean alive = true;
+            while (alive && x < 0 && size > 0 && st[size - 1] > 0) {
+                if (st[size - 1] < -x) size--;
+                else {
+                    if (st[size - 1] == -x) size--;
+                    alive = false;
+                }
+            }
+            if (alive) st[size++] = x;
+        }
+        return java.util.Arrays.copyOf(st, size);
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+<a id="st23"></a>
+## ST23 — 132-pattern range-candidate stack
+
+**Family boundary:** NEW ALGORITHM FAMILY. Do not assume a direct implementation transition from the previous family.
+
+**Recognition rule:** Use when seeking indices i<j<k with low[i] < value[k] < value[j] without enumerating triples.
+
+### Basic reusable Java 21 pattern (independent teaching snippet)
+
+This small snippet is deliberately a base invariant, not a substitute for the complete solutions below. It compiles when placed inside a Java class.
+
+```java
+class FamilyStarter {
+    static boolean has132(int[] a) { java.util.Deque<Integer> st=new java.util.ArrayDeque<>();int middle=Integer.MIN_VALUE;for(int i=a.length-1;i>=0;i--){if(a[i]<middle)return true;while(!st.isEmpty()&&st.peek()<a[i])middle=st.pop();st.push(a[i]);}return false;}
+}
+```
+
+### 41. LeetCode 456
+
+**Problem statement (paraphrased):** Detect i<j<k and a[i]<a[k]<a[j]; right-to-left decreasing stack of candidate j-values, remember best popped k-value; O(n).
+
+**Examples:**
+
+1. Input: `nums=[3,1,4,2]` → Output: `true`
+2. Input: `nums=[1,2,3,4]` → Output: `false`
+
+**Constraints and important guarantees:** Seek indices `i<j<k` satisfying `nums[i]<nums[k]<nums[j]`; duplicates do not qualify. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when seeking indices i<j<k with low[i] < value[k] < value[j] without enumerating triples.
+
+**Exact evolution from previous question in this family:** NEW ALGORITHM FAMILY: retain an intermediate candidate from popped stack entries; no next-element output.
+
+**Algorithm and why it works:** Scan right-to-left, remembering a candidate middle value from popped smaller elements.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public boolean find132pattern(int[] nums) {
+        java.util.Deque<Integer> st = new java.util.ArrayDeque<>();
+        int candidate2 = Integer.MIN_VALUE;
+        for (int i = nums.length - 1; i >= 0; i--) {
+            if (nums[i] < candidate2) return true;
+            while (!st.isEmpty() && nums[i] > st.peek()) candidate2 = st.pop();
+            st.push(nums[i]);
+        }
+        return false;
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+<a id="st24"></a>
+## ST24 — Longest balanced-parentheses segment
+
+**Family boundary:** NEW ALGORITHM FAMILY. Do not assume a direct implementation transition from the previous family.
+
+**Recognition rule:** Use when the objective is the longest CONTIGUOUS valid bracket substring, not global validity.
+
+### Basic reusable Java 21 pattern (independent teaching snippet)
+
+This small snippet is deliberately a base invariant, not a substitute for the complete solutions below. It compiles when placed inside a Java class.
+
+```java
+class FamilyStarter {
+    static int longest(String s) { java.util.Deque<Integer> st=new java.util.ArrayDeque<>();st.push(-1);int best=0;for(int i=0;i<s.length();i++){if(s.charAt(i)=='(')st.push(i);else{st.pop();if(st.isEmpty())st.push(i);else best=Math.max(best,i-st.peek());}}return best;}
+}
+```
+
+### 42. LeetCode 32
+
+**Problem statement (paraphrased):** Longest valid contiguous parentheses substring; stack stores opener indices plus last-invalid boundary; update length after matched close; O(n).
+
+**Examples:**
+
+1. Input: `s="(()"` → Output: `2`
+2. Input: `s=")()())"` → Output: `4`
+
+**Constraints and important guarantees:** Input consists only of parentheses; return the maximum *contiguous* valid length. The full numeric bounds are maintained on the official LeetCode problem page; this workbook deliberately does not invent numeric constraints.
+
+**Pattern recognition:** Use when the objective is the longest CONTIGUOUS valid bracket substring, not global validity.
+
+**Exact evolution from previous question in this family:** NEW ALGORITHM FAMILY: index boundaries of valid substrings replace delimiter validation or minimum edits.
+
+**Algorithm and why it works:** Use indices of unmatched opens plus most recent invalid close as the start boundary.
+
+**Optimized Java 21 submission:**
+
+```java
+class Solution {
+    public int longestValidParentheses(String s) {
+        java.util.Deque<Integer> st = new java.util.ArrayDeque<>();
+        st.push(-1); int best = 0;
+        for (int i = 0; i < s.length(); i++) {
+            if (s.charAt(i) == '(') st.push(i);
+            else {
+                st.pop();
+                if (st.isEmpty()) st.push(i);
+                else best = Math.max(best, i - st.peek());
+            }
+        }
+        return best;
+    }
+}
+```
+
+**Complexity:** Time **O(n)**; space **O(n)**. Stack pushes/pops are amortized O(1) each; output arrays and strings are explicitly distinguished where relevant.
+
+**Interview checkpoint:** Explain the maintained stack invariant, why a popped element cannot become relevant again, how equality is treated, and what happens on empty or all-equal inputs.
+
+## Verification and quality audit
+
+| Check | Result |
+|---|---|
+| Locked T12 questions present | **42 / 42** |
+| Algorithm families represented | **24 / 24 (ST1–ST24)** |
+| Questions in exact curriculum sequence | **Yes** |
+| Basic reusable family snippets | **24 / 24** |
+| Two concrete examples per question | **84 examples** |
+| One complete Java 21 solution per question | **42 / 42** |
+| Individually compiled with installed `javac` | **42 / 42 PASSED** |
+| Automated input/output functional tests | **Not yet run**; compile success should not be described as execution correctness |
+| Official platform hidden-case verification | **Not performed** |
+
+**Compilation approach:** Each submission was written independently to a temporary Java source file named after its declared top-level class (`Solution.java`, `MinStack.java`, `CustomStack.java`, `FreqStack.java`, or `StockSpanner.java`) and compiled with `javac -encoding UTF-8`. Because 42 solutions reuse the name `Solution`, do **not** paste all solutions into one `.java` file.
+
+**Boundary tie rules to remember:** ST19 uses monotonic boundary widths and positive inputs; ST20 assigns equal minima/maxima consistently (the `>=`/`<=` pop conditions give a stable tie convention). ST20 weighted sums must use modular normalization when subtracting double-prefix sums. ST21 depends on feasibility of future re-insertion, not only numeric ordering.
+

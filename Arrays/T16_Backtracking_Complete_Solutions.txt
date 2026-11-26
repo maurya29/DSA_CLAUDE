@@ -1,0 +1,2385 @@
+# T16 — Backtracking: Complete Solutions
+
+Java 21 | 35 locked problems | 20 algorithm families
+
+Source: `MASTER_DSA_CURRICULUM.md`, T16 locked registry and basic templates. The problem descriptions, examples, constraints and implementations are independently authored study material; constraints have not been checked against current LeetCode pages. Auxiliary space excludes returned output unless indicated. Sorting solutions may mutate their input. Starter templates are schematic as specified by the master; complete solutions are standalone.
+
+## Table of contents
+
+- [BT1 — Subset enumeration, duplicate-safe subsequences](#bt1) — [78](#lc-78), [90](#lc-90), [491](#lc-491)
+- [BT2 — Fixed-length combinations and target pruning](#bt2) — [77](#lc-77), [216](#lc-216)
+- [BT3 — Target-sum combinations with candidate reuse policy](#bt3) — [39](#lc-39), [40](#lc-40)
+- [BT4 — Permutation generation and multiplicity control](#bt4) — [46](#lc-46), [47](#lc-47), [1079](#lc-1079)
+- [BT5 — Position-by-position character branching](#bt5) — [17](#lc-17), [784](#lc-784)
+- [BT6 — Balanced prefix construction](#bt6) — [22](#lc-22)
+- [BT7 — String segmentation with local validity tests](#bt7) — [131](#lc-131), [93](#lc-93)
+- [BT8 — Grid path search with visited-cell undo](#bt8) — [79](#lc-79), [1219](#lc-1219), [980](#lc-980)
+- [BT9 — N-Queens row placement and constraint bookkeeping](#bt9) — [51](#lc-51), [52](#lc-52)
+- [BT10 — Sudoku constraint satisfaction with MRV](#bt10) — [37](#lc-37)
+- [BT11 — Symmetric bucket assignment and branch-and-bound](#bt11) — [473](#lc-473), [698](#lc-698), [2305](#lc-2305)
+- [BT12 — Choose/skip with bounded character resources](#bt12) — [1239](#lc-1239), [1255](#lc-1255)
+- [BT13 — Net-balance subset feasibility](#bt13) — [1601](#lc-1601)
+- [BT14 — Position-sensitive divisibility permutations](#bt14) — [526](#lc-526)
+- [BT15 — Lexicographically maximal distance-constrained placements](#bt15) — [1718](#lc-1718)
+- [BT16 — Expression operator insertion and incremental evaluation](#bt16) — [282](#lc-282)
+- [BT17 — Maximize distinct string partitions](#bt17) — [1593](#lc-1593)
+- [BT18 — Value-conflict subset selection](#bt18) — [2597](#lc-2597)
+- [BT19 — Arithmetic pair reduction](#bt19) — [679](#lc-679)
+- [BT20 — Additive numeric-string decomposition](#bt20) — [306](#lc-306), [842](#lc-842)
+- [Final registry and verification](#registry)
+
+<a id="bt1"></a>
+## BT1 — Subset enumeration, duplicate-safe subsequences
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Pick any subset or increasing-by-index subsequence; DFS choices advance an index.
+
+**Invariant:** Path contains only chosen indices before start; later choices cannot reuse an index.
+
+**Core logic:** DFS starting at `start`; emit path at each node. Preserve the invariant when branching, and undo mutable choices before exploring siblings.
+
+**Question sequence:** 78 → 90 → 491
+
+### Basic starter template
+
+```java
+void dfs(int start, int[] a, List<Integer> path) {
+    // Optionally emit path when the problem's length condition holds.
+    for (int i = start; i < a.length; i++) {
+        if (!eligible(a[i], path)) continue; // optional constraint
+        path.add(a[i]);
+        dfs(i + 1, a, path);
+        path.remove(path.size() - 1);
+    }
+}
+```
+
+<a id="lc-78"></a>
+### LC 78 — Question 01/35
+
+**Problem statement:** Given distinct integers nums, return every subset, including the empty subset. The order of subsets is unrestricted.
+
+**Examples:**
+
+- [1,2] → [[],[1],[1,2],[2]]
+- [0] → [[],[0]]
+
+**Constraints:** 1 ≤ n ≤ 10; -10 ≤ nums[i] ≤ 10; distinct values.
+
+**Why this pattern applies:** Pick any subset or increasing-by-index subsequence; DFS choices advance an index. DFS starting at `start`; emit path at each node.
+
+**Connection:** This is the foundation problem of a NEW ALGORITHM FAMILY. BASE: append current path, then choose any later index, recurse, undo.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<List<Integer>> subsets(int[] nums) {
+        var out=new ArrayList<List<Integer>>();
+        dfs(nums,0,new ArrayList<>(),out);
+        return out;
+    }
+    void dfs(int[] a,int s,List<Integer> p,List<List<Integer>> out) {
+        out.add(new ArrayList<>(p));
+        for(int i=s;i<a.length;i++) {
+            p.add(a[i]);
+            dfs(a,i+1,p,out);
+            p.remove(p.size()-1);
+        }
+    }
+}
+```
+
+**Key logic:** Emit a copy at every node; advance the index and remove the last choice after recursion.
+
+**Complexity:** O(n·2^n) time including copies; O(n) auxiliary space.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="lc-90"></a>
+### LC 90 — Question 02/35
+
+**Problem statement:** Given integers possibly containing duplicates, return all distinct subsets, including empty. Order is unrestricted.
+
+**Examples:**
+
+- [1,2,2] → [[],[1],[1,2],[1,2,2],[2],[2,2]]
+- [0] → [[],[0]]
+
+**Constraints:** 1 ≤ n ≤ 10; -10 ≤ nums[i] ≤ 10.
+
+**Why this pattern applies:** Pick any subset or increasing-by-index subsequence; DFS choices advance an index. Sort first and skip equal values at the *same DFS depth*.
+
+**Connection:** Keep choose/recurse/undo; sort and add `i>start && a[i]==a[i-1]` pruning.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<List<Integer>> subsetsWithDup(int[] a) {
+        Arrays.sort(a);
+        var out=new ArrayList<List<Integer>>();
+        dfs(a,0,new ArrayList<>(),out);
+        return out;
+    }
+    void dfs(int[] a,int s,List<Integer> p,List<List<Integer>> out) {
+        out.add(new ArrayList<>(p));
+        for(int i=s;i<a.length;i++) {
+            if(i>s&&a[i]==a[i-1])continue;
+            p.add(a[i]);
+            dfs(a,i+1,p,out);
+            p.remove(p.size()-1);
+        }
+    }
+}
+```
+
+**Key logic:** Sort; skip identical siblings, not repeated values chosen at different depths.
+
+**Complexity:** O(n·2^n) time; O(n) auxiliary space.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="lc-491"></a>
+### LC 491 — Question 03/35
+
+**Problem statement:** Return all distinct nondecreasing subsequences of nums with at least two elements. Preserve original index order; equal adjacent selected values are allowed.
+
+**Examples:**
+
+- [4,6,7,7] → [[4,6],[4,6,7],[4,6,7,7],[4,7],[4,7,7],[6,7],[6,7,7],[7,7]]
+- [4,3,2] → []
+
+**Constraints:** 1 ≤ n ≤ 15; -100 ≤ nums[i] ≤ 100.
+
+**Why this pattern applies:** Pick any subset or increasing-by-index subsequence; DFS choices advance an index. Retain index-increasing DFS; enforce nondecreasing chosen values and use per-depth `HashSet` for duplicates without sorting input.
+
+**Connection:** Replace sorted adjacent-equal skip with depth-local seen set; require `a[i]>=last`; emit only length≥2.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<List<Integer>> findSubsequences(int[] a) {
+        var out=new ArrayList<List<Integer>>();
+        dfs(a,0,new ArrayList<>(),out);
+        return out;
+    }
+    void dfs(int[] a,int s,List<Integer> p,List<List<Integer>> out) {
+        if(p.size()>=2)out.add(new ArrayList<>(p));
+        Set<Integer> seen=new HashSet<>();
+        for(int i=s;i<a.length;i++) {
+            if(!p.isEmpty()&&a[i]<p.get(p.size()-1)||!seen.add(a[i]))continue;
+            p.add(a[i]);
+            dfs(a,i+1,p,out);
+            p.remove(p.size()-1);
+        }
+    }
+}
+```
+
+**Key logic:** Do not sort; a set at each depth prevents duplicate sibling choices; compare with path tail.
+
+**Complexity:** O(n·2^n) time; O(n²) auxiliary upper bound for active sets.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="bt2"></a>
+## BT2 — Fixed-length combinations and target pruning
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Choose k different candidates without regard to order; recurse with a strictly increasing next index.
+
+**Invariant:** Path has k_initial − slots elements; next candidate exceeds every chosen number.
+
+**Core logic:** DFS next number, slots left, prune when too few candidates remain. Preserve the invariant when branching, and undo mutable choices before exploring siblings.
+
+**Question sequence:** 77 → 216
+
+### Basic starter template
+
+```java
+void choose(int next, int slots, int upper, List<Integer> path) {
+    if (slots == 0) { /* record a valid selection */ return; }
+    for (int x = next; x <= upper - slots + 1; x++) {
+        path.add(x);
+        choose(x + 1, slots - 1, upper, path);
+        path.remove(path.size() - 1);
+    }
+}
+```
+
+<a id="lc-77"></a>
+### LC 77 — Question 04/35
+
+**Problem statement:** Return all combinations of k different integers from 1 through n. Ordering inside the selection does not distinguish combinations.
+
+**Examples:**
+
+- n=4,k=2 → [[1,2],[1,3],[1,4],[2,3],[2,4],[3,4]]
+- n=1,k=1 → [[1]]
+
+**Constraints:** 1 ≤ n ≤ 20; 1 ≤ k ≤ n.
+
+**Why this pattern applies:** Choose k different candidates without regard to order; recurse with a strictly increasing next index. DFS next number, slots left, prune when too few candidates remain.
+
+**Connection:** This is the foundation problem of a NEW ALGORITHM FAMILY. BASE: append one candidate, recurse from candidate+1, undo at k chosen.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<List<Integer>> combine(int n,int k) {
+        var out=new ArrayList<List<Integer>>();
+        dfs(1,n,k,new ArrayList<>(),out);
+        return out;
+    }
+    void dfs(int s,int n,int k,List<Integer> p,List<List<Integer>> out) {
+        if(k==0) {
+            out.add(new ArrayList<>(p));
+            return;
+        }
+        for(int x=s;x<=n-k+1;x++) {
+            p.add(x);
+            dfs(x+1,n,k-1,p,out);
+            p.remove(p.size()-1);
+        }
+    }
+}
+```
+
+**Key logic:** Limit candidate to n-slots+1 so enough numbers remain.
+
+**Complexity:** O(k·C(n,k)) time; O(k) auxiliary space.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="lc-216"></a>
+### LC 216 — Question 05/35
+
+**Problem statement:** Find every combination of exactly k distinct digits from 1 to 9 whose sum is n. Each digit may be used once; no duplicate combinations.
+
+**Examples:**
+
+- k=3,n=7 → [[1,2,4]]
+- k=3,n=9 → [[1,2,6],[1,3,5],[2,3,4]]
+
+**Constraints:** 2 ≤ k ≤ 9; 1 ≤ n ≤ 60.
+
+**Why this pattern applies:** Choose k different candidates without regard to order; recurse with a strictly increasing next index. Retain advancing candidate index and length cap; track remaining sum and prune excess.
+
+**Connection:** Keep fixed-k combination DFS; set upper bound to 9, add remainingTarget subtraction and sum-based pruning.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<List<Integer>> combinationSum3(int k,int n) {
+        var out=new ArrayList<List<Integer>>();
+        dfs(1,k,n,new ArrayList<>(),out);
+        return out;
+    }
+    void dfs(int s,int k,int rem,List<Integer> p,List<List<Integer>> out) {
+        if(k==0) {
+            if(rem==0)out.add(new ArrayList<>(p));
+            return;
+        }
+        for(int x=s;x<=10-k&&x<=rem;x++) {
+            p.add(x);
+            dfs(x+1,k-1,rem-x,p,out);
+            p.remove(p.size()-1);
+        }
+    }
+}
+```
+
+**Key logic:** Track remaining slots and sum; stop candidates exceeding remaining sum.
+
+**Complexity:** O(k·2^9) time upper bound; O(k) auxiliary space.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="bt3"></a>
+## BT3 — Target-sum combinations with candidate reuse policy
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Find all unordered selections reaching target; sort candidates and prune when remaining value is too small.
+
+**Invariant:** Path sum plus remaining target equals original target; candidate indices never decrease.
+
+**Core logic:** Sort; DFS remaining sum; recurse using same index to allow reuse. Preserve the invariant when branching, and undo mutable choices before exploring siblings.
+
+**Question sequence:** 39 → 40
+
+### Basic starter template
+
+```java
+void choose(int start, int remain, int[] a, List<Integer> path) {
+    if (remain == 0) { /* record */ return; }
+    for (int i = start; i < a.length && a[i] <= remain; i++) {
+        path.add(a[i]);
+        choose(i, remain - a[i], a, path); // i+1 for single-use variant
+        path.remove(path.size() - 1);
+    }
+}
+```
+
+<a id="lc-39"></a>
+### LC 39 — Question 06/35
+
+**Problem statement:** Given distinct positive candidates and target, return unique combinations summing to target. Each candidate may be selected unlimited times.
+
+**Examples:**
+
+- [2,3,6,7],7 → [[2,2,3],[7]]
+- [2],1 → []
+
+**Constraints:** 1 ≤ n ≤ 30; 2 ≤ candidates[i] ≤ 40; 1 ≤ target ≤ 40.
+
+**Why this pattern applies:** Find all unordered selections reaching target; sort candidates and prune when remaining value is too small. Sort; DFS remaining sum; recurse using same index to allow reuse.
+
+**Connection:** This is the foundation problem of a NEW ALGORITHM FAMILY. BASE: sum-constrained choose/recurse/undo with `dfs(i,remain-a[i])`.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<List<Integer>> combinationSum(int[] a,int t) {
+        Arrays.sort(a);
+        var out=new ArrayList<List<Integer>>();
+        dfs(a,0,t,new ArrayList<>(),out);
+        return out;
+    }
+    void dfs(int[] a,int s,int rem,List<Integer> p,List<List<Integer>> out) {
+        if(rem==0) {
+            out.add(new ArrayList<>(p));
+            return;
+        }
+        for(int i=s;i<a.length&&a[i]<=rem;i++) {
+            p.add(a[i]);
+            dfs(a,i,rem-a[i],p,out);
+            p.remove(p.size()-1);
+        }
+    }
+}
+```
+
+**Key logic:** Sort and stop when candidate exceeds remainder; recurse at same index to allow reuse.
+
+**Complexity:** O(n log n + (d+1)·(n+1)^d) loose time bound, d=target/min(candidate); O(d+log n) auxiliary space including sorting stack.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="lc-40"></a>
+### LC 40 — Question 07/35
+
+**Problem statement:** Given positive candidates possibly repeated and a target, return unique combinations summing to target. Each input occurrence may be used at most once.
+
+**Examples:**
+
+- [10,1,2,7,6,1,5],8 → [[1,1,6],[1,2,5],[1,7],[2,6]]
+- [2,2],2 → [[2]]
+
+**Constraints:** 1 ≤ n ≤ 100; 1 ≤ candidates[i] ≤ 50; 1 ≤ target ≤ 30.
+
+**Why this pattern applies:** Find all unordered selections reaching target; sort candidates and prune when remaining value is too small. Sort and skip duplicate siblings; recurse from i+1 instead of i.
+
+**Connection:** Replace reuse `dfs(i,...)` with single-use `dfs(i+1,...)`; skip equal candidates at same depth.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<List<Integer>> combinationSum2(int[] a,int t) {
+        Arrays.sort(a);
+        var out=new ArrayList<List<Integer>>();
+        dfs(a,0,t,new ArrayList<>(),out);
+        return out;
+    }
+    void dfs(int[] a,int s,int rem,List<Integer> p,List<List<Integer>> out) {
+        if(rem==0) {
+            out.add(new ArrayList<>(p));
+            return;
+        }
+        for(int i=s;i<a.length&&a[i]<=rem;i++) {
+            if(i>s&&a[i]==a[i-1])continue;
+            p.add(a[i]);
+            dfs(a,i+1,rem-a[i],p,out);
+            p.remove(p.size()-1);
+        }
+    }
+}
+```
+
+**Key logic:** Advance to i+1 and skip equal siblings; duplicates at different depths remain usable.
+
+**Complexity:** O(n·2^n) loose time; O(n) auxiliary space.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="bt4"></a>
+## BT4 — Permutation generation and multiplicity control
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Order matters; at each depth choose an unused value, not merely a later index.
+
+**Invariant:** Used flags or remaining frequencies exactly describe occurrences not yet placed.
+
+**Core logic:** DFS with used[] and path; record when path length reaches n. Preserve the invariant when branching, and undo mutable choices before exploring siblings.
+
+**Question sequence:** 46 → 47 → 1079
+
+### Basic starter template
+
+```java
+void permute(int[] a, boolean[] used, List<Integer> path) {
+    if (path.size() == a.length) { /* record */ return; }
+    for (int i = 0; i < a.length; i++) {
+        if (used[i]) continue;
+        used[i] = true; path.add(a[i]);
+        permute(a, used, path);
+        path.remove(path.size() - 1); used[i] = false;
+    }
+}
+```
+
+<a id="lc-46"></a>
+### LC 46 — Question 08/35
+
+**Problem statement:** Return every permutation of a list of distinct integers. Every permutation uses each element exactly once.
+
+**Examples:**
+
+- [1,2] → [[1,2],[2,1]]
+- [1] → [[1]]
+
+**Constraints:** 1 ≤ n ≤ 6; -10 ≤ nums[i] ≤ 10; distinct.
+
+**Why this pattern applies:** Order matters; at each depth choose an unused value, not merely a later index. DFS with used[] and path; record when path length reaches n.
+
+**Connection:** This is the foundation problem of a NEW ALGORITHM FAMILY. BASE: scan every index per level; choose unused, recurse, undo used flag.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<List<Integer>> permute(int[] a) {
+        var out=new ArrayList<List<Integer>>();
+        dfs(a,new boolean[a.length],new ArrayList<>(),out);
+        return out;
+    }
+    void dfs(int[] a,boolean[] used,List<Integer> p,List<List<Integer>> out) {
+        if(p.size()==a.length) {
+            out.add(new ArrayList<>(p));
+            return;
+        }
+        for(int i=0;i<a.length;i++) {
+            if(used[i])continue;
+            used[i]=true;
+            p.add(a[i]);
+            dfs(a,used,p,out);
+            p.remove(p.size()-1);
+            used[i]=false;
+        }
+    }
+}
+```
+
+**Key logic:** Scan all indices at each position and track used occurrences.
+
+**Complexity:** O(n·n!) time; O(n) auxiliary space.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="lc-47"></a>
+### LC 47 — Question 09/35
+
+**Problem statement:** Return all distinct permutations of integers that may contain repeated values. Use every occurrence exactly once.
+
+**Examples:**
+
+- [1,1,2] → [[1,1,2],[1,2,1],[2,1,1]]
+- [2,2] → [[2,2]]
+
+**Constraints:** 1 ≤ n ≤ 8; -10 ≤ nums[i] ≤ 10.
+
+**Why this pattern applies:** Order matters; at each depth choose an unused value, not merely a later index. Sort values; forbid duplicate sibling arrangement using predecessor-used condition.
+
+**Connection:** Keep used[]; sort and add `i>0 && a[i]==a[i-1] && !used[i-1]` skip.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<List<Integer>> permuteUnique(int[] a) {
+        Arrays.sort(a);
+        var out=new ArrayList<List<Integer>>();
+        dfs(a,new boolean[a.length],new ArrayList<>(),out);
+        return out;
+    }
+    void dfs(int[] a,boolean[] u,List<Integer> p,List<List<Integer>> out) {
+        if(p.size()==a.length) {
+            out.add(new ArrayList<>(p));
+            return;
+        }
+        for(int i=0;i<a.length;i++) {
+            if(u[i]||i>0&&a[i]==a[i-1]&&!u[i-1])continue;
+            u[i]=true;
+            p.add(a[i]);
+            dfs(a,u,p,out);
+            p.remove(p.size()-1);
+            u[i]=false;
+        }
+    }
+}
+```
+
+**Key logic:** Sort; an equal predecessor must already be used before its successor can be chosen.
+
+**Complexity:** O(n·n!) worst-case time; O(n) auxiliary space.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="lc-1079"></a>
+### LC 1079 — Question 10/35
+
+**Problem statement:** Given uppercase letter tiles, count distinct nonempty strings obtainable using each tile at most once. Different orders count separately.
+
+**Examples:**
+
+- AAB → 8
+- V → 1
+
+**Constraints:** 1 ≤ tiles.length ≤ 7; uppercase English letters.
+
+**Why this pattern applies:** Order matters; at each depth choose an unused value, not merely a later index. Count character frequencies, choose each distinct remaining character, count each prefix without materializing sequences.
+
+**Connection:** Replace sorted indices/used[] and path-list output with frequency decrements and a counter; count every nonempty DFS branch.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int numTilePossibilities(String tiles) {
+        int[] f=new int[26];
+        for(char c:tiles.toCharArray())f[c-'A']++;
+        return dfs(f);
+    }
+    int dfs(int[] f) {
+        int ans=0;
+        for(int i=0;i<26;i++) {
+            if(f[i]==0)continue;
+            f[i]--;
+            ans+=1+dfs(f);
+            f[i]++;
+        }
+        return ans;
+    }
+}
+```
+
+**Key logic:** Use a frequency table; each available letter creates one new sequence and all its extensions.
+
+**Complexity:** O(26·n!) time worst case; O(n+26) auxiliary space.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="bt5"></a>
+## BT5 — Position-by-position character branching
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** For each input position choose one of its permitted output symbols.
+
+**Invariant:** Builder contains exactly one permitted symbol for each processed position.
+
+**Core logic:** DFS input position; for each mapped letter append, recurse, undo. Preserve the invariant when branching, and undo mutable choices before exploring siblings.
+
+**Question sequence:** 17 → 784
+
+### Basic starter template
+
+```java
+void expand(int pos, String source, StringBuilder out) {
+    if (pos == source.length()) { /* emit string */ return; }
+    for (char option : optionsFor(source.charAt(pos))) {
+        out.append(option);
+        expand(pos + 1, source, out);
+        out.setLength(out.length() - 1);
+    }
+}
+```
+
+<a id="lc-17"></a>
+### LC 17 — Question 11/35
+
+**Problem statement:** Given a string of digits 2 through 9, return every string obtained by choosing one corresponding telephone keypad letter per digit.
+
+**Examples:**
+
+- 23 → [ad,ae,af,bd,be,bf,cd,ce,cf]
+- 2 → [a,b,c]
+
+**Constraints:** 0 ≤ digits.length ≤ 4 (empty input handled); digits 2–9.
+
+**Why this pattern applies:** For each input position choose one of its permitted output symbols. DFS input position; for each mapped letter append, recurse, undo.
+
+**Connection:** This is the foundation problem of a NEW ALGORITHM FAMILY. BASE: at index pos iterate allowed characters and recurse to pos+1.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    String[] map= {
+        "","","abc","def","ghi","jkl","mno","pqrs","tuv","wxyz"
+    }
+    ;
+    public List<String> letterCombinations(String digits) {
+        var out=new ArrayList<String>();
+        if(!digits.isEmpty())dfs(digits,0,new StringBuilder(),out);
+        return out;
+    }
+    void dfs(String d,int i,StringBuilder p,List<String> out) {
+        if(i==d.length()) {
+            out.add(p.toString());
+            return;
+        }
+        for(char c:map[d.charAt(i)-'0'].toCharArray()) {
+            p.append(c);
+            dfs(d,i+1,p,out);
+            p.setLength(p.length()-1);
+        }
+    }
+}
+```
+
+**Key logic:** Map each digit to allowed letters and advance one position per choice.
+
+**Complexity:** O(n·4^n) time; O(n) auxiliary space.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="lc-784"></a>
+### LC 784 — Question 12/35
+
+**Problem statement:** Return every string formed by independently changing each letter to lowercase or uppercase; digits stay unchanged.
+
+**Examples:**
+
+- a1b2 → [a1b2,a1B2,A1b2,A1B2]
+- 3z4 → [3z4,3Z4]
+
+**Constraints:** 1 ≤ length ≤ 12; ASCII English letters and digits.
+
+**Why this pattern applies:** For each input position choose one of its permitted output symbols. At each position branch once for digits or twice for alphabetic lowercase/uppercase.
+
+**Connection:** Keep position DFS and builder; replace keypad-option lookup with per-character identity/case alternatives.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<String> letterCasePermutation(String s) {
+        var out=new ArrayList<String>();
+        dfs(s,0,new StringBuilder(),out);
+        return out;
+    }
+    void dfs(String s,int i,StringBuilder p,List<String> out) {
+        if(i==s.length()) {
+            out.add(p.toString());
+            return;
+        }
+        char c=s.charAt(i);
+        p.append(Character.toLowerCase(c));
+        dfs(s,i+1,p,out);
+        p.setLength(p.length()-1);
+        if(Character.isLetter(c)) {
+            p.append(Character.toUpperCase(c));
+            dfs(s,i+1,p,out);
+            p.setLength(p.length()-1);
+        }
+    }
+}
+```
+
+**Key logic:** Branch once for digits and twice for letters, restoring builder length.
+
+**Complexity:** O(n·2^L) time, L letters; O(n) auxiliary space.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="bt6"></a>
+## BT6 — Balanced prefix construction
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Build a valid object one symbol at a time and prune illegal partial prefixes.
+
+**Invariant:** 0 ≤ close ≤ open ≤ n; every prefix is balanced so far.
+
+**Core logic:** Track opens/closes; only add `(` if opens<n and `)` if closes<opens. Preserve the invariant when branching, and undo mutable choices before exploring siblings.
+
+**Question sequence:** 22
+
+### Basic starter template
+
+```java
+void build(int open, int close, int n, StringBuilder out) {
+    if (open == n && close == n) { /* emit */ return; }
+    if (open < n) { out.append('('); build(open + 1, close, n, out); out.setLength(out.length()-1); }
+    if (close < open) { out.append(')'); build(open, close + 1, n, out); out.setLength(out.length()-1); }
+}
+```
+
+<a id="lc-22"></a>
+### LC 22 — Question 13/35
+
+**Problem statement:** Given n pairs of parentheses, return every well-formed parentheses string using exactly n opening and n closing symbols.
+
+**Examples:**
+
+- n=2 → [(()),()()]
+- n=1 → [()]
+
+**Constraints:** 1 ≤ n ≤ 8.
+
+**Why this pattern applies:** Build a valid object one symbol at a time and prune illegal partial prefixes. Track opens/closes; only add `(` if opens<n and `)` if closes<opens.
+
+**Connection:** This is the foundation problem of a NEW ALGORITHM FAMILY. NEW ALGORITHM FAMILY: constrained prefix generation; no prior family evolution.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<String> generateParenthesis(int n) {
+        var out=new ArrayList<String>();
+        dfs(n,0,0,new StringBuilder(),out);
+        return out;
+    }
+    void dfs(int n,int o,int c,StringBuilder p,List<String> out) {
+        if(c==n) {
+            out.add(p.toString());
+            return;
+        }
+        if(o<n) {
+            p.append('(');
+            dfs(n,o+1,c,p,out);
+            p.setLength(p.length()-1);
+        }
+        if(c<o) {
+            p.append(')');
+            dfs(n,o,c+1,p,out);
+            p.setLength(p.length()-1);
+        }
+    }
+}
+```
+
+**Key logic:** Never close more than opened; never open more than n.
+
+**Complexity:** O(n·C_n) time, C_n is Catalan number; O(n) auxiliary space.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="bt7"></a>
+## BT7 — String segmentation with local validity tests
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Split a string into contiguous units; advance by chosen segment end, undo after recursion.
+
+**Invariant:** Parts concatenate to the processed prefix; each part satisfies local validity.
+
+**Core logic:** DFS start index and all valid end positions; prune nonpalindromic choices (optionally precompute palindrome DP). Preserve the invariant when branching, and undo mutable choices before exploring siblings.
+
+**Question sequence:** 131 → 93
+
+### Basic starter template
+
+```java
+void partition(int start, String s, List<String> parts) {
+    if (start == s.length()) { /* emit only if part count valid */ return; }
+    for (int end = start + 1; end <= s.length(); end++) {
+        if (!validPiece(s, start, end)) continue;
+        parts.add(s.substring(start, end));
+        partition(end, s, parts);
+        parts.remove(parts.size() - 1);
+    }
+}
+```
+
+<a id="lc-131"></a>
+### LC 131 — Question 14/35
+
+**Problem statement:** Partition a string into nonempty contiguous substrings, each a palindrome. Return all possible partitions covering the entire string.
+
+**Examples:**
+
+- aab → [[a,a,b],[aa,b]]
+- a → [[a]]
+
+**Constraints:** 1 ≤ length ≤ 16; lowercase English letters.
+
+**Why this pattern applies:** Split a string into contiguous units; advance by chosen segment end, undo after recursion. DFS start index and all valid end positions; prune nonpalindromic choices (optionally precompute palindrome DP).
+
+**Connection:** This is the foundation problem of a NEW ALGORITHM FAMILY. BASE: choose a valid contiguous piece `s[start:end]`, recurse at end, undo.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<List<String>> partition(String s) {
+        int n=s.length();
+        boolean[][] pal=new boolean[n][n];
+        for(int i=n-1;i>=0;i--)for(int j=i;j<n;j++)pal[i][j]=s.charAt(i)==s.charAt(j)&&(j-i<2||pal[i+1][j-1]);
+        var out=new ArrayList<List<String>>();
+        dfs(s,0,pal,new ArrayList<>(),out);
+        return out;
+    }
+    void dfs(String s,int i,boolean[][] pal,List<String> p,List<List<String>> out) {
+        if(i==s.length()) {
+            out.add(new ArrayList<>(p));
+            return;
+        }
+        for(int j=i;j<s.length();j++) {
+            if(!pal[i][j])continue;
+            p.add(s.substring(i,j+1));
+            dfs(s,j+1,pal,p,out);
+            p.remove(p.size()-1);
+        }
+    }
+}
+```
+
+**Key logic:** Precompute palindrome table; only choose palindromic ranges and recurse at end+1.
+
+**Complexity:** O(n²+n·2^n) time; O(n²) auxiliary space.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="lc-93"></a>
+### LC 93 — Question 15/35
+
+**Problem statement:** Insert three dots into a digit string to form all valid IPv4 addresses without changing digit order. Each of four fields is 0–255 and has no leading zeros except 0 itself.
+
+**Examples:**
+
+- 25525511135 → [255.255.11.135,255.255.111.35]
+- 0000 → [0.0.0.0]
+
+**Constraints:** 1 ≤ length ≤ 20; digits only.
+
+**Why this pattern applies:** Split a string into contiguous units; advance by chosen segment end, undo after recursion. Choose segment lengths 1..3; enforce digits, range≤255 and no leading zeros; require exactly four parts.
+
+**Connection:** Replace palindrome predicate with bounded numeric-field validation; cap part count and prune remaining-length feasibility.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<String> restoreIpAddresses(String s) {
+        var out=new ArrayList<String>();
+        dfs(s,0,new ArrayList<>(),out);
+        return out;
+    }
+    void dfs(String s,int i,List<String> p,List<String> out) {
+        int slots=4-p.size(),rem=s.length()-i;
+        if(rem<slots||rem>3*slots)return;
+        if(slots==0) {
+            out.add(String.join(".",p));
+            return;
+        }
+        int v=0;
+        for(int j=i;j<s.length()&&j<i+3;j++) {
+            if(j>i&&s.charAt(i)=='0')break;
+            v=v*10+s.charAt(j)-'0';
+            if(v>255)break;
+            p.add(s.substring(i,j+1));
+            dfs(s,j+1,p,out);
+            p.remove(p.size()-1);
+        }
+    }
+}
+```
+
+**Key logic:** Prune when remaining digits cannot fill remaining fields; build at most three digits per field.
+
+**Complexity:** O(3^4) time and O(4) auxiliary space for fixed IPv4 format.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="bt8"></a>
+## BT8 — Grid path search with visited-cell undo
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Move through four neighbors without revisiting a cell in the current path; restore visited state on return.
+
+**Invariant:** Visited markers describe the current simple path only; restore them before returning.
+
+**Core logic:** DFS cell and word index; test matching character, mark visited, try neighbors, undo. Preserve the invariant when branching, and undo mutable choices before exploring siblings.
+
+**Question sequence:** 79 → 1219 → 980
+
+### Basic starter template
+
+```java
+int dfs(int r, int c, boolean[][] used) {
+    if (!inBounds(r,c) || used[r][c] || blocked(r,c)) return 0;
+    used[r][c] = true;
+    int result = 0;
+    for (int[] d : DIRS) result += dfs(r+d[0], c+d[1], used);
+    used[r][c] = false; // restore for alternative paths
+    return result; // adapt result and terminal condition to objective
+}
+```
+
+<a id="lc-79"></a>
+### LC 79 — Question 16/35
+
+**Problem statement:** Given a character grid and word, determine whether adjacent horizontal or vertical cells spell the word in order. A cell cannot be reused within a path.
+
+**Examples:**
+
+- [[A,B],[C,D]], ABD → true
+- same grid, ABA → false
+
+**Constraints:** 1 ≤ rows,cols ≤ 6; 1 ≤ word.length ≤ 15; English letters.
+
+**Why this pattern applies:** Move through four neighbors without revisiting a cell in the current path; restore visited state on return. DFS cell and word index; test matching character, mark visited, try neighbors, undo.
+
+**Connection:** This is the foundation problem of a NEW ALGORITHM FAMILY. BASE: 4-direction DFS with visited-on-path and early success.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean exist(char[][] b,String w) {
+        for(int r=0;r<b.length;r++)for(int c=0;c<b[0].length;c++)if(dfs(b,w,r,c,0))return true;
+        return false;
+    }
+    boolean dfs(char[][] b,String w,int r,int c,int i) {
+        if(i==w.length())return true;
+        if(r<0||c<0||r==b.length||c==b[0].length||b[r][c]!=w.charAt(i))return false;
+        char old=b[r][c];
+        b[r][c]='#';
+        boolean ok=dfs(b,w,r+1,c,i+1)||dfs(b,w,r-1,c,i+1)||dfs(b,w,r,c+1,i+1)||dfs(b,w,r,c-1,i+1);
+        b[r][c]=old;
+        return ok;
+    }
+}
+```
+
+**Key logic:** Mark a matched cell, search neighbors, restore even when a match succeeds.
+
+**Complexity:** O(mn·4^L) time upper bound; O(L) recursion.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="lc-1219"></a>
+### LC 1219 — Question 17/35
+
+**Problem statement:** A grid contains nonnegative amounts of gold. Start and stop at any positive cell, move orthogonally, never enter zero or revisit a cell. Return maximum total gold collected.
+
+**Examples:**
+
+- [[0,6,0],[5,8,7],[0,9,0]] → 24
+- [[0]] → 0
+
+**Constraints:** 1 ≤ rows,cols ≤ 15; 0 ≤ grid[i][j] ≤ 100; at most 25 positive cells.
+
+**Why this pattern applies:** Move through four neighbors without revisiting a cell in the current path; restore visited state on return. Run DFS from every positive cell; collect cell value and take maximum; backtrack blocked or visited cells.
+
+**Connection:** Keep four-direction mark/recurse/undo; replace word index/match with path-score accumulation and maximum aggregation.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int getMaximumGold(int[][] g) {
+        int best=0;
+        for(int r=0;r<g.length;r++)for(int c=0;c<g[0].length;c++)best=Math.max(best,dfs(g,r,c));
+        return best;
+    }
+    int dfs(int[][] g,int r,int c) {
+        if(r<0||c<0||r==g.length||c==g[0].length||g[r][c]==0)return 0;
+        int v=g[r][c];
+        g[r][c]=0;
+        int best=Math.max(Math.max(dfs(g,r+1,c),dfs(g,r-1,c)),Math.max(dfs(g,r,c+1),dfs(g,r,c-1)));
+        g[r][c]=v;
+        return v+best;
+    }
+}
+```
+
+**Key logic:** Temporarily replace gold with zero; add current gold to best neighboring continuation.
+
+**Complexity:** O(mn+g·4·3^(g-1)) time upper bound; O(g) recursion, g positive cells.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="lc-980"></a>
+### LC 980 — Question 18/35
+
+**Problem statement:** A grid has one start (1), one end (2), empty cells (0) and obstacles (-1). Count orthogonal walks from start to end that visit every non-obstacle cell exactly once.
+
+**Examples:**
+
+- [[1,0,2]] → 1
+- [[1,2,0]] → 0
+
+**Constraints:** 1 ≤ rows,cols ≤ 20; rows·cols ≤ 20; exactly one start and end.
+
+**Why this pattern applies:** Move through four neighbors without revisiting a cell in the current path; restore visited state on return. Start at designated start; track number of remaining walkable cells; count only when end is reached with all used.
+
+**Connection:** Keep simple-path DFS/undo; replace max-score aggregation with count of completions and remaining-cell invariant.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int uniquePathsIII(int[][] g) {
+        int sr=0,sc=0,w=0;
+        for(int r=0;r<g.length;r++)for(int c=0;c<g[0].length;c++) {
+            if(g[r][c]!=-1)w++;
+            if(g[r][c]==1) {
+                sr=r;
+                sc=c;
+            }
+        }
+        return dfs(g,sr,sc,w);
+    }
+    int dfs(int[][] g,int r,int c,int w) {
+        if(r<0||c<0||r==g.length||c==g[0].length||g[r][c]==-1)return 0;
+        if(g[r][c]==2)return w==1?1:0;
+        int v=g[r][c];
+        g[r][c]=-1;
+        int ans=dfs(g,r+1,c,w-1)+dfs(g,r-1,c,w-1)+dfs(g,r,c+1,w-1)+dfs(g,r,c-1,w-1);
+        g[r][c]=v;
+        return ans;
+    }
+}
+```
+
+**Key logic:** Count all walkable cells; on entering end accept only when it is the final remaining cell.
+
+**Complexity:** O(mn+4·3^(w-1)) time upper bound; O(w) recursion, w walkable cells.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="bt9"></a>
+## BT9 — N-Queens row placement and constraint bookkeeping
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Place one queen per row, rejecting occupied columns and diagonals.
+
+**Invariant:** Each completed row has one queen; occupied columns and diagonals match those queens.
+
+**Core logic:** DFS row, track used columns and two diagonal sets/arrays, construct board at depth n. Preserve the invariant when branching, and undo mutable choices before exploring siblings.
+
+**Question sequence:** 51 → 52
+
+### Basic starter template
+
+```java
+void queens(int row, int n, boolean[] col, boolean[] diag1, boolean[] diag2) {
+    if (row == n) { /* emit or count */ return; }
+    for (int c = 0; c < n; c++) {
+        int a = row - c + n - 1, b = row + c;
+        if (col[c] || diag1[a] || diag2[b]) continue;
+        col[c] = diag1[a] = diag2[b] = true;
+        queens(row + 1, n, col, diag1, diag2);
+        col[c] = diag1[a] = diag2[b] = false;
+    }
+}
+```
+
+<a id="lc-51"></a>
+### LC 51 — Question 19/35
+
+**Problem statement:** Place n queens on an n×n chessboard so no two share a row, column or diagonal. Return all distinct boards as lists of strings using Q and dots.
+
+**Examples:**
+
+- n=4 → [[.Q..,...Q,Q...,..Q.],[..Q.,Q...,...Q,.Q..]]
+- n=1 → [[Q]]
+
+**Constraints:** 1 ≤ n ≤ 9.
+
+**Why this pattern applies:** Place one queen per row, rejecting occupied columns and diagonals. DFS row, track used columns and two diagonal sets/arrays, construct board at depth n.
+
+**Connection:** This is the foundation problem of a NEW ALGORITHM FAMILY. BASE: place valid row-column candidate; mark three constraints, recurse, undo.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<List<String>> solveNQueens(int n) {
+        var out=new ArrayList<List<String>>();
+        char[][] b=new char[n][n];
+        for(char[] row:b)Arrays.fill(row,'.');
+        dfs(0,b,new boolean[n],new boolean[2*n-1],new boolean[2*n-1],out);
+        return out;
+    }
+    void dfs(int r,char[][] b,boolean[] col,boolean[] d1,boolean[] d2,List<List<String>> out) {
+        int n=b.length;
+        if(r==n) {
+            var board=new ArrayList<String>();
+            for(char[] row:b)board.add(new String(row));
+            out.add(board);
+            return;
+        }
+        for(int c=0;c<n;c++) {
+            int x=r-c+n-1,y=r+c;
+            if(col[c]||d1[x]||d2[y])continue;
+            col[c]=d1[x]=d2[y]=true;
+            b[r][c]='Q';
+            dfs(r+1,b,col,d1,d2,out);
+            b[r][c]='.';
+            col[c]=d1[x]=d2[y]=false;
+        }
+    }
+}
+```
+
+**Key logic:** Place one queen per row; track column and both diagonal indices; materialize only complete boards.
+
+**Complexity:** O(n·n!+B·n²) time upper bound, B boards; O(n²) auxiliary space.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="lc-52"></a>
+### LC 52 — Question 20/35
+
+**Problem statement:** Count the distinct placements of n nonattacking queens on an n×n board. Return only the number of arrangements.
+
+**Examples:**
+
+- n=4 → 2
+- n=1 → 1
+
+**Constraints:** 1 ≤ n ≤ 9.
+
+**Why this pattern applies:** Place one queen per row, rejecting occupied columns and diagonals. Use same row/column/diagonal search, optionally bit masks; increment count at full placement.
+
+**Connection:** Keep constraint pruning; replace board construction/output list with scalar count (bit masks optional).
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int totalNQueens(int n) {
+        return dfs(0,n,new boolean[n],new boolean[2*n-1],new boolean[2*n-1]);
+    }
+    int dfs(int r,int n,boolean[] col,boolean[] d1,boolean[] d2) {
+        if(r==n)return 1;
+        int ans=0;
+        for(int c=0;c<n;c++) {
+            int x=r-c+n-1,y=r+c;
+            if(col[c]||d1[x]||d2[y])continue;
+            col[c]=d1[x]=d2[y]=true;
+            ans+=dfs(r+1,n,col,d1,d2);
+            col[c]=d1[x]=d2[y]=false;
+        }
+        return ans;
+    }
+}
+```
+
+**Key logic:** Keep the same constraint arrays; return counts instead of constructing boards.
+
+**Complexity:** O(n·n!) time upper bound; O(n) auxiliary space.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="bt10"></a>
+## BT10 — Sudoku constraint satisfaction with MRV
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Assign a legal digit to the most constrained empty cell, updating row/column/box constraints.
+
+**Invariant:** All filled cells satisfy Sudoku constraints; masks exactly represent assigned digits.
+
+**Core logic:** Initialize row/col/box bit masks; choose blank with fewest candidates (MRV), branch over candidate bits, undo on failure. Preserve the invariant when branching, and undo mutable choices before exploring siblings.
+
+**Question sequence:** 37
+
+### Basic starter template
+
+```java
+boolean fill(List<Cell> empty, int[] rowMask, int[] colMask, int[] boxMask) {
+    if (empty.isEmpty()) return true;
+    // Pick most constrained cell (MRV); candidates are free bits in 1..9.
+    // For each digit: place, update 3 masks, recurse, undo if failed.
+    return false;
+}
+```
+
+<a id="lc-37"></a>
+### LC 37 — Question 21/35
+
+**Problem statement:** Complete a 9×9 Sudoku board in place. Every row, column and 3×3 box must contain digits 1–9 exactly once. Empty cells are dots; the supplied puzzle has one solution.
+
+**Examples:**
+
+- Board rows 53467891.,672195348,198342567,859761423,426853791,713924856,961537284,287419635,345286179 → first row 534678912, others unchanged
+- same solved board with last cell replaced by dot → last row 345286179, others unchanged.
+
+**Constraints:** 9×9 board; digits 1–9 or dot; valid uniquely solvable puzzle.
+
+**Why this pattern applies:** Assign a legal digit to the most constrained empty cell, updating row/column/box constraints. Initialize row/col/box bit masks; choose blank with fewest candidates (MRV), branch over candidate bits, undo on failure.
+
+**Connection:** This is the foundation problem of a NEW ALGORITHM FAMILY. NEW ALGORITHM FAMILY: multi-region exact-constraint assignment and most-restricted-variable pruning.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    int[] row=new int[9],col=new int[9],box=new int[9];
+    public void solveSudoku(char[][] b) {
+        Arrays.fill(row,0);
+        Arrays.fill(col,0);
+        Arrays.fill(box,0);
+        for(int r=0;r<9;r++)for(int c=0;c<9;c++)if(b[r][c]!='.') {
+            int bit=1<<(b[r][c]-'1');
+            row[r]|=bit;
+            col[c]|=bit;
+            box[r/3*3+c/3]|=bit;
+        }
+        dfs(b);
+    }
+    boolean dfs(char[][] b) {
+        int br=-1,bc=-1,mask=0,best=10;
+        for(int r=0;r<9;r++)for(int c=0;c<9;c++)if(b[r][c]=='.') {
+            int m=511&~(row[r]|col[c]|box[r/3*3+c/3]);
+            int count=Integer.bitCount(m);
+            if(count==0)return false;
+            if(count<best) {
+                best=count;
+                br=r;
+                bc=c;
+                mask=m;
+            }
+        }
+        if(br==-1)return true;
+        int k=br/3*3+bc/3;
+        while(mask!=0) {
+            int bit=mask&-mask;
+            mask-=bit;
+            row[br]|=bit;
+            col[bc]|=bit;
+            box[k]|=bit;
+            b[br][bc]=(char)('1'+Integer.numberOfTrailingZeros(bit));
+            if(dfs(b))return true;
+            b[br][bc]='.';
+            row[br]^=bit;
+            col[bc]^=bit;
+            box[k]^=bit;
+        }
+        return false;
+    }
+}
+```
+
+**Key logic:** Maintain masks of occupied digits; choose the empty cell with minimum remaining values (MRV), try each free bit and restore on failure.
+
+**Complexity:** O(81·9^E) loose time bound; O(E+27) auxiliary space, E empty cells.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="bt11"></a>
+## BT11 — Symmetric bucket assignment and branch-and-bound
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Allocate indivisible items to indistinguishable groups; prune equivalent bucket states.
+
+**Invariant:** Loads represent assignments of processed items only; equivalent load states are interchangeable.
+
+**Core logic:** Check divisibility, sort pieces descending, backtrack assignment to four side totals, skip identical current totals. Preserve the invariant when branching, and undo mutable choices before exploring siblings.
+
+**Question sequence:** 473 → 698 → 2305
+
+### Basic starter template
+
+```java
+void assign(int i, int[] items, int[] load, int cap) {
+    if (i == items.length) { /* feasible assignment */ return; }
+    java.util.Set<Integer> tried = new java.util.HashSet<>();
+    for (int b = 0; b < load.length; b++) {
+        if (!tried.add(load[b]) || load[b] + items[i] > cap) continue;
+        load[b] += items[i];
+        assign(i + 1, items, load, cap);
+        load[b] -= items[i];
+    }
+}
+```
+
+<a id="lc-473"></a>
+### LC 473 — Question 22/35
+
+**Problem statement:** Use every matchstick exactly once to form a square with four equal-length sides. Matchsticks cannot be broken; return whether this is possible.
+
+**Examples:**
+
+- [1,1,2,2,2] → true
+- [3,3,3,3,4] → false
+
+**Constraints:** 1 ≤ n ≤ 15; 1 ≤ lengths[i] ≤ 10^8.
+
+**Why this pattern applies:** Allocate indivisible items to indistinguishable groups; prune equivalent bucket states. Check divisibility, sort pieces descending, backtrack assignment to four side totals, skip identical current totals.
+
+**Connection:** This is the foundation problem of a NEW ALGORITHM FAMILY. BASE: assign next largest item to bucket with available capacity; undo and skip symmetric bucket states.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean makesquare(int[] a) {
+        int sum=Arrays.stream(a).sum();
+        if(sum%4!=0)return false;
+        Arrays.sort(a);
+        return dfs(a,a.length-1,new int[4],sum/4);
+    }
+    boolean dfs(int[] a,int i,int[] load,int cap) {
+        if(i<0)return true;
+        Set<Integer> seen=new HashSet<>();
+        for(int b=0;b<load.length;b++) {
+            if(!seen.add(load[b])||load[b]+a[i]>cap)continue;
+            load[b]+=a[i];
+            if(dfs(a,i-1,load,cap))return true;
+            load[b]-=a[i];
+        }
+        return false;
+    }
+}
+```
+
+**Key logic:** Check total divisible by four, sort and process largest first; avoid trying equal side loads.
+
+**Complexity:** O(4^n+n log n) time; O(n) auxiliary space (four loads per active level).
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="lc-698"></a>
+### LC 698 — Question 23/35
+
+**Problem statement:** Determine whether all positive input values can be partitioned into k nonempty subsets with identical sums. Each input occurrence belongs to exactly one subset.
+
+**Examples:**
+
+- [4,3,2,3,5,2,1],4 → true
+- [1,2,3,4],3 → false
+
+**Constraints:** 1 ≤ k ≤ n ≤ 16; 1 ≤ nums[i] ≤ 10^4; each value appears at most 4 times.
+
+**Why this pattern applies:** Allocate indivisible items to indistinguishable groups; prune equivalent bucket states. Reuse bucket-sum DFS; generalize fixed four buckets to k, check sum%k, prune over-capacity placements.
+
+**Connection:** Replace fixed four targets with parameter k; retain descending items and duplicate-bucket pruning.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean canPartitionKSubsets(int[] a,int k) {
+        int sum=Arrays.stream(a).sum();
+        if(sum%k!=0)return false;
+        Arrays.sort(a);
+        return dfs(a,a.length-1,new int[k],sum/k);
+    }
+    boolean dfs(int[] a,int i,int[] load,int cap) {
+        if(i<0)return true;
+        Set<Integer> seen=new HashSet<>();
+        for(int b=0;b<load.length;b++) {
+            if(!seen.add(load[b])||load[b]+a[i]>cap)continue;
+            load[b]+=a[i];
+            if(dfs(a,i-1,load,cap))return true;
+            load[b]-=a[i];
+        }
+        return false;
+    }
+}
+```
+
+**Key logic:** Generalize to k buckets; equal positive target and capacity guarantee nonempty groups at completion.
+
+**Complexity:** O(k^n+n log n) time upper bound; O(nk) auxiliary upper bound for active sets.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="lc-2305"></a>
+### LC 2305 — Question 24/35
+
+**Problem statement:** Distribute all cookie bags among k children; bags are indivisible. Minimize the largest total cookies received by any child.
+
+**Examples:**
+
+- [8,15,10,20,8],2 → 31
+- [1,2],2 → 2
+
+**Constraints:** 2 ≤ n ≤ 8; 1 ≤ cookies[i] ≤ 10^5; 2 ≤ k ≤ n.
+
+**Why this pattern applies:** Allocate indivisible items to indistinguishable groups; prune equivalent bucket states. Keep bucket assignment and descending ordering; eliminate fixed target and minimize maximum total with branch-and-bound.
+
+**Connection:** Replace equal-target feasibility with global best makespan; prune when partial max≥best and symmetric bucket sums repeat.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    int best;
+    public int distributeCookies(int[] a,int k) {
+        Arrays.sort(a);
+        best=Arrays.stream(a).sum();
+        dfs(a,a.length-1,new int[k],0);
+        return best;
+    }
+    void dfs(int[] a,int i,int[] load,int max) {
+        if(max>=best)return;
+        if(i<0) {
+            best=max;
+            return;
+        }
+        Set<Integer> seen=new HashSet<>();
+        for(int b=0;b<load.length;b++) {
+            if(!seen.add(load[b]))continue;
+            load[b]+=a[i];
+            dfs(a,i-1,load,Math.max(max,load[b]));
+            load[b]-=a[i];
+        }
+    }
+}
+```
+
+**Key logic:** Keep an incumbent upper bound; prune when partial maximum cannot improve it. Try equal loads only once.
+
+**Complexity:** O(k^n+n log n) time upper bound; O(nk) auxiliary upper bound.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="bt12"></a>
+## BT12 — Choose/skip with bounded character resources
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Explore item subsets while tracking consumed letters and score; prune invalid selections.
+
+**Invariant:** Resource state exactly reflects selected words; remaining words have not been decided.
+
+**Core logic:** Precompute 26-bit masks, skip words with internal duplicate letters, choose/skip only disjoint masks. Preserve the invariant when branching, and undo mutable choices before exploring siblings.
+
+**Question sequence:** 1239 → 1255
+
+### Basic starter template
+
+```java
+int search(int i, int[] supply, int[][] need, int[] gain) {
+    if (i == need.length) return 0;
+    int best = search(i + 1, supply, need, gain); // skip
+    if (fits(supply, need[i])) {
+        use(supply, need[i]);
+        best = Math.max(best, gain[i] + search(i + 1, supply, need, gain));
+        restore(supply, need[i]);
+    }
+    return best;
+}
+```
+
+<a id="lc-1239"></a>
+### LC 1239 — Question 25/35
+
+**Problem statement:** Choose a subsequence of the array of strings, concatenate it, and maximize length subject to every character in the resulting string being unique.
+
+**Examples:**
+
+- [un,iq,ue] → 4
+- [aa] → 0
+
+**Constraints:** 1 ≤ arr.size ≤ 16; 1 ≤ word.length ≤ 26; lowercase English letters.
+
+**Why this pattern applies:** Explore item subsets while tracking consumed letters and score; prune invalid selections. Precompute 26-bit masks, skip words with internal duplicate letters, choose/skip only disjoint masks.
+
+**Connection:** This is the foundation problem of a NEW ALGORITHM FAMILY. BASE: choose/skip subset DFS whose validity is represented by an accumulated letter mask.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int maxLength(List<String> arr) {
+        var masks=new ArrayList<Integer>();
+        for(String s:arr) {
+            int m=0;
+            boolean ok=true;
+            for(char c:s.toCharArray()) {
+                int bit=1<<(c-'a');
+                if((m&bit)!=0) {
+                    ok=false;
+                    break;
+                }
+                m|=bit;
+            }
+            if(ok)masks.add(m);
+        }
+        return dfs(masks,0,0);
+    }
+    int dfs(List<Integer> a,int i,int m) {
+        if(i==a.size())return Integer.bitCount(m);
+        int best=dfs(a,i+1,m),x=a.get(i);
+        if((m&x)==0)best=Math.max(best,dfs(a,i+1,m|x));
+        return best;
+    }
+}
+```
+
+**Key logic:** Discard internally duplicated words; use bitwise intersection to detect conflicting letters, and bit count for length.
+
+**Complexity:** O(total input characters+2^n) time; O(n) auxiliary space.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="lc-1255"></a>
+### LC 1255 — Question 26/35
+
+**Problem statement:** Given words, available letter occurrences, and 26 letter scores, choose a subset of word occurrences to maximize total score. Every selected word must be formed using available letters, each letter occurrence at most once.
+
+**Examples:**
+
+- words=[a,b], letters=[a], all scores=1 → 1
+- words=[aa,a], letters=[a,a], all scores=1 → 2
+
+**Constraints:** 1 ≤ words.length ≤ 14; 1 ≤ word.length ≤ 15; 1 ≤ letters.length ≤ 100; 26 scores in 0..10; lowercase letters.
+
+**Why this pattern applies:** Explore item subsets while tracking consumed letters and score; prune invalid selections. Use 26-element available-count array and per-word score; choose word only if its full character demand fits.
+
+**Connection:** Replace binary uniqueness mask with multiset supply counts; add weighted score and restore counts on undo.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int maxScoreWords(String[] words,char[] letters,int[] score) {
+        int[] supply=new int[26];
+        for(char c:letters)supply[c-'a']++;
+        int[][] need=new int[words.length][26];
+        int[] gain=new int[words.length];
+        for(int i=0;i<words.length;i++)for(char c:words[i].toCharArray()) {
+            need[i][c-'a']++;
+            gain[i]+=score[c-'a'];
+        }
+        return dfs(0,supply,need,gain);
+    }
+    int dfs(int i,int[] s,int[][] need,int[] gain) {
+        if(i==need.length)return 0;
+        int best=dfs(i+1,s,need,gain);
+        for(int j=0;j<26;j++)if(need[i][j]>s[j])return best;
+        for(int j=0;j<26;j++)s[j]-=need[i][j];
+        best=Math.max(best,gain[i]+dfs(i+1,s,need,gain));
+        for(int j=0;j<26;j++)s[j]+=need[i][j];
+        return best;
+    }
+}
+```
+
+**Key logic:** Precompute word demands and score; subtract only if every demand fits; restore on return.
+
+**Complexity:** O(total input characters+26·2^n) time; O(26n) auxiliary space.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="bt13"></a>
+## BT13 — Net-balance subset feasibility
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Choose or skip directed transfers; only accept a subset when every vertex balances.
+
+**Invariant:** Balance vector equals net transfers of selected requests; chosen counts them.
+
+**Core logic:** Backtrack accept/reject requests, update outgoing/incoming net balance, check all zero at leaf, maximize accepted count. Preserve the invariant when branching, and undo mutable choices before exploring siblings.
+
+**Question sequence:** 1601
+
+### Basic starter template
+
+```java
+void transfers(int i, int[][] requests, int[] balance, int chosen) {
+    if (i == requests.length) { /* accept iff every balance==0 */ return; }
+    transfers(i + 1, requests, balance, chosen);
+    int from = requests[i][0], to = requests[i][1];
+    balance[from]--; balance[to]++;
+    transfers(i + 1, requests, balance, chosen + 1);
+    balance[from]++; balance[to]--;
+}
+```
+
+<a id="lc-1601"></a>
+### LC 1601 — Question 27/35
+
+**Problem statement:** There are n buildings and requests [from,to] to move employees. Select the maximum number of requests so every building has equal incoming and outgoing transfers. Self-transfers are allowed.
+
+**Examples:**
+
+- n=2,[[0,1],[1,0]] → 2
+- n=2,[[0,1]] → 0
+
+**Constraints:** 1 ≤ n ≤ 20; 1 ≤ requests.length ≤ 16; endpoints in 0..n-1.
+
+**Why this pattern applies:** Choose or skip directed transfers; only accept a subset when every vertex balances. Backtrack accept/reject requests, update outgoing/incoming net balance, check all zero at leaf, maximize accepted count.
+
+**Connection:** This is the foundation problem of a NEW ALGORITHM FAMILY. NEW ALGORITHM FAMILY: choose/skip with reversible balance vector instead of item-local validity.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    int best;
+    public int maximumRequests(int n,int[][] req) {
+        best=0;
+        dfs(0,req,new int[n],0);
+        return best;
+    }
+    void dfs(int i,int[][] req,int[] bal,int chosen) {
+        if(chosen+req.length-i<=best)return;
+        if(i==req.length) {
+            for(int x:bal)if(x!=0)return;
+            best=chosen;
+            return;
+        }
+        int f=req[i][0],t=req[i][1];
+        bal[f]--;
+        bal[t]++;
+        dfs(i+1,req,bal,chosen+1);
+        bal[f]++;
+        bal[t]--;
+        dfs(i+1,req,bal,chosen);
+    }
+}
+```
+
+**Key logic:** Track net balance, try accept and reject; prune if even accepting every remaining request cannot improve best.
+
+**Complexity:** O(n·2^m) time upper bound; O(n+m) auxiliary space.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="bt14"></a>
+## BT14 — Position-sensitive divisibility permutations
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Assign unused numbers to positions subject to a position-dependent rule.
+
+**Invariant:** Used numbers occupy earlier positions and satisfy each position’s divisibility rule.
+
+**Core logic:** DFS index from 1..n; only use unused x if x%pos==0 or pos%x==0; bitmask memo optional for larger extensions. Preserve the invariant when branching, and undo mutable choices before exploring siblings.
+
+**Question sequence:** 526
+
+### Basic starter template
+
+```java
+void place(int pos, int n, boolean[] used) {
+    if (pos > n) { /* count */ return; }
+    for (int x = 1; x <= n; x++) {
+        if (used[x] || (x % pos != 0 && pos % x != 0)) continue;
+        used[x] = true; place(pos + 1, n, used); used[x] = false;
+    }
+}
+```
+
+<a id="lc-526"></a>
+### LC 526 — Question 28/35
+
+**Problem statement:** Count permutations of 1 through n such that at every one-based position i, either the assigned number divides i or i divides the assigned number.
+
+**Examples:**
+
+- n=2 → 2
+- n=1 → 1
+
+**Constraints:** 1 ≤ n ≤ 15.
+
+**Why this pattern applies:** Assign unused numbers to positions subject to a position-dependent rule. DFS index from 1..n; only use unused x if x%pos==0 or pos%x==0; bitmask memo optional for larger extensions.
+
+**Connection:** This is the foundation problem of a NEW ALGORITHM FAMILY. NEW ALGORITHM FAMILY: constraint depends on current position, not just value uniqueness.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int countArrangement(int n) {
+        int[] memo=new int[1<<n];
+        Arrays.fill(memo,-1);
+        return dfs(n,0,memo);
+    }
+    int dfs(int n,int mask,int[] memo) {
+        int pos=Integer.bitCount(mask)+1;
+        if(pos>n)return 1;
+        if(memo[mask]!=-1)return memo[mask];
+        int ans=0;
+        for(int x=1;x<=n;x++) {
+            int bit=1<<(x-1);
+            if((mask&bit)==0&&(x%pos==0||pos%x==0))ans+=dfs(n,mask|bit,memo);
+        }
+        return memo[mask]=ans;
+    }
+}
+```
+
+**Key logic:** Use a bitmask for used values; position is bit count plus one. Memoize counts for identical used sets.
+
+**Complexity:** O(n·2^n) time; O(2^n+n) auxiliary space.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="bt15"></a>
+## BT15 — Lexicographically maximal distance-constrained placements
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Fill earliest empty position with the largest feasible number, respecting paired-position distances.
+
+**Invariant:** All placed values satisfy multiplicity and distance; earlier empty position takes priority.
+
+**Core logic:** At first empty index, try values descending; place x at i and i+x (x>1), or a single 1; undo on failure. Preserve the invariant when branching, and undo mutable choices before exploring siblings.
+
+**Question sequence:** 1718
+
+### Basic starter template
+
+```java
+boolean place(int index, int[] a, boolean[] used, int n) {
+    while (index < a.length && a[index] != 0) index++;
+    if (index == a.length) return true;
+    for (int x = n; x >= 1; x--) {
+        if (used[x] || (x > 1 && (index+x >= a.length || a[index+x] != 0))) continue;
+        // Place x (once if x==1; twice otherwise), recurse; undo on failure.
+    }
+    return false;
+}
+```
+
+<a id="lc-1718"></a>
+### LC 1718 — Question 29/35
+
+**Problem statement:** Construct the lexicographically largest sequence of length 2n−1: 1 appears once; every integer 2..n appears twice, with its two indices exactly that integer apart. A valid solution exists.
+
+**Examples:**
+
+- n=3 → [3,1,2,3,2]
+- n=1 → [1]
+
+**Constraints:** 1 ≤ n ≤ 20.
+
+**Why this pattern applies:** Fill earliest empty position with the largest feasible number, respecting paired-position distances. At first empty index, try values descending; place x at i and i+x (x>1), or a single 1; undo on failure.
+
+**Connection:** This is the foundation problem of a NEW ALGORITHM FAMILY. NEW ALGORITHM FAMILY: choose placements across two linked indices, descending choice ensures first valid is optimal.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[] constructDistancedSequence(int n) {
+        int[] a=new int[2*n-1];
+        dfs(a,new boolean[n+1],0,n);
+        return a;
+    }
+    boolean dfs(int[] a,boolean[] used,int i,int n) {
+        while(i<a.length&&a[i]!=0)i++;
+        if(i==a.length)return true;
+        for(int x=n;x>=1;x--) {
+            if(used[x]||x>1&&(i+x>=a.length||a[i+x]!=0))continue;
+            a[i]=x;
+            if(x>1)a[i+x]=x;
+            used[x]=true;
+            if(dfs(a,used,i+1,n))return true;
+            used[x]=false;
+            a[i]=0;
+            if(x>1)a[i+x]=0;
+        }
+        return false;
+    }
+}
+```
+
+**Key logic:** Fill first empty position; try descending values, placing both copies together. First successful completion is lexicographically largest.
+
+**Complexity:** O(n·n!) loose time bound; O(n) auxiliary space.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="bt16"></a>
+## BT16 — Expression operator insertion and incremental evaluation
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Build arithmetic expression while avoiding full reparsing; retain previous multiplicative term.
+
+**Invariant:** Expression consumes a digit prefix; total is its value and last is its signed final multiplicative term.
+
+**Core logic:** DFS numeric token end, forbid multi-digit leading zero; track accumulated value and last operand to implement precedence. Preserve the invariant when branching, and undo mutable choices before exploring siblings.
+
+**Question sequence:** 282
+
+### Basic starter template
+
+```java
+void expressions(int pos, long value, long last, StringBuilder expr) {
+    if (pos == digits.length()) { /* compare value with target */ return; }
+    for (int end = pos + 1; end <= digits.length(); end++) {
+        if (end > pos + 1 && digits.charAt(pos) == '0') break;
+        long number = parseSafely(digits, pos, end);
+        // Branch +, -, *; multiplication: value-last+last*number.
+    }
+}
+```
+
+<a id="lc-282"></a>
+### LC 282 — Question 30/35
+
+**Problem statement:** Insert binary +, − or * between digits of a string, or join adjacent digits into operands, to produce every expression evaluating to target. Preserve digit order and disallow multi-digit operands starting with zero. Multiplication has normal precedence.
+
+**Examples:**
+
+- 123,6 → [1+2+3,1*2*3]
+- 00,0 → [0+0,0-0,0*0]
+
+**Constraints:** 1 ≤ num.length ≤ 10; digits only; target is signed 32-bit integer.
+
+**Why this pattern applies:** Build arithmetic expression while avoiding full reparsing; retain previous multiplicative term. DFS numeric token end, forbid multi-digit leading zero; track accumulated value and last operand to implement precedence.
+
+**Connection:** This is the foundation problem of a NEW ALGORITHM FAMILY. NEW ALGORITHM FAMILY: numeric-token choices plus operator branching and reversible arithmetic state.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<String> addOperators(String num,int target) {
+        var out=new ArrayList<String>();
+        dfs(num,target,0,0,0,new StringBuilder(),out);
+        return out;
+    }
+    void dfs(String s,int t,int i,long val,long last,StringBuilder p,List<String> out) {
+        if(i==s.length()) {
+            if(val==t)out.add(p.toString());
+            return;
+        }
+        long x=0;
+        int len=p.length();
+        for(int j=i;j<s.length();j++) {
+            if(j>i&&s.charAt(i)=='0')break;
+            x=x*10+s.charAt(j)-'0';
+            if(i==0) {
+                p.append(x);
+                dfs(s,t,j+1,x,x,p,out);
+                p.setLength(len);
+            }
+            else {
+                p.append('+').append(x);
+                dfs(s,t,j+1,val+x,x,p,out);
+                p.setLength(len);
+                p.append('-').append(x);
+                dfs(s,t,j+1,val-x,-x,p,out);
+                p.setLength(len);
+                p.append('*').append(x);
+                dfs(s,t,j+1,val-last+last*x,last*x,p,out);
+                p.setLength(len);
+            }
+        }
+    }
+}
+```
+
+**Key logic:** Track evaluated total and signed last multiplicative term; replace that term for multiplication using value-last+last*number.
+
+**Complexity:** O(n·4^n) time including output copying; O(n) auxiliary space.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="bt17"></a>
+## BT17 — Maximize distinct string partitions
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Segment a string into nonempty pieces; reject a piece if previously used, and restore at exit.
+
+**Invariant:** Used set contains distinct pieces that concatenate exactly to the processed prefix.
+
+**Core logic:** DFS next segment end; maintain HashSet of used pieces; prune when remaining characters cannot exceed best. Preserve the invariant when branching, and undo mutable choices before exploring siblings.
+
+**Question sequence:** 1593
+
+### Basic starter template
+
+```java
+void split(int start, String s, java.util.Set<String> used) {
+    if (start == s.length()) { /* maximize used.size() */ return; }
+    for (int end = start + 1; end <= s.length(); end++) {
+        String piece = s.substring(start, end);
+        if (!used.add(piece)) continue;
+        split(end, s, used);
+        used.remove(piece);
+    }
+}
+```
+
+<a id="lc-1593"></a>
+### LC 1593 — Question 31/35
+
+**Problem statement:** Split a string into nonempty contiguous pieces such that all pieces are distinct. Return the maximum number of pieces in any complete partition.
+
+**Examples:**
+
+- ababccc → 5
+- aa → 1
+
+**Constraints:** 1 ≤ length ≤ 16; lowercase English letters.
+
+**Why this pattern applies:** Segment a string into nonempty pieces; reject a piece if previously used, and restore at exit. DFS next segment end; maintain HashSet of used pieces; prune when remaining characters cannot exceed best.
+
+**Connection:** This is the foundation problem of a NEW ALGORITHM FAMILY. NEW ALGORITHM FAMILY: segmentation with global cross-piece uniqueness and maximize number of pieces.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    int best;
+    public int maxUniqueSplit(String s) {
+        best=0;
+        dfs(s,0,new HashSet<>());
+        return best;
+    }
+    void dfs(String s,int i,Set<String> used) {
+        if(used.size()+s.length()-i<=best)return;
+        if(i==s.length()) {
+            best=used.size();
+            return;
+        }
+        for(int j=i+1;j<=s.length();j++) {
+            String p=s.substring(i,j);
+            if(!used.add(p))continue;
+            dfs(s,j,used);
+            used.remove(p);
+        }
+    }
+}
+```
+
+**Key logic:** Use a path-local set and prune when used count plus remaining characters cannot improve the incumbent.
+
+**Complexity:** O(n·2^n) time upper bound including substring creation; O(n) auxiliary space for active disjoint pieces and recursion.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="bt18"></a>
+## BT18 — Value-conflict subset selection
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Select values such that no two selected values differ by a forbidden distance; handle duplicates precisely.
+
+**Invariant:** Selected frequencies represent a conflict-free subset of processed sorted indices.
+
+**Core logic:** Sort; DFS choose/skip indices, track selected value multiplicities; reject taking x if x-k is selected; subtract empty choice. Preserve the invariant when branching, and undo mutable choices before exploring siblings.
+
+**Question sequence:** 2597
+
+### Basic starter template
+
+```java
+long count(int i, int[] a, int k, java.util.Map<Integer,Integer> chosen) {
+    if (i == a.length) return 1; // includes empty selection
+    long ways = count(i + 1, a, k, chosen);
+    if (chosen.getOrDefault(a[i] - k, 0) == 0) {
+        chosen.merge(a[i], 1, Integer::sum);
+        ways += count(i + 1, a, k, chosen);
+        if (chosen.merge(a[i], -1, Integer::sum) == 0) chosen.remove(a[i]);
+    }
+    return ways;
+}
+```
+
+<a id="lc-2597"></a>
+### LC 2597 — Question 32/35
+
+**Problem statement:** Count nonempty index subsets of a positive integer array such that no two selected elements have absolute difference k. Equal-valued occurrences at different indices distinguish subsets.
+
+**Examples:**
+
+- [2,4,6],2 → 4
+- [1],1 → 1
+
+**Constraints:** 1 ≤ n ≤ 20; 1 ≤ nums[i],k ≤ 1000.
+
+**Why this pattern applies:** Select values such that no two selected values differ by a forbidden distance; handle duplicates precisely. Sort; DFS choose/skip indices, track selected value multiplicities; reject taking x if x-k is selected; subtract empty choice.
+
+**Connection:** This is the foundation problem of a NEW ALGORITHM FAMILY. NEW ALGORITHM FAMILY: reversible frequency feasibility against a value-difference conflict.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int beautifulSubsets(int[] a,int k) {
+        Arrays.sort(a);
+        return dfs(a,k,0,new HashMap<>())-1;
+    }
+    int dfs(int[] a,int k,int i,Map<Integer,Integer> f) {
+        if(i==a.length)return 1;
+        int ans=dfs(a,k,i+1,f),x=a[i];
+        if(f.getOrDefault(x-k,0)==0) {
+            f.merge(x,1,Integer::sum);
+            ans+=dfs(a,k,i+1,f);
+            if(f.merge(x,-1,Integer::sum)==0)f.remove(x);
+        }
+        return ans;
+    }
+}
+```
+
+**Key logic:** Sort; when considering x only x-k can conflict with earlier selected values. Maintain occurrence frequencies and subtract the empty subset.
+
+**Complexity:** O(n log n+2^n) expected time; O(n) auxiliary space.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="bt19"></a>
+## BT19 — Arithmetic pair reduction
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Combine any two remaining numeric values with one operation until only a target result remains.
+
+**Invariant:** Each remaining value is an expression over disjoint original cards; together they cover all cards.
+
+**Core logic:** Pick an ordered pair, try +,-,*,/ (guard zero), replace pair by result, recurse on smaller multiset with epsilon comparison. Preserve the invariant when branching, and undo mutable choices before exploring siblings.
+
+**Question sequence:** 679
+
+### Basic starter template
+
+```java
+boolean reduce(java.util.List<Double> values) {
+    if (values.size() == 1) return Math.abs(values.get(0)-24.0) < 1e-6;
+    for (int i = 0; i < values.size(); i++) for (int j = 0; j < values.size(); j++) {
+        if (i == j) continue;
+        // Build remaining list except i,j; try valid arithmetic results; recurse.
+    }
+    return false;
+}
+```
+
+<a id="lc-679"></a>
+### LC 679 — Question 33/35
+
+**Problem statement:** Given four cards, decide whether using each card exactly once with +, −, *, / and parentheses can make 24. Division is real division; unary minus and digit concatenation are not allowed.
+
+**Examples:**
+
+- [4,1,8,7] → true
+- [1,2,1,2] → false
+
+**Constraints:** Exactly four integers, each 1..9.
+
+**Why this pattern applies:** Combine any two remaining numeric values with one operation until only a target result remains. Pick an ordered pair, try +,-,*,/ (guard zero), replace pair by result, recurse on smaller multiset with epsilon comparison.
+
+**Connection:** This is the foundation problem of a NEW ALGORITHM FAMILY. NEW ALGORITHM FAMILY: backtrack over unordered choice of operand pairs and operator outcomes, not linear token parsing.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean judgePoint24(int[] cards) {
+        var a=new ArrayList<Double>();
+        for(int x:cards)a.add((double)x);
+        return dfs(a);
+    }
+    boolean dfs(List<Double> a) {
+        int n=a.size();
+        if(n==1)return Math.abs(a.get(0)-24)<1e-6;
+        for(int i=0;i<n;i++)for(int j=0;j<n;j++) {
+            if(i==j)continue;
+            double x=a.get(i),y=a.get(j);
+            var next=new ArrayList<Double>();
+            for(int k=0;k<n;k++)if(k!=i&&k!=j)next.add(a.get(k));
+            for(int op=0;op<4;op++) {
+                if((op==0||op==2)&&i>j)continue;
+                if(op==3&&Math.abs(y)<1e-9)continue;
+                double v=switch(op) {
+                    case 0->x+y;
+                    case 1->x-y;
+                    case 2->x*y;
+                    default->x/y;
+                }
+                ;
+                next.add(v);
+                if(dfs(next))return true;
+                next.remove(next.size()-1);
+            }
+        }
+        return false;
+    }
+}
+```
+
+**Key logic:** Pick an ordered pair, reduce it to one arithmetic result, and recurse; guard division near zero and compare with epsilon.
+
+**Complexity:** O(4^(n-1)·n!·(n-1)!·n) loose time bound; O(n²) auxiliary space; n=4 makes both constant.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="bt20"></a>
+## BT20 — Additive numeric-string decomposition
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Choose initial number boundaries and require all subsequent digits to match the previous-two-number sum.
+
+**Invariant:** Initial two numbers determine all later tokens; processed text matches the arithmetic sequence.
+
+**Core logic:** Enumerate first two number lengths; use safe string/long addition and validate exact successive sums without leading zeros. Preserve the invariant when branching, and undo mutable choices before exploring siblings.
+
+**Question sequence:** 306 → 842
+
+### Basic starter template
+
+```java
+boolean validate(int firstEnd, int secondEnd, String digits) {
+    // Parse initial numbers with leading-zero / overflow checks.
+    // Repeatedly compute next = previous + current and match its decimal text.
+    // Accept only when at least 3 numbers consume the entire string.
+    return false;
+}
+```
+
+<a id="lc-306"></a>
+### LC 306 — Question 34/35
+
+**Problem statement:** Determine whether a digit string can be split into at least three nonnegative integer tokens so each token after the first two equals their preceding two-token sum. Multi-digit tokens cannot start with zero.
+
+**Examples:**
+
+- 112358 → true
+- 1023 → false
+
+**Constraints:** 1 ≤ length ≤ 35; digits only.
+
+**Why this pattern applies:** Choose initial number boundaries and require all subsequent digits to match the previous-two-number sum. Enumerate first two number lengths; use safe string/long addition and validate exact successive sums without leading zeros.
+
+**Connection:** This is the foundation problem of a NEW ALGORITHM FAMILY. BASE: choose initial tokens; thereafter next token is forced by arithmetic, so backtrack only initial cuts.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+import java.math.BigInteger;
+
+class Solution {
+    public boolean isAdditiveNumber(String s) {
+        int n=s.length();
+        for(int i=1;i<n-1;i++) {
+            if(i>1&&s.charAt(0)=='0')break;
+            for(int j=i+1;j<n;j++) {
+                if(j>i+1&&s.charAt(i)=='0')break;
+                BigInteger a=new BigInteger(s.substring(0,i)),b=new BigInteger(s.substring(i,j));
+                int p=j;
+                while(p<n) {
+                    BigInteger c=a.add(b);
+                    String t=c.toString();
+                    if(!s.startsWith(t,p))break;
+                    p+=t.length();
+                    a=b;
+                    b=c;
+                }
+                if(p==n)return true;
+            }
+        }
+        return false;
+    }
+}
+```
+
+**Key logic:** Enumerate first two cuts; use BigInteger to avoid overflow, then match forced decimal sum at current position.
+
+**Complexity:** O(n³) arithmetic/character-work estimate with linear decimal addition; BigInteger decimal conversion can add overhead. O(n) live auxiliary digit storage.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="lc-842"></a>
+### LC 842 — Question 35/35
+
+**Problem statement:** Split a digit string into a Fibonacci-like list of at least three nonnegative integers, each subsequent value equal to the sum of the previous two. Every value must fit signed 32-bit nonnegative range, no multi-digit leading zeros. Return any valid list or empty if impossible.
+
+**Examples:**
+
+- 11235813 → [1,1,2,3,5,8,13]
+- 0123 → []
+
+**Constraints:** 1 ≤ length ≤ 200; digits only; each result value in 0..2^31−1.
+
+**Why this pattern applies:** Choose initial number boundaries and require all subsequent digits to match the previous-two-number sum. Retain two initial token choices and forced-sum matching, but cap each token at signed 32-bit integer and build result list.
+
+**Connection:** Replace boolean-only validation with recorded int sequence, int overflow checks, and first-found list return.
+
+**Java 21 solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<Integer> splitIntoFibonacci(String s) {
+        int n=s.length();
+        long a=0;
+        for(int i=1;i<n-1&&i<=10;i++) {
+            if(i>1&&s.charAt(0)=='0')break;
+            a=a*10+s.charAt(i-1)-'0';
+            if(a>Integer.MAX_VALUE)break;
+            long b=0;
+            for(int j=i+1;j<n&&j-i<=10;j++) {
+                if(j>i+1&&s.charAt(i)=='0')break;
+                b=b*10+s.charAt(j-1)-'0';
+                if(b>Integer.MAX_VALUE)break;
+                var out=new ArrayList<Integer>();
+                out.add((int)a);
+                out.add((int)b);
+                long x=a,y=b;
+                int p=j;
+                while(p<n) {
+                    long z=x+y;
+                    if(z>Integer.MAX_VALUE)break;
+                    String t=Long.toString(z);
+                    if(!s.startsWith(t,p))break;
+                    out.add((int)z);
+                    p+=t.length();
+                    x=y;
+                    y=z;
+                }
+                if(p==n)return out;
+            }
+        }
+        return new ArrayList<>();
+    }
+}
+```
+
+**Key logic:** Limit initial operands to ten digits and Integer.MAX_VALUE; compute sums as long, match exact decimal text and return first complete sequence.
+
+**Complexity:** O(n·min(n,10)^2) time; O(n) auxiliary space including candidate list.
+
+**Local verification:** Compiled with Java 21 and passed two example-based assertions/checks (some collection tests check counts rather than full contents).
+
+<a id="registry"></a>
+## Final registry and verification
+
+| Sequence | LC | Family | Compile and smoke test |
+|---:|---:|---|---|
+| 01 | 78 | BT1 | PASS |
+| 02 | 90 | BT1 | PASS |
+| 03 | 491 | BT1 | PASS |
+| 04 | 77 | BT2 | PASS |
+| 05 | 216 | BT2 | PASS |
+| 06 | 39 | BT3 | PASS |
+| 07 | 40 | BT3 | PASS |
+| 08 | 46 | BT4 | PASS |
+| 09 | 47 | BT4 | PASS |
+| 10 | 1079 | BT4 | PASS |
+| 11 | 17 | BT5 | PASS |
+| 12 | 784 | BT5 | PASS |
+| 13 | 22 | BT6 | PASS |
+| 14 | 131 | BT7 | PASS |
+| 15 | 93 | BT7 | PASS |
+| 16 | 79 | BT8 | PASS |
+| 17 | 1219 | BT8 | PASS |
+| 18 | 980 | BT8 | PASS |
+| 19 | 51 | BT9 | PASS |
+| 20 | 52 | BT9 | PASS |
+| 21 | 37 | BT10 | PASS |
+| 22 | 473 | BT11 | PASS |
+| 23 | 698 | BT11 | PASS |
+| 24 | 2305 | BT11 | PASS |
+| 25 | 1239 | BT12 | PASS |
+| 26 | 1255 | BT12 | PASS |
+| 27 | 1601 | BT13 | PASS |
+| 28 | 526 | BT14 | PASS |
+| 29 | 1718 | BT15 | PASS |
+| 30 | 282 | BT16 | PASS |
+| 31 | 1593 | BT17 | PASS |
+| 32 | 2597 | BT18 | PASS |
+| 33 | 679 | BT19 | PASS |
+| 34 | 306 | BT20 | PASS |
+| 35 | 842 | BT20 | PASS |
+
+- Registry: exact sequence, 35 distinct IDs, 20 families; no added or omitted problems.
+- Java 21: 35/35 standalone classes compiled and passed local example-based smoke checks. These are not exhaustive or official judge submissions.
+- Master curriculum and progress remain unchanged.

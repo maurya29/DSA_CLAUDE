@@ -1,0 +1,2232 @@
+# T21 — Heap / Priority Queue: Complete Solutions
+
+**Locked curriculum:** 33 questions · 22 algorithm families · Java 21. **Practice progress remains 0/33.**
+
+Source: `MASTER_DSA_CURRICULUM.md`, section C21. Problem descriptions, examples, constraints, and executable implementations are independently authored expansions of the registry; they are not verbatim source text. Constraints are stated from known problem versions, not live-verified against LeetCode.
+
+## Table of contents
+
+- [PQ1 — Frequency-ranked Top K](#pq1) — [347](#lc-347), [692](#lc-692)
+
+- [PQ2 — Online Kth-largest threshold](#pq2) — [703](#lc-703)
+
+- [PQ3 — Merge multiple ordered streams](#pq3) — [23](#lc-23), [632](#lc-632)
+
+- [PQ4 — Best-first enumeration of sorted pair candidates](#pq4) — [373](#lc-373), [786](#lc-786)
+
+- [PQ5 — Two-heaps order statistic and lazy eviction](#pq5) — [295](#lc-295), [480](#lc-480)
+
+- [PQ6 — Repeated largest-first transformations](#pq6) — [1046](#lc-1046), [1962](#lc-1962), [2530](#lc-2530)
+
+- [PQ7 — Repeated smallest-first combination](#pq7) — [3066](#lc-3066)
+
+- [PQ8 — Interval sweep with active deadline heap](#pq8) — [1353](#lc-1353), [1851](#lc-1851)
+
+- [PQ9 — Greedy allocate scarce resources to largest demands](#pq9) — [1642](#lc-1642)
+
+- [PQ10 — Retroactive resource replenishment](#pq10) — [871](#lc-871)
+
+- [PQ11 — Schedule by deadline with reversible choices](#pq11) — [630](#lc-630)
+
+- [PQ12 — Two-tier capital feasibility and reward choice](#pq12) — [502](#lc-502)
+
+- [PQ13 — Two-sided candidate hiring](#pq13) — [2462](#lc-2462)
+
+- [PQ14 — Sort by bottleneck and retain best k companions](#pq14) — [2542](#lc-2542), [1383](#lc-1383)
+
+- [PQ15 — Bounded group with maximum companion as cost](#pq15) — [857](#lc-857)
+
+- [PQ16 — Maximum-frequency arrangement with adjacency constraints](#pq16) — [767](#lc-767), [1054](#lc-1054)
+
+- [PQ17 — Cooldown scheduling with task frequencies](#pq17) — [621](#lc-621)
+
+- [PQ18 — Two-heap resource availability scheduler](#pq18) — [1942](#lc-1942), [2402](#lc-2402), [1882](#lc-1882)
+
+- [PQ19 — Single-machine shortest-job-first simulation](#pq19) — [1834](#lc-1834)
+
+- [PQ20 — Normalize and shrink extremes](#pq20) — [1675](#lc-1675)
+
+- [PQ21 — Heap-ordered best-first boundary flood](#pq21) — [407](#lc-407)
+
+- [PQ22 — Best-first merged social feeds](#pq22) — [355](#lc-355)
+
+
+<a id="pq1"></a>
+## PQ1 — Frequency-ranked Top K
+
+**Recognition:** Repeated values; need the k most frequent keys, optionally with lexical tie-breaks. Count in a HashMap; retain best candidates in a size-k min-heap.
+
+**Invariant:** Heap contains the best k processed keys; its root is the worst retained key.
+
+**Core reusable logic:** Top-k frequent integers: frequency map plus size-k min-heap ordered by frequency; expected O(n + u log k). Use when only top k of u distinct keys are required.
+
+**Ordered problems:** 347, 692
+
+### Reusable Java 21 template
+
+The following is a reusable helper, not a LeetCode submission. Place it inside a class with `import java.util.*;` and honor its stated preconditions.
+
+```java
+static <K> PriorityQueue<K> retainTop(Map<K,Integer> counts, int k, Comparator<K> worstFirst) {
+    PriorityQueue<K> heap = new PriorityQueue<>(worstFirst);
+    for (K key : counts.keySet()) {
+        heap.offer(key);
+        if (heap.size() > k) heap.poll();
+    }
+    return heap;
+}
+```
+
+
+<a id="lc-347"></a>
+### 01. LeetCode 347
+
+**Problem statement**
+
+Given an integer array and k, return any ordering of the k distinct values with highest occurrence counts. The answer set is unique.
+
+**Examples**
+
+- [1,1,1,2,2,3], k=2 → [1,2]
+- [1], k=1 → [1]
+
+**Constraints**
+
+1 ≤ n ≤ 100000; values in [-10000,10000]; 1 ≤ k ≤ distinct count.
+
+**Why this family applies**
+
+Top-k frequent integers: frequency map plus size-k min-heap ordered by frequency; expected O(n + u log k). Use when only top k of u distinct keys are required.
+
+**Exact evolution from previous solution**
+
+Foundation of this subpattern. BASE: build frequencies; insert each distinct key and evict the least-frequent when size exceeds k.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public int[] topKFrequent(int[] nums,int k){
+  Map<Integer,Integer> f=new HashMap<>();
+  for(int x:nums) f.merge(x,1,Integer::sum);
+  PriorityQueue<Integer> q=new PriorityQueue<>(Comparator.comparingInt(f::get));
+  for(int x:f.keySet()){q.offer(x);if(q.size()>k)q.poll();}
+  int[] ans=new int[k]; for(int i=0;i<k;i++)ans[i]=q.poll(); return ans;
+ }
+}
+```
+
+**Key logic / correctness invariant**
+
+Heap contains the best k processed keys; its root is the worst retained key. Top-k frequent integers: frequency map plus size-k min-heap ordered by frequency; expected O(n + u log k). Use when only top k of u distinct keys are required.
+
+**Complexity**
+
+Expected O(n+u log(k+1)); O(u+k) auxiliary, O(k) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="lc-692"></a>
+### 02. LeetCode 692
+
+**Problem statement**
+
+Return the k most frequent words, ordered by decreasing frequency and, for ties, increasing lexicographic order.
+
+**Examples**
+
+- ["i","love","leetcode","i","love","coding"],2 → ["i","love"]
+- ["b","a"],2 → ["a","b"]
+
+**Constraints**
+
+1 ≤ n ≤ 500; word length 1–10; lowercase letters; 1 ≤ k ≤ distinct count.
+
+**Why this family applies**
+
+Top-k frequent words with descending frequency and ascending lexical ties: size-k heap with WORST-first ordering (lower frequency, lexicographically larger first), then reverse extraction.
+
+**Exact evolution from previous solution**
+
+From LC 347: Retain frequency map and bounded heap; add reversed lexical tie-breaking to heap comparator and reverse the extracted result for output order.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public List<String> topKFrequent(String[] words,int k){
+  Map<String,Integer> f=new HashMap<>(); for(String w:words)f.merge(w,1,Integer::sum);
+  PriorityQueue<String> q=new PriorityQueue<>((a,b)->{int c=Integer.compare(f.get(a),f.get(b));return c!=0?c:b.compareTo(a);});
+  for(String w:f.keySet()){q.offer(w);if(q.size()>k)q.poll();}
+  List<String> ans=new ArrayList<>();while(!q.isEmpty())ans.add(q.poll());Collections.reverse(ans);return ans;
+ }
+}
+```
+
+**Key logic / correctness invariant**
+
+Heap contains the best k processed keys; its root is the worst retained key. Top-k frequent words with descending frequency and ascending lexical ties: size-k heap with WORST-first ordering (lower frequency, lexicographically larger first), then reverse extraction.
+
+**Complexity**
+
+O(nL+u log(k+1)L+k log(k+1)L) expected; O(u+k) references auxiliary, O(k) output; L=max word length.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="pq2"></a>
+## PQ2 — Online Kth-largest threshold
+
+**Recognition:** An unbounded stream asks for the kth largest after each insertion; store precisely the k largest seen so far.
+
+**Invariant:** After each update the heap contains the largest min(k,seen) values; its root is the threshold.
+
+**Core reusable logic:** Maintain kth largest after every append: persistent size-k min-heap; O(log k) per addition, O(k) memory.
+
+**Ordered problems:** 703
+
+### Reusable Java 21 template
+
+The following is a reusable helper, not a LeetCode submission. Place it inside a class with `import java.util.*;` and honor its stated preconditions.
+
+```java
+static void accept(PriorityQueue<Integer> heap, int k, int value) {
+    heap.offer(value);
+    if (heap.size() > k) heap.poll();
+}
+```
+
+
+<a id="lc-703"></a>
+### 03. LeetCode 703
+
+**Problem statement**
+
+Design a class initialized with k and an array. Each add(val) inserts val and returns the kth largest among all values seen, counting duplicates.
+
+**Examples**
+
+- k=3, nums=[4,5,8,2], add(3),add(5),add(10) → 4,5,5
+- k=1, nums=[], add(-2),add(0) → -2,0
+
+**Constraints**
+
+1 ≤ k ≤ 10000; initial length 0–10000; values -10000–10000; up to 10000 adds; enough values at each add.
+
+**Why this family applies**
+
+Maintain kth largest after every append: persistent size-k min-heap; O(log k) per addition, O(k) memory.
+
+**Exact evolution from previous solution**
+
+Foundation of this subpattern. NEW ALGORITHM FAMILY: maintain a persistent top-k threshold across updates rather than one-off frequency ranking.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class KthLargest {
+ private final int k; private final PriorityQueue<Integer> q=new PriorityQueue<>();
+ public KthLargest(int k,int[] nums){this.k=k;for(int x:nums)add(x);}
+ public int add(int val){q.offer(val);if(q.size()>k)q.poll();return q.peek();}
+}
+```
+
+**Key logic / correctness invariant**
+
+After each update the heap contains the largest min(k,seen) values; its root is the threshold. Maintain kth largest after every append: persistent size-k min-heap; O(log k) per addition, O(k) memory.
+
+**Complexity**
+
+O(n log(k+1)) initialization, O(log(k+1)) per add; O(k) state.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="pq3"></a>
+## PQ3 — Merge multiple ordered streams
+
+**Recognition:** K input lists are individually sorted; the smallest current head across lists is the next global element.
+
+**Invariant:** Each live stream contributes exactly its current unconsumed head.
+
+**Core reusable logic:** Merge k sorted linked lists: heap stores one current node per nonempty list; pop minimum, append node, offer its successor; O(N log k).
+
+**Ordered problems:** 23, 632
+
+### Reusable Java 21 template
+
+The following is a reusable helper, not a LeetCode submission. Place it inside a class with `import java.util.*;` and honor its stated preconditions.
+
+```java
+record Head(int stream, int index, int value) {}
+static PriorityQueue<Head> seed(List<List<Integer>> streams) {
+    var heap = new PriorityQueue<Head>(Comparator.comparingInt(Head::value));
+    for (int i = 0; i < streams.size(); i++)
+        if (!streams.get(i).isEmpty()) heap.offer(new Head(i, 0, streams.get(i).get(0)));
+    return heap;
+}
+static void advance(PriorityQueue<Head> heap, Head h, List<List<Integer>> streams) {
+    var row = streams.get(h.stream());
+    if (h.index()+1 < row.size()) heap.offer(new Head(h.stream(), h.index()+1, row.get(h.index()+1)));
+}
+```
+
+
+<a id="lc-23"></a>
+### 04. LeetCode 23
+
+**Problem statement**
+
+Merge k linked lists sorted in nondecreasing order into one sorted linked list. Return its head; empty input returns null.
+
+**Examples**
+
+- [[1,4,5],[1,3,4],[2,6]] → [1,1,2,3,4,4,5,6]
+- [[],[]] → []
+
+**Constraints**
+
+0 ≤ k ≤ 10000; each list length ≤500; total nodes N ≤10000; values -10000–10000.
+
+**Why this family applies**
+
+Merge k sorted linked lists: heap stores one current node per nonempty list; pop minimum, append node, offer its successor; O(N log k).
+
+**Exact evolution from previous solution**
+
+Foundation of this subpattern. NEW ALGORITHM FAMILY: one heap head per sorted stream; on extraction replenish only its source.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public ListNode mergeKLists(ListNode[] lists){
+  PriorityQueue<ListNode> q=new PriorityQueue<>(Comparator.comparingInt(a->a.val));
+  for(ListNode n:lists)if(n!=null)q.offer(n);
+  ListNode dummy=new ListNode(0),tail=dummy;
+  while(!q.isEmpty()){ListNode x=q.poll();if(x.next!=null)q.offer(x.next);tail.next=x;tail=x;}
+  return dummy.next;
+ }
+}
+```
+
+**Key logic / correctness invariant**
+
+Each live stream contributes exactly its current unconsumed head. Merge k sorted linked lists: heap stores one current node per nonempty list; pop minimum, append node, offer its successor; O(N log k).
+
+**Complexity**
+
+O(k+N log(k+1)); O(k) auxiliary; O(1) new output nodes (reuse input nodes).
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="lc-632"></a>
+### 05. LeetCode 632
+
+**Problem statement**
+
+Given k nonempty sorted integer lists, find the inclusive range containing at least one value from every list. Minimize width, breaking ties by smaller left endpoint.
+
+**Examples**
+
+- [[4,10,15,24,26],[0,9,12,20],[5,18,22,30]] → [20,24]
+- [[1,2],[1,2]] → [1,1]
+
+**Constraints**
+
+1 ≤ k ≤3500; list length 1–50; values -100000–100000.
+
+**Why this family applies**
+
+Smallest range covering one element from every sorted list: maintain k current heads in min-heap and current maximum; update best [min,max], advance popped list; O(N log k).
+
+**Exact evolution from previous solution**
+
+From LC 23: Reuse exactly one head per list and replenish popped source; additionally track current maximum, update best range, and stop when any stream is exhausted.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public int[] smallestRange(List<List<Integer>> nums){
+  PriorityQueue<int[]> q=new PriorityQueue<>(Comparator.comparingInt(a->a[0]));int max=Integer.MIN_VALUE;
+  for(int i=0;i<nums.size();i++){int v=nums.get(i).get(0);q.offer(new int[]{v,i,0});max=Math.max(max,v);}
+  int lo=q.peek()[0],hi=max;
+  while(true){int[] a=q.poll();int v=a[0];if(max-v<hi-lo || max-v==hi-lo&&v<lo){lo=v;hi=max;}
+   List<Integer> row=nums.get(a[1]);if(a[2]+1==row.size())break;
+   int next=row.get(a[2]+1);max=Math.max(max,next);q.offer(new int[]{next,a[1],a[2]+1});}
+  return new int[]{lo,hi};
+ }
+}
+```
+
+**Key logic / correctness invariant**
+
+Each live stream contributes exactly its current unconsumed head. Smallest range covering one element from every sorted list: maintain k current heads in min-heap and current maximum; update best [min,max], advance popped list; O(N log k).
+
+**Complexity**
+
+O(N log(k+1)); O(k) auxiliary; O(1) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="pq4"></a>
+## PQ4 — Best-first enumeration of sorted pair candidates
+
+**Recognition:** Pair costs are monotone along sorted input dimensions; enumerate the next smallest frontier without materializing all pairs.
+
+**Invariant:** Each live monotone row contributes its least unconsumed candidate; no pair is produced twice.
+
+**Core reusable logic:** Find k smallest pair sums across two sorted arrays: seed first item from up to k rows, pop (i,j), offer (i,j+1); O(k log min(k,n)).
+
+**Ordered problems:** 373, 786
+
+### Reusable Java 21 template
+
+The following is a reusable helper, not a LeetCode submission. Place it inside a class with `import java.util.*;` and honor its stated preconditions.
+
+```java
+record Pair(int row, int col) {}
+static List<Pair> frontier(int rows, int limit, Comparator<Pair> cmp,
+        java.util.function.IntUnaryOperator first,
+        java.util.function.Function<Pair,Pair> successor) {
+    var heap = new PriorityQueue<Pair>(cmp);
+    for (int i=0;i<rows;i++) heap.offer(new Pair(i,first.applyAsInt(i)));
+    List<Pair> result = new ArrayList<>();
+    while (!heap.isEmpty() && result.size()<limit) {
+        Pair p=heap.poll(); result.add(p);
+        Pair next=successor.apply(p); if(next!=null) heap.offer(next);
+    }
+    return result;
+}
+```
+
+
+<a id="lc-373"></a>
+### 06. LeetCode 373
+
+**Problem statement**
+
+Given two nondecreasing arrays, return k index-pairs represented by their values, with the smallest sums. Repeated values can produce repeated pairs.
+
+**Examples**
+
+- [1,7,11],[2,4,6],3 → [[1,2],[1,4],[1,6]]
+- [1,1,2],[1,2,3],2 → [[1,1],[1,1]]
+
+**Constraints**
+
+1 ≤ array lengths ≤100000; values -10^9–10^9; 1 ≤ k ≤10000 and k ≤ product of lengths.
+
+**Why this family applies**
+
+Find k smallest pair sums across two sorted arrays: seed first item from up to k rows, pop (i,j), offer (i,j+1); O(k log min(k,n)).
+
+**Exact evolution from previous solution**
+
+Foundation of this subpattern. NEW ALGORITHM FAMILY: represent each fixed first-array index as a sorted stream of pair sums; expand only the frontier.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public List<List<Integer>> kSmallestPairs(int[] a,int[] b,int k){
+  PriorityQueue<int[]> q=new PriorityQueue<>((x,y)->Long.compare((long)a[x[0]]+b[x[1]],(long)a[y[0]]+b[y[1]]));
+  for(int i=0;i<Math.min(k,a.length);i++)q.offer(new int[]{i,0});
+  List<List<Integer>> ans=new ArrayList<>();while(k-->0&&!q.isEmpty()){int[] x=q.poll();int i=x[0],j=x[1];ans.add(List.of(a[i],b[j]));if(j+1<b.length)q.offer(new int[]{i,j+1});}return ans;
+ }
+}
+```
+
+**Key logic / correctness invariant**
+
+Each live monotone row contributes its least unconsumed candidate; no pair is produced twice. Find k smallest pair sums across two sorted arrays: seed first item from up to k rows, pop (i,j), offer (i,j+1); O(k log min(k,n)).
+
+**Complexity**
+
+O(k log(min(k,n)+1)); O(min(k,n)) auxiliary; O(k) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="lc-786"></a>
+### 07. LeetCode 786
+
+**Problem statement**
+
+Given a strictly increasing array containing 1 followed by primes, return numerator and denominator of the kth smallest fraction arr[i]/arr[j], i<j.
+
+**Examples**
+
+- [1,2,3,5],3 → [2,5]
+- [1,7],1 → [1,7]
+
+**Constraints**
+
+2 ≤ n ≤1000; arr[0]=1; values ≤30000; 1 ≤ k ≤ n(n−1)/2.
+
+**Why this family applies**
+
+Find kth smallest fraction formed from ordered primes: seed candidate (i,n-1) per numerator i, compare fractions by long cross-products, then decrement denominator index while j>i+1.
+
+**Exact evolution from previous solution**
+
+From LC 373: Keep heap merging monotone per-row candidate streams; replace sum key with fraction cross-product comparator and advance denominator in descending index direction.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public int[] kthSmallestPrimeFraction(int[] a,int k){
+  int n=a.length;PriorityQueue<int[]> q=new PriorityQueue<>((x,y)->Long.compare((long)a[x[0]]*a[y[1]],(long)a[y[0]]*a[x[1]]));
+  for(int i=0;i<n-1;i++)q.offer(new int[]{i,n-1});
+  while(--k>0){int[] x=q.poll();if(x[1]>x[0]+1)q.offer(new int[]{x[0],x[1]-1});}
+  int[] x=q.poll();return new int[]{a[x[0]],a[x[1]]};
+ }
+}
+```
+
+**Key logic / correctness invariant**
+
+Each live monotone row contributes its least unconsumed candidate; no pair is produced twice. Find kth smallest fraction formed from ordered primes: seed candidate (i,n-1) per numerator i, compare fractions by long cross-products, then decrement denominator index while j>i+1.
+
+**Complexity**
+
+O(n log n+k log n); O(n) auxiliary; O(1) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="pq5"></a>
+## PQ5 — Two-heaps order statistic and lazy eviction
+
+**Recognition:** Need online median/percentile while values arrive, or a moving window with outgoing items.
+
+**Invariant:** Every valid lower-half value is ≤ every valid upper-half value; lower logical size equals upper or exceeds it by one. Prune stale roots before reading them.
+
+**Core reusable logic:** Streaming median: max-heap for lower half and min-heap for upper half; rebalance sizes, O(log n) insert/O(1) median.
+
+**Ordered problems:** 295, 480
+
+### Reusable Java 21 template
+
+The following is a reusable helper, not a LeetCode submission. Place it inside a class with `import java.util.*;` and honor its stated preconditions.
+
+```java
+static void insert(PriorityQueue<Integer> low, PriorityQueue<Integer> high, int x) {
+    if(low.isEmpty() || x<=low.peek()) low.offer(x); else high.offer(x);
+    if(low.size()>high.size()+1) high.offer(low.poll());
+    else if(low.size()<high.size()) low.offer(high.poll());
+}
+```
+
+
+<a id="lc-295"></a>
+### 08. LeetCode 295
+
+**Problem statement**
+
+Design MedianFinder with addNum and findMedian. Return the middle value for odd size or arithmetic mean of the two middle values for even size.
+
+**Examples**
+
+- add(1),add(2),median(),add(3),median() → 1.5,2.0
+- add(-5),median() → -5.0
+
+**Constraints**
+
+Values -100000–100000; up to 50000 calls; at least one value before findMedian.
+
+**Why this family applies**
+
+Streaming median: max-heap for lower half and min-heap for upper half; rebalance sizes, O(log n) insert/O(1) median.
+
+**Exact evolution from previous solution**
+
+Foundation of this subpattern. NEW ALGORITHM FAMILY: balanced lower and upper halves give median from heap roots.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class MedianFinder {
+ private final PriorityQueue<Integer> low=new PriorityQueue<>(Comparator.reverseOrder()), high=new PriorityQueue<>();
+ public MedianFinder(){}
+ public void addNum(int num){if(low.isEmpty()||num<=low.peek())low.offer(num);else high.offer(num);if(low.size()>high.size()+1)high.offer(low.poll());else if(low.size()<high.size())low.offer(high.poll());}
+ public double findMedian(){return low.size()>high.size()?low.peek():((long)low.peek()+high.peek())/2.0;}
+}
+```
+
+**Key logic / correctness invariant**
+
+Every valid lower-half value is ≤ every valid upper-half value; lower logical size equals upper or exceeds it by one. Prune stale roots before reading them. Streaming median: max-heap for lower half and min-heap for upper half; rebalance sizes, O(log n) insert/O(1) median.
+
+**Complexity**
+
+O(log n) add, O(1) median; O(n) state.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="lc-480"></a>
+### 09. LeetCode 480
+
+**Problem statement**
+
+For every consecutive window of k elements, return its median in left-to-right order. Use the average of the middle two values for even k.
+
+**Examples**
+
+- [1,3,-1,-3,5,3,6,7],3 → [1,-1,-1,3,5,6]
+- [1,4,2,3],2 → [2.5,3,2.5]
+
+**Constraints**
+
+1 ≤ k ≤ n ≤100000; values are signed 32-bit integers.
+
+**Why this family applies**
+
+Sliding-window medians: reuse balanced heaps, but lazily delete expired values by index/value-count map and track logical heap sizes; O(n log k).
+
+**Exact evolution from previous solution**
+
+From LC 295: Add delayed-deletion frequency map, explicit valid-size counters and root pruning to support removals before rebalancing; output a median for each width-k window.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ private final PriorityQueue<Integer> low=new PriorityQueue<>(Comparator.reverseOrder()),high=new PriorityQueue<>();
+ private final Map<Integer,Integer> delayed=new HashMap<>();private int l,h;
+ private void prune(PriorityQueue<Integer> q){while(!q.isEmpty()){int x=q.peek(),c=delayed.getOrDefault(x,0);if(c==0)break;q.poll();if(c==1)delayed.remove(x);else delayed.put(x,c-1);}}
+ private void balance(){if(l>h+1){high.offer(low.poll());l--;h++;prune(low);}else if(l<h){low.offer(high.poll());h--;l++;prune(high);}}
+ private void add(int x){if(low.isEmpty()||x<=low.peek()){low.offer(x);l++;}else{high.offer(x);h++;}balance();}
+ private void remove(int x){delayed.merge(x,1,Integer::sum);if(x<=low.peek()){l--;if(x==low.peek())prune(low);}else{h--;if(x==high.peek())prune(high);}balance();}
+ private void rebuild(int[] a,int start,int k){low.clear();high.clear();delayed.clear();l=h=0;for(int j=start;j<start+k;j++)add(a[j]);}
+ public double[] medianSlidingWindow(int[] nums,int k){double[] ans=new double[nums.length-k+1];rebuild(nums,0,k);
+  for(int i=k-1;i<nums.length;i++){if(i>=k){add(nums[i]);remove(nums[i-k]);if((long)low.size()+high.size()>2L*k)rebuild(nums,i-k+1,k);}
+   ans[i-k+1]=(k%2==1)?low.peek():((long)low.peek()+high.peek())/2.0;}
+  return ans;
+ }
+}
+```
+
+**Key logic / correctness invariant**
+
+Every valid lower-half value is ≤ every valid upper-half value; lower logical size equals upper or exceeds it by one. Prune stale roots before reading them. Sliding-window medians: reuse balanced heaps, but lazily delete expired values by index/value-count map and track logical heap sizes; O(n log k).
+
+**Complexity**
+
+Amortized O(n log(k+1)); O(k) auxiliary with periodic rebuild; O(n−k+1) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="pq6"></a>
+## PQ6 — Repeated largest-first transformations
+
+**Recognition:** At each step choose the current largest object, transform it, and reinsert the updated value.
+
+**Invariant:** Heap contains the current multiset; its root is the largest available value.
+
+**Core reusable logic:** Repeatedly smash two heaviest stones: max-heap, remove two largest and reinsert their positive difference; O(n log n).
+
+**Ordered problems:** 1046, 1962, 2530
+
+### Reusable Java 21 template
+
+The following is a reusable helper, not a LeetCode submission. Place it inside a class with `import java.util.*;` and honor its stated preconditions.
+
+```java
+static void transformMax(PriorityQueue<Long> heap, int steps,
+        java.util.function.LongUnaryOperator transform) {
+    while(steps-->0 && !heap.isEmpty()) heap.offer(transform.applyAsLong(heap.poll()));
+}
+```
+
+
+<a id="lc-1046"></a>
+### 10. LeetCode 1046
+
+**Problem statement**
+
+Repeatedly smash the two heaviest stones. Equal weights both disappear; otherwise replace them with their difference. Return remaining weight or zero.
+
+**Examples**
+
+- [2,7,4,1,8,1] → 1
+- [2,2] → 0
+
+**Constraints**
+
+1 ≤ n ≤30; weights 1–1000.
+
+**Why this family applies**
+
+Repeatedly smash two heaviest stones: max-heap, remove two largest and reinsert their positive difference; O(n log n).
+
+**Exact evolution from previous solution**
+
+Foundation of this subpattern. NEW ALGORITHM FAMILY: extract dominant values, combine/transform, and reinsert positive remainder.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public int lastStoneWeight(int[] stones){PriorityQueue<Integer> q=new PriorityQueue<>(Comparator.reverseOrder());for(int x:stones)q.offer(x);while(q.size()>1){int x=q.poll(),y=q.poll();if(x>y)q.offer(x-y);}return q.isEmpty()?0:q.peek();}
+}
+```
+
+**Key logic / correctness invariant**
+
+Heap contains the current multiset; its root is the largest available value. Repeatedly smash two heaviest stones: max-heap, remove two largest and reinsert their positive difference; O(n log n).
+
+**Complexity**
+
+O(n log(n+1)); O(n) auxiliary; O(1) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="lc-1962"></a>
+### 11. LeetCode 1962
+
+**Problem statement**
+
+Given piles of stones, perform exactly k operations, each removing floor(pile/2) stones from any pile. Minimize total stones remaining.
+
+**Examples**
+
+- [5,4,9],2 → 12
+- [4,3,6,7],3 → 12
+
+**Constraints**
+
+1 ≤ n,k ≤100000; pile sizes 1–10000.
+
+**Why this family applies**
+
+Remove half the stones from the currently largest pile per operation: max-heap, pop one, replace by ceil(x/2); O((n+k)log n).
+
+**Exact evolution from previous solution**
+
+From LC 1046: Keep largest-first extraction/reinsertion; change two-element difference operation into one-element halving and maintain remaining total incrementally.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public int minStoneSum(int[] piles,int k){PriorityQueue<Integer> q=new PriorityQueue<>(Comparator.reverseOrder());int sum=0;for(int x:piles){q.offer(x);sum+=x;}while(k-->0){int x=q.poll();sum-=x/2;q.offer(x-x/2);}return sum;}
+}
+```
+
+**Key logic / correctness invariant**
+
+Heap contains the current multiset; its root is the largest available value. Remove half the stones from the currently largest pile per operation: max-heap, pop one, replace by ceil(x/2); O((n+k)log n).
+
+**Complexity**
+
+O((n+k)log(n+1)); O(n) auxiliary; O(1) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="lc-2530"></a>
+### 12. LeetCode 2530
+
+**Problem statement**
+
+Start with score zero. Exactly k times choose an array value x, add x to score and replace it with ceil(x/3). Maximize score.
+
+**Examples**
+
+- [10,10,10,10,10],5 → 50
+- [1,10,3,3,3],3 → 17
+
+**Constraints**
+
+1 ≤ n,k ≤100000; 1 ≤ nums[i] ≤10^9.
+
+**Why this family applies**
+
+Repeatedly take largest value as score then replace it by ceil(x/3): max-heap of long values, add extracted score, reinsert updated value.
+
+**Exact evolution from previous solution**
+
+From LC 1962: Keep single-maximum transformation loop; replace halving with ceiling division by 3 and accumulate extracted pre-transform values as the objective.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public long maxKelements(int[] nums,int k){PriorityQueue<Long> q=new PriorityQueue<>(Comparator.reverseOrder());for(int x:nums)q.offer((long)x);long score=0;while(k-->0){long x=q.poll();score+=x;q.offer((x+2)/3);}return score;}
+}
+```
+
+**Key logic / correctness invariant**
+
+Heap contains the current multiset; its root is the largest available value. Repeatedly take largest value as score then replace it by ceil(x/3): max-heap of long values, add extracted score, reinsert updated value.
+
+**Complexity**
+
+O((n+k)log(n+1)); O(n) auxiliary; O(1) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="pq7"></a>
+## PQ7 — Repeated smallest-first combination
+
+**Recognition:** Operations must combine the two globally smallest values; a min-heap preserves the next feasible merge.
+
+**Invariant:** Heap contains all surviving values; the first two extractions are globally smallest.
+
+**Core reusable logic:** Reach a threshold by repeatedly combining the two smallest values as 2*x+y: min-heap with long arithmetic; count operations.
+
+**Ordered problems:** 3066
+
+### Reusable Java 21 template
+
+The following is a reusable helper, not a LeetCode submission. Place it inside a class with `import java.util.*;` and honor its stated preconditions.
+
+```java
+static int combineMin(PriorityQueue<Long> heap, long threshold,
+        java.util.function.LongBinaryOperator combine) {
+    int operations=0;
+    while(heap.size()>=2 && heap.peek()<threshold) {
+        long x=heap.poll(), y=heap.poll(); heap.offer(combine.applyAsLong(x,y)); operations++;
+    }
+    return operations;
+}
+```
+
+
+<a id="lc-3066"></a>
+### 13. LeetCode 3066
+
+**Problem statement**
+
+Repeatedly remove the two smallest values x≤y and insert 2x+y. Return minimum operations until all values are at least k. A solution is guaranteed.
+
+**Examples**
+
+- [2,11,10,1,3],10 → 2
+- [1,1,2,4,9],20 → 4
+
+**Constraints**
+
+2 ≤ n ≤200000; values and k 1–10^9.
+
+**Why this family applies**
+
+Reach a threshold by repeatedly combining the two smallest values as 2*x+y: min-heap with long arithmetic; count operations.
+
+**Exact evolution from previous solution**
+
+Foundation of this subpattern. NEW ALGORITHM FAMILY: minimum-two combination invariant, distinct from PQ6 maximum-first transformations.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public int minOperations(int[] nums,int k){PriorityQueue<Long> q=new PriorityQueue<>();for(int x:nums)q.offer((long)x);int count=0;while(q.peek()<k){long x=q.poll(),y=q.poll();q.offer(2*x+y);count++;}return count;}
+}
+```
+
+**Key logic / correctness invariant**
+
+Heap contains all surviving values; the first two extractions are globally smallest. Reach a threshold by repeatedly combining the two smallest values as 2*x+y: min-heap with long arithmetic; count operations.
+
+**Complexity**
+
+O(n log n); O(n) auxiliary; O(1) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="pq8"></a>
+## PQ8 — Interval sweep with active deadline heap
+
+**Recognition:** Intervals become eligible at a sorted start/query coordinate, while a heap selects the active interval with the most useful end or length.
+
+**Invariant:** All intervals starting at or before the sweep point have been activated; expired roots are removed before selection. Non-root stale entries may remain.
+
+**Core reusable logic:** Attend maximum events by choosing one event per day: sort events by start, push active event end-days, discard expired, attend earliest-ending eligible event each day.
+
+**Ordered problems:** 1353, 1851
+
+### Reusable Java 21 template
+
+The following is a reusable helper, not a LeetCode submission. Place it inside a class with `import java.util.*;` and honor its stated preconditions.
+
+```java
+static int activate(int[][] intervals, int index, int point, PriorityQueue<int[]> active) {
+    while(index<intervals.length && intervals[index][0]<=point) active.offer(intervals[index++]);
+    while(!active.isEmpty() && active.peek()[1]<point) active.poll();
+    return index;
+} // Sort by start first; heap comparator defines the desired active priority.
+```
+
+
+<a id="lc-1353"></a>
+### 14. LeetCode 1353
+
+**Problem statement**
+
+Each event has inclusive start and end days. Attend at most one event per day and each event once, choosing any day within its interval. Maximize attended events.
+
+**Examples**
+
+- [[1,2],[2,3],[3,4]] → 3
+- [[1,2],[1,2],[1,2]] → 2
+
+**Constraints**
+
+1 ≤ n ≤100000; 1 ≤ start ≤ end ≤100000.
+
+**Why this family applies**
+
+Attend maximum events by choosing one event per day: sort events by start, push active event end-days, discard expired, attend earliest-ending eligible event each day.
+
+**Exact evolution from previous solution**
+
+Foundation of this subpattern. NEW ALGORITHM FAMILY: chronological activation of intervals plus min-heap of earliest deadlines; increment one day per chosen event.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public int maxEvents(int[][] events){Arrays.sort(events,Comparator.comparingInt(a->a[0]));PriorityQueue<Integer> q=new PriorityQueue<>();int i=0,day=0,ans=0;while(i<events.length||!q.isEmpty()){if(q.isEmpty())day=Math.max(day,events[i][0]);while(i<events.length&&events[i][0]<=day)q.offer(events[i++][1]);while(!q.isEmpty()&&q.peek()<day)q.poll();if(!q.isEmpty()){q.poll();ans++;day++;}}return ans;}
+}
+```
+
+**Key logic / correctness invariant**
+
+All intervals starting at or before the sweep point have been activated; expired roots are removed before selection. Non-root stale entries may remain. Attend maximum events by choosing one event per day: sort events by start, push active event end-days, discard expired, attend earliest-ending eligible event each day.
+
+**Complexity**
+
+O(n log n); O(n) auxiliary including sort; O(1) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="lc-1851"></a>
+### 15. LeetCode 1851
+
+**Problem statement**
+
+For each query point, return the minimum inclusive length r−l+1 of an interval containing it, or -1 if none exists. Preserve query order.
+
+**Examples**
+
+- [[1,4],[2,4],[3,6],[4,4]],[2,3,4,5] → [3,3,1,4]
+- [[2,3]],[1,3] → [-1,2]
+
+**Constraints**
+
+1 ≤ intervals, queries counts ≤100000; endpoints and queries 1–10^7; l≤r.
+
+**Why this family applies**
+
+For each query point, return size of smallest interval containing it: sort intervals and queries, heap by (intervalLength,end), expire end<query, report minimum length.
+
+**Exact evolution from previous solution**
+
+From LC 1353: Retain sorted activation and expiry of active intervals; replace earliest-end priority with shortest-interval priority and process sorted query coordinates rather than attend one event per day.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public int[] minInterval(int[][] intervals,int[] queries){Arrays.sort(intervals,Comparator.comparingInt(a->a[0]));int m=queries.length;Integer[] order=new Integer[m];for(int i=0;i<m;i++)order[i]=i;Arrays.sort(order,Comparator.comparingInt(i->queries[i]));PriorityQueue<int[]> q=new PriorityQueue<>(Comparator.comparingInt(a->a[0]));int[] ans=new int[m];int i=0;for(int j:order){int x=queries[j];while(i<intervals.length&&intervals[i][0]<=x){int[] a=intervals[i++];q.offer(new int[]{a[1]-a[0]+1,a[1]});}while(!q.isEmpty()&&q.peek()[1]<x)q.poll();ans[j]=q.isEmpty()?-1:q.peek()[0];}return ans;}
+}
+```
+
+**Key logic / correctness invariant**
+
+All intervals starting at or before the sweep point have been activated; expired roots are removed before selection. Non-root stale entries may remain. For each query point, return size of smallest interval containing it: sort intervals and queries, heap by (intervalLength,end), expire end<query, report minimum length.
+
+**Complexity**
+
+O(n log n+m log m+(n+m)log(n+1)); O(n+m) auxiliary; O(m) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="pq9"></a>
+## PQ9 — Greedy allocate scarce resources to largest demands
+
+**Recognition:** A new resource unit can replace previously allocated small demands; keep the least valuable recipients in a min-heap.
+
+**Invariant:** Heap holds the largest freeCount positive demands seen; every other demand is paid.
+
+**Core reusable logic:** Maximize reachable buildings using bricks and ladders: reserve ladders for largest positive climbs using a min-heap; pay smallest climbs with bricks, stop at insufficient budget.
+
+**Ordered problems:** 1642
+
+### Reusable Java 21 template
+
+The following is a reusable helper, not a LeetCode submission. Place it inside a class with `import java.util.*;` and honor its stated preconditions.
+
+```java
+static long paidCost(int[] demands, int freeCount) {
+    PriorityQueue<Integer> heap=new PriorityQueue<>(); long paid=0;
+    for(int d:demands) if(d>0) {heap.offer(d); if(heap.size()>freeCount) paid+=heap.poll();}
+    return paid;
+}
+```
+
+
+<a id="lc-1642"></a>
+### 16. LeetCode 1642
+
+**Problem statement**
+
+Starting at building zero, move forward freely when the next height is no greater. For positive climbs spend that many bricks or one ladder. Return farthest reachable index.
+
+**Examples**
+
+- [4,2,7,6,9,14,12], bricks=5,ladders=1 → 4
+- [1,2],0,0 → 0
+
+**Constraints**
+
+1 ≤ n ≤100000; heights 1–10^6; bricks 0–10^9; ladders 0–n.
+
+**Why this family applies**
+
+Maximize reachable buildings using bricks and ladders: reserve ladders for largest positive climbs using a min-heap; pay smallest climbs with bricks, stop at insufficient budget.
+
+**Exact evolution from previous solution**
+
+Foundation of this subpattern. NEW ALGORITHM FAMILY: allocate limited free resources to largest costs; convert evicted min-heap demands to paid cost.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public int furthestBuilding(int[] heights,int bricks,int ladders){PriorityQueue<Integer> q=new PriorityQueue<>();long spent=0;for(int i=0;i<heights.length-1;i++){int d=heights[i+1]-heights[i];if(d<=0)continue;q.offer(d);if(q.size()>ladders)spent+=q.poll();if(spent>bricks)return i;}return heights.length-1;}
+}
+```
+
+**Key logic / correctness invariant**
+
+Heap holds the largest freeCount positive demands seen; every other demand is paid. Maximize reachable buildings using bricks and ladders: reserve ladders for largest positive climbs using a min-heap; pay smallest climbs with bricks, stop at insufficient budget.
+
+**Complexity**
+
+O(n log(min(n,ladders)+2)); O(min(n,ladders+1)) auxiliary; O(1) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="pq10"></a>
+## PQ10 — Retroactive resource replenishment
+
+**Recognition:** Can choose among previously passed refill opportunities; when resources fall short, take the largest available refill.
+
+**Invariant:** Heap contains unused reachable refills; reach increases only by selected refills.
+
+**Core reusable logic:** Minimum refuel stops: walk sorted stations, use max-heap of passed fuel quantities, greedily refuel only when needed; O(n log n).
+
+**Ordered problems:** 871
+
+### Reusable Java 21 template
+
+The following is a reusable helper, not a LeetCode submission. Place it inside a class with `import java.util.*;` and honor its stated preconditions.
+
+```java
+static long replenish(long reach, long goal, PriorityQueue<Integer> past) {
+    while(reach<goal && !past.isEmpty()) reach+=past.poll();
+    return reach;
+} // past is a max-heap of previously reachable refills.
+```
+
+
+<a id="lc-871"></a>
+### 17. LeetCode 871
+
+**Problem statement**
+
+Travel to target with startFuel, consuming one fuel per distance. At each sorted station you may take all its fuel, with unlimited tank capacity. Minimize refueling stops or return -1.
+
+**Examples**
+
+- 100,10,[[10,60],[20,30],[30,30],[60,40]] → 2
+- 100,1,[[10,100]] → -1
+
+**Constraints**
+
+1 ≤ target,startFuel ≤10^9; 0 ≤ n ≤500; station positions strictly increasing below target; fuel 1–10^9.
+
+**Why this family applies**
+
+Minimum refuel stops: walk sorted stations, use max-heap of passed fuel quantities, greedily refuel only when needed; O(n log n).
+
+**Exact evolution from previous solution**
+
+Foundation of this subpattern. NEW ALGORITHM FAMILY: postpone station selection and retroactively choose largest past refill when fuel becomes insufficient; unlike PQ9, these decisions increase available resources.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public int minRefuelStops(int target,int startFuel,int[][] stations){PriorityQueue<Integer> q=new PriorityQueue<>(Comparator.reverseOrder());long reach=startFuel;int i=0,stops=0;while(reach<target){while(i<stations.length&&stations[i][0]<=reach)q.offer(stations[i++][1]);if(q.isEmpty())return -1;reach+=q.poll();stops++;}return stops;}
+}
+```
+
+**Key logic / correctness invariant**
+
+Heap contains unused reachable refills; reach increases only by selected refills. Minimum refuel stops: walk sorted stations, use max-heap of passed fuel quantities, greedily refuel only when needed; O(n log n).
+
+**Complexity**
+
+O(n log(n+1)); O(n) auxiliary; O(1) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="pq11"></a>
+## PQ11 — Schedule by deadline with reversible choices
+
+**Recognition:** After sorting by deadline, if cumulative duration becomes too large, discard the most time-consuming selected task.
+
+**Invariant:** Selected courses fit the current deadline after removing the longest if necessary.
+
+**Core reusable logic:** Maximize number of courses before individual deadlines: sort by deadline and use max-heap to replace/remove longest-duration accepted course; O(n log n).
+
+**Ordered problems:** 630
+
+### Reusable Java 21 template
+
+The following is a reusable helper, not a LeetCode submission. Place it inside a class with `import java.util.*;` and honor its stated preconditions.
+
+```java
+static int acceptJobs(int[][] jobs) {
+    Arrays.sort(jobs,Comparator.comparingInt(a->a[1]));
+    PriorityQueue<Integer> chosen=new PriorityQueue<>(Comparator.reverseOrder()); long time=0;
+    for(int[] j:jobs){chosen.offer(j[0]);time+=j[0];if(time>j[1])time-=chosen.poll();}
+    return chosen.size();
+}
+```
+
+
+<a id="lc-630"></a>
+### 18. LeetCode 630
+
+**Problem statement**
+
+Each course has duration and last permissible completion day. Take courses sequentially from day 1 without overlap. Return maximum number completable by their deadlines.
+
+**Examples**
+
+- [[100,200],[200,1300],[1000,1250],[2000,3200]] → 3
+- [[3,2]] → 0
+
+**Constraints**
+
+1 ≤ n ≤10000; durations and deadlines 1–10000.
+
+**Why this family applies**
+
+Maximize number of courses before individual deadlines: sort by deadline and use max-heap to replace/remove longest-duration accepted course; O(n log n).
+
+**Exact evolution from previous solution**
+
+Foundation of this subpattern. NEW ALGORITHM FAMILY: longest-duration removal from selected prefix when sorted deadline feasibility fails.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public int scheduleCourse(int[][] courses){Arrays.sort(courses,Comparator.comparingInt(a->a[1]));PriorityQueue<Integer> q=new PriorityQueue<>(Comparator.reverseOrder());int time=0;for(int[] c:courses){time+=c[0];q.offer(c[0]);if(time>c[1])time-=q.poll();}return q.size();}
+}
+```
+
+**Key logic / correctness invariant**
+
+Selected courses fit the current deadline after removing the longest if necessary. Maximize number of courses before individual deadlines: sort by deadline and use max-heap to replace/remove longest-duration accepted course; O(n log n).
+
+**Complexity**
+
+O(n log n); O(n) auxiliary; O(1) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="pq12"></a>
+## PQ12 — Two-tier capital feasibility and reward choice
+
+**Recognition:** Sort candidates by unlocking requirement; move affordable candidates into a max-heap prioritized by reward.
+
+**Invariant:** All newly affordable unselected projects enter the reward heap once; the root maximizes immediate profit.
+
+**Core reusable logic:** Maximize final capital after at most k projects: sort by capital requirement, push affordable profits into max-heap, choose most profitable feasible project each step.
+
+**Ordered problems:** 502
+
+### Reusable Java 21 template
+
+The following is a reusable helper, not a LeetCode submission. Place it inside a class with `import java.util.*;` and honor its stated preconditions.
+
+```java
+static int unlock(int[][] projects,int i,long capital,PriorityQueue<Integer> rewards) {
+    while(i<projects.length && projects[i][0]<=capital) rewards.offer(projects[i++][1]);
+    return i;
+} // projects sorted by requirement; rewards is a max-heap.
+```
+
+
+<a id="lc-502"></a>
+### 19. LeetCode 502
+
+**Problem statement**
+
+Start with capital w. Choose at most k distinct projects, each requiring minimum capital and adding its profit upon completion. Maximize final capital.
+
+**Examples**
+
+- k=2,w=0,profits=[1,2,3],capital=[0,1,1] → 4
+- k=1,w=0,profits=[1],capital=[1] → 0
+
+**Constraints**
+
+1 ≤ n,k ≤100000; capital and w 0–10^9; profits 0–10000; answer fits int.
+
+**Why this family applies**
+
+Maximize final capital after at most k projects: sort by capital requirement, push affordable profits into max-heap, choose most profitable feasible project each step.
+
+**Exact evolution from previous solution**
+
+Foundation of this subpattern. NEW ALGORITHM FAMILY: eligibility frontier expands with earned capital; reward heap chooses best currently unlocked job.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public int findMaximizedCapital(int k,int w,int[] profits,int[] capital){int n=profits.length;int[][] p=new int[n][2];for(int i=0;i<n;i++)p[i]=new int[]{capital[i],profits[i]};Arrays.sort(p,Comparator.comparingInt(a->a[0]));PriorityQueue<Integer> q=new PriorityQueue<>(Comparator.reverseOrder());int i=0;while(k-->0){while(i<n&&p[i][0]<=w)q.offer(p[i++][1]);if(q.isEmpty())break;w+=q.poll();}return w;}
+}
+```
+
+**Key logic / correctness invariant**
+
+All newly affordable unselected projects enter the reward heap once; the root maximizes immediate profit. Maximize final capital after at most k projects: sort by capital requirement, push affordable profits into max-heap, choose most profitable feasible project each step.
+
+**Complexity**
+
+O(n log n+min(k,n)log(n+1)); O(n) auxiliary; O(1) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="pq13"></a>
+## PQ13 — Two-sided candidate hiring
+
+**Recognition:** Only first c and last c remaining candidates can be chosen; heaps track the eligible frontier with index ties.
+
+**Invariant:** Eligible windows never overlap in stored indices; each hire exposes at most one new index on its own side.
+
+**Core reusable logic:** Hire k workers from candidate windows at both ends: maintain two indexed min-heaps (or one with index) and moving unread boundaries; O((c+k)log c).
+
+**Ordered problems:** 2462
+
+### Reusable Java 21 template
+
+The following is a reusable helper, not a LeetCode submission. Place it inside a class with `import java.util.*;` and honor its stated preconditions.
+
+```java
+static boolean chooseLeft(PriorityQueue<Integer> left,PriorityQueue<Integer> right,Comparator<Integer> cmp) {
+    return right.isEmpty() || !left.isEmpty() && cmp.compare(left.peek(),right.peek())<=0;
+} // At least one heap is nonempty; replenish the chosen side only.
+```
+
+
+<a id="lc-2462"></a>
+### 20. LeetCode 2462
+
+**Problem statement**
+
+Hire exactly k workers. Each session choose the lowest-cost worker among the first c or last c remaining workers; break ties by smallest original index. Return total cost.
+
+**Examples**
+
+- [17,12,10,2,7,2,11,20,8],3,4 → 11
+- [1,2,4,1],3,3 → 4
+
+**Constraints**
+
+1 ≤ k,candidates ≤ n ≤100000; costs 1–100000.
+
+**Why this family applies**
+
+Hire k workers from candidate windows at both ends: maintain two indexed min-heaps (or one with index) and moving unread boundaries; O((c+k)log c).
+
+**Exact evolution from previous solution**
+
+Foundation of this subpattern. NEW ALGORITHM FAMILY: dual frontier of eligible candidates; choosing an endpoint opens only the next item on that same side.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public long totalCost(int[] costs,int k,int candidates){Comparator<Integer> cmp=(a,b)->{int c=Integer.compare(costs[a],costs[b]);return c!=0?c:Integer.compare(a,b);};PriorityQueue<Integer> left=new PriorityQueue<>(cmp),right=new PriorityQueue<>(cmp);int l=0,r=costs.length-1;for(int i=0;i<candidates&&l<=r;i++)left.offer(l++);for(int i=0;i<candidates&&l<=r;i++)right.offer(r--);long total=0;while(k-->0){if(right.isEmpty()||!left.isEmpty()&&cmp.compare(left.peek(),right.peek())<=0){total+=costs[left.poll()];if(l<=r)left.offer(l++);}else{total+=costs[right.poll()];if(l<=r)right.offer(r--);}}return total;}
+}
+```
+
+**Key logic / correctness invariant**
+
+Eligible windows never overlap in stored indices; each hire exposes at most one new index on its own side. Hire k workers from candidate windows at both ends: maintain two indexed min-heaps (or one with index) and moving unread boundaries; O((c+k)log c).
+
+**Complexity**
+
+O((c+k)log(c+1)); O(c) auxiliary; O(1) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="pq14"></a>
+## PQ14 — Sort by bottleneck and retain best k companions
+
+**Recognition:** A chosen group score uses one shared minimum/maximum key and the sum of the other field. Sort by bottleneck; heap maintains best companion values.
+
+**Invariant:** The heap retains up to k largest companions in the processed bottleneck prefix; running sum equals their total.
+
+**Core reusable logic:** Pick k indices maximizing sum(first values)*min(second values): sort by second descending; maintain k largest first values in min-heap; evaluate whenever size k.
+
+**Ordered problems:** 2542, 1383
+
+### Reusable Java 21 template
+
+The following is a reusable helper, not a LeetCode submission. Place it inside a class with `import java.util.*;` and honor its stated preconditions.
+
+```java
+static long retainLargest(PriorityQueue<Integer> heap,long sum,int value,int k) {
+    heap.offer(value); sum+=value;
+    if(heap.size()>k)sum-=heap.poll();
+    return sum;
+} // Min-heap; process bottleneck in descending order.
+```
+
+
+<a id="lc-2542"></a>
+### 21. LeetCode 2542
+
+**Problem statement**
+
+Choose exactly k indices from two equal-length arrays. Maximize sum of selected nums1 values multiplied by minimum selected nums2 value.
+
+**Examples**
+
+- [1,3,3,2],[2,1,3,4],3 → 12
+- [4,2,3,1,1],[7,5,10,9,6],1 → 30
+
+**Constraints**
+
+1 ≤ k ≤ n ≤100000; both arrays values 0–100000.
+
+**Why this family applies**
+
+Pick k indices maximizing sum(first values)*min(second values): sort by second descending; maintain k largest first values in min-heap; evaluate whenever size k.
+
+**Exact evolution from previous solution**
+
+Foundation of this subpattern. NEW ALGORITHM FAMILY: sorted current bottleneck fixes minimum second value; min-heap retains the largest k companion values.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public long maxScore(int[] nums1,int[] nums2,int k){int n=nums1.length;int[][] a=new int[n][2];for(int i=0;i<n;i++)a[i]=new int[]{nums1[i],nums2[i]};Arrays.sort(a,(x,y)->Integer.compare(y[1],x[1]));PriorityQueue<Integer> q=new PriorityQueue<>();long sum=0,best=0;for(int[] x:a){q.offer(x[0]);sum+=x[0];if(q.size()>k)sum-=q.poll();if(q.size()==k)best=Math.max(best,sum*x[1]);}return best;}
+}
+```
+
+**Key logic / correctness invariant**
+
+The heap retains up to k largest companions in the processed bottleneck prefix; running sum equals their total. Pick k indices maximizing sum(first values)*min(second values): sort by second descending; maintain k largest first values in min-heap; evaluate whenever size k.
+
+**Complexity**
+
+O(n log n+n log(k+1)); O(n+k) auxiliary; O(1) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="lc-1383"></a>
+### 22. LeetCode 1383
+
+**Problem statement**
+
+Choose at most k of n engineers. Team performance is total speed multiplied by minimum efficiency. Return maximum performance modulo 1,000,000,007 (maximize before modulo).
+
+**Examples**
+
+- n=6,speed=[2,10,3,1,5,8],efficiency=[5,4,3,9,7,2],k=2 → 60
+- n=1,[2],[3],1 → 6
+
+**Constraints**
+
+1 ≤ k ≤ n ≤100000; speeds 1–100000; efficiencies 1–10^8.
+
+**Why this family applies**
+
+Maximum team performance with at most k engineers: sort by efficiency descending; min-heap stores speeds, and running speed sum times current efficiency yields candidate.
+
+**Exact evolution from previous solution**
+
+From LC 2542: Keep descending bottleneck sort and min-heap speed retention; switch from exactly-k evaluation to at-most-k evaluation at every team size.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public int maxPerformance(int n,int[] speed,int[] efficiency,int k){int[][] a=new int[n][2];for(int i=0;i<n;i++)a[i]=new int[]{speed[i],efficiency[i]};Arrays.sort(a,(x,y)->Integer.compare(y[1],x[1]));PriorityQueue<Integer> q=new PriorityQueue<>();long sum=0,best=0;for(int[] x:a){q.offer(x[0]);sum+=x[0];if(q.size()>k)sum-=q.poll();best=Math.max(best,sum*x[1]);}return (int)(best%1_000_000_007);}
+}
+```
+
+**Key logic / correctness invariant**
+
+The heap retains up to k largest companions in the processed bottleneck prefix; running sum equals their total. Maximum team performance with at most k engineers: sort by efficiency descending; min-heap stores speeds, and running speed sum times current efficiency yields candidate.
+
+**Complexity**
+
+O(n log n+n log(k+1)); O(n+k) auxiliary; O(1) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="pq15"></a>
+## PQ15 — Bounded group with maximum companion as cost
+
+**Recognition:** Sort by unit price/ratio; a max-heap discards the most expensive selected companion to minimize sum within size-k group.
+
+**Invariant:** The heap retains up to k smallest qualities among workers whose required ratio is no greater than the current ratio.
+
+**Core reusable logic:** Minimum cost to hire k workers at common pay ratio: sort by wage/quality ratio ascending, maintain k smallest qualities with max-heap; evaluate sumQuality*ratio.
+
+**Ordered problems:** 857
+
+### Reusable Java 21 template
+
+The following is a reusable helper, not a LeetCode submission. Place it inside a class with `import java.util.*;` and honor its stated preconditions.
+
+```java
+static long retainSmallest(PriorityQueue<Integer> heap,long sum,int value,int k) {
+    heap.offer(value);sum+=value;
+    if(heap.size()>k)sum-=heap.poll();
+    return sum;
+} // Max-heap; process cost threshold in ascending order.
+```
+
+
+<a id="lc-857"></a>
+### 23. LeetCode 857
+
+**Problem statement**
+
+Hire exactly k workers. Pay each proportionally to their quality with a common rate, and at least their minimum wage. Minimize total pay.
+
+**Examples**
+
+- quality=[10,20,5],wage=[70,50,30],k=2 → 105.0
+- [3,1,10,10,1],[4,8,2,2,7],3 → 30.66667
+
+**Constraints**
+
+1 ≤ k ≤ n ≤10000; quality,wage 1–10000; floating tolerance 10^-5.
+
+**Why this family applies**
+
+Minimum cost to hire k workers at common pay ratio: sort by wage/quality ratio ascending, maintain k smallest qualities with max-heap; evaluate sumQuality*ratio.
+
+**Exact evolution from previous solution**
+
+Foundation of this subpattern. NEW ALGORITHM FAMILY (related but NOT sequentially evolved from PQ14): reverse objective and heap direction—ascending price threshold, retain smallest k qualities, minimize product.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public double mincostToHireWorkers(int[] quality,int[] wage,int k){int n=quality.length;Integer[] order=new Integer[n];for(int i=0;i<n;i++)order[i]=i;Arrays.sort(order,(a,b)->Long.compare((long)wage[a]*quality[b],(long)wage[b]*quality[a]));PriorityQueue<Integer> q=new PriorityQueue<>(Comparator.reverseOrder());long sum=0;double best=Double.POSITIVE_INFINITY;for(int i:order){q.offer(quality[i]);sum+=quality[i];if(q.size()>k)sum-=q.poll();if(q.size()==k)best=Math.min(best,sum*((double)wage[i]/quality[i]));}return best;}
+}
+```
+
+**Key logic / correctness invariant**
+
+The heap retains up to k smallest qualities among workers whose required ratio is no greater than the current ratio. Minimum cost to hire k workers at common pay ratio: sort by wage/quality ratio ascending, maintain k smallest qualities with max-heap; evaluate sumQuality*ratio.
+
+**Complexity**
+
+O(n log n+n log(k+1)); O(n+k) auxiliary; O(1) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="pq16"></a>
+## PQ16 — Maximum-frequency arrangement with adjacency constraints
+
+**Recognition:** Need reorder items so equal values are never adjacent. Select the highest remaining-frequency eligible values first.
+
+**Invariant:** The last emitted key stays out of the ready heap until a different key is selected.
+
+**Core reusable logic:** Rearrange characters so no adjacent characters match: max-heap of remaining character frequencies, withhold last-used character for one turn; O(n log alphabet).
+
+**Ordered problems:** 767, 1054
+
+### Reusable Java 21 template
+
+The following is a reusable helper, not a LeetCode submission. Place it inside a class with `import java.util.*;` and honor its stated preconditions.
+
+```java
+static List<Integer> arrange(Map<Integer,Integer> counts) {
+    PriorityQueue<int[]> heap=new PriorityQueue<>((a,b)->Integer.compare(b[1],a[1]));
+    counts.forEach((v,c)->{if(c>0)heap.offer(new int[]{v,c});});
+    List<Integer> result=new ArrayList<>();int[] held=null;
+    while(!heap.isEmpty()) {int[] x=heap.poll();result.add(x[0]);
+        if(held!=null && held[1]>0)heap.offer(held);x[1]--;held=x;}
+    return held!=null && held[1]>0 ? List.of() : result;
+}
+```
+
+
+<a id="lc-767"></a>
+### 24. LeetCode 767
+
+**Problem statement**
+
+Rearrange characters of s so adjacent characters differ. Return any valid permutation, or an empty string if impossible.
+
+**Examples**
+
+- "aab" → "aba"
+- "aaab" → ""
+
+**Constraints**
+
+1 ≤ n ≤500; lowercase English letters.
+
+**Why this family applies**
+
+Rearrange characters so no adjacent characters match: max-heap of remaining character frequencies, withhold last-used character for one turn; O(n log alphabet).
+
+**Exact evolution from previous solution**
+
+Foundation of this subpattern. NEW ALGORITHM FAMILY: highest-count eligible character with one-turn cooldown prevents adjacent duplicates.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public String reorganizeString(String s){int[] f=new int[26];for(char c:s.toCharArray())f[c-'a']++;PriorityQueue<int[]> q=new PriorityQueue<>((a,b)->Integer.compare(b[1],a[1]));for(int i=0;i<26;i++)if(f[i]>0)q.offer(new int[]{i,f[i]});StringBuilder out=new StringBuilder();int[] held=null;while(!q.isEmpty()){int[] x=q.poll();out.append((char)('a'+x[0]));if(held!=null&&held[1]>0)q.offer(held);x[1]--;held=x;}return out.length()==s.length()?out.toString():"";}
+}
+```
+
+**Key logic / correctness invariant**
+
+The last emitted key stays out of the ready heap until a different key is selected. Rearrange characters so no adjacent characters match: max-heap of remaining character frequencies, withhold last-used character for one turn; O(n log alphabet).
+
+**Complexity**
+
+O(n log(d+1)); O(d) auxiliary; O(n) output including builder; d≤26.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="lc-1054"></a>
+### 25. LeetCode 1054
+
+**Problem statement**
+
+Rearrange integer barcodes so no neighboring values match. Return any valid permutation; existence is guaranteed.
+
+**Examples**
+
+- [1,1,1,2,2,2] → [1,2,1,2,1,2]
+- [1,1,2] → [1,2,1]
+
+**Constraints**
+
+1 ≤ n ≤10000; values 1–10000.
+
+**Why this family applies**
+
+Rearrange integer barcodes without equal neighbors: reuse count max-heap, withhold just-emitted value and emit highest-frequency eligible barcode; O(n log distinct).
+
+**Exact evolution from previous solution**
+
+From LC 767: Reuse cooldown-based frequency heap; generalize character counts to integer keys and return an integer array rather than a string.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public int[] rearrangeBarcodes(int[] barcodes){Map<Integer,Integer> f=new HashMap<>();for(int x:barcodes)f.merge(x,1,Integer::sum);PriorityQueue<int[]> q=new PriorityQueue<>((a,b)->Integer.compare(b[1],a[1]));for(var e:f.entrySet())q.offer(new int[]{e.getKey(),e.getValue()});int[] out=new int[barcodes.length],held=null;int i=0;while(!q.isEmpty()){int[] x=q.poll();out[i++]=x[0];if(held!=null&&held[1]>0)q.offer(held);x[1]--;held=x;}return out;}
+}
+```
+
+**Key logic / correctness invariant**
+
+The last emitted key stays out of the ready heap until a different key is selected. Rearrange integer barcodes without equal neighbors: reuse count max-heap, withhold just-emitted value and emit highest-frequency eligible barcode; O(n log distinct).
+
+**Complexity**
+
+Expected O(n log(d+1)); O(d) auxiliary; O(n) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="pq17"></a>
+## PQ17 — Cooldown scheduling with task frequencies
+
+**Recognition:** Each scheduled task is temporarily ineligible for n following slots; track ready max-frequency tasks and release times.
+
+**Invariant:** Ready heap contains eligible task types; FIFO cooling queue holds future releases in chronological order.
+
+**Core reusable logic:** Minimum CPU time with repeated tasks and cooldown: max-heap remaining frequencies plus cooldown queue (or exact frequency-cycle formula); O(tasks log distinct) simulation.
+
+**Ordered problems:** 621
+
+### Reusable Java 21 template
+
+The following is a reusable helper, not a LeetCode submission. Place it inside a class with `import java.util.*;` and honor its stated preconditions.
+
+```java
+static int runCooldown(PriorityQueue<Integer> ready,int gap) {
+    ArrayDeque<int[]> cooling=new ArrayDeque<>();int t=0;
+    while(!ready.isEmpty()||!cooling.isEmpty()){
+        if(ready.isEmpty())t=Math.max(t,cooling.peek()[0]);
+        while(!cooling.isEmpty()&&cooling.peek()[0]<=t)ready.offer(cooling.poll()[1]);
+        int left=ready.poll()-1;if(left>0)cooling.offer(new int[]{t+gap+1,left});t++;
+    }return t;
+} // ready is a max-heap of positive remaining frequencies.
+```
+
+
+<a id="lc-621"></a>
+### 26. LeetCode 621
+
+**Problem statement**
+
+Execute tasks labeled A–Z, one per CPU slot or idle. Identical tasks must have at least n intervening slots. Return minimum total slots.
+
+**Examples**
+
+- [A,A,A,B,B,B],2 → 8
+- [A,A,A,B,B,B],0 → 6
+
+**Constraints**
+
+1 ≤ task count ≤10000; 0 ≤ n ≤100; uppercase letters.
+
+**Why this family applies**
+
+Minimum CPU time with repeated tasks and cooldown: max-heap remaining frequencies plus cooldown queue (or exact frequency-cycle formula); O(tasks log distinct) simulation.
+
+**Exact evolution from previous solution**
+
+Foundation of this subpattern. NEW ALGORITHM FAMILY: time-based cooldown across n slots, not merely previous-item adjacency; ready heap plus release queue.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public int leastInterval(char[] tasks,int n){int[] f=new int[26];for(char c:tasks)f[c-'A']++;PriorityQueue<Integer> ready=new PriorityQueue<>(Comparator.reverseOrder());for(int x:f)if(x>0)ready.offer(x);ArrayDeque<int[]> cooling=new ArrayDeque<>();int time=0;while(!ready.isEmpty()||!cooling.isEmpty()){if(ready.isEmpty())time=Math.max(time,cooling.peek()[0]);while(!cooling.isEmpty()&&cooling.peek()[0]<=time)ready.offer(cooling.poll()[1]);int left=ready.poll()-1;if(left>0)cooling.offer(new int[]{time+n+1,left});time++;}return time;}
+}
+```
+
+**Key logic / correctness invariant**
+
+Ready heap contains eligible task types; FIFO cooling queue holds future releases in chronological order. Minimum CPU time with repeated tasks and cooldown: max-heap remaining frequencies plus cooldown queue (or exact frequency-cycle formula); O(tasks log distinct) simulation.
+
+**Complexity**
+
+O(T log(d+1)) using idle jumps; O(d) auxiliary; O(1) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="pq18"></a>
+## PQ18 — Two-heap resource availability scheduler
+
+**Recognition:** Resources can be free or busy until a future time; use one min-heap for preferred free resource and one by release time.
+
+**Invariant:** Each resource is represented in exactly one free or busy heap; release eligible resources before allocating.
+
+**Core reusable logic:** Determine chair occupied by a particular arriving person: sort arrivals, min-heap free chair IDs, min-heap busy (departure,chair), assign smallest free ID.
+
+**Ordered problems:** 1942, 2402, 1882
+
+### Reusable Java 21 template
+
+The following is a reusable helper, not a LeetCode submission. Place it inside a class with `import java.util.*;` and honor its stated preconditions.
+
+```java
+static void release(long now,PriorityQueue<long[]> busy,PriorityQueue<Integer> free) {
+    while(!busy.isEmpty()&&busy.peek()[0]<=now)free.offer((int)busy.poll()[1]);
+} // busy entries: [releaseTime, resourceId], ordered by releaseTime then tie rule.
+```
+
+
+<a id="lc-1942"></a>
+### 27. LeetCode 1942
+
+**Problem statement**
+
+Friends arrive at distinct times, occupy the smallest numbered free chair, and release it at departure. Departures at an arrival time free chairs first. Return target friend’s chair.
+
+**Examples**
+
+- [[1,4],[2,3],[4,6]],1 → 1
+- [[3,10],[1,5],[2,6]],0 → 2
+
+**Constraints**
+
+2 ≤ n ≤10000; 1 ≤ arrival < leaving ≤100000; valid target index.
+
+**Why this family applies**
+
+Determine chair occupied by a particular arriving person: sort arrivals, min-heap free chair IDs, min-heap busy (departure,chair), assign smallest free ID.
+
+**Exact evolution from previous solution**
+
+Foundation of this subpattern. NEW ALGORITHM FAMILY: release resources by time then choose smallest currently available identifier.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public int smallestChair(int[][] times,int targetFriend){int n=times.length;Integer[] order=new Integer[n];for(int i=0;i<n;i++)order[i]=i;Arrays.sort(order,Comparator.comparingInt(i->times[i][0]));PriorityQueue<Integer> free=new PriorityQueue<>();for(int i=0;i<n;i++)free.offer(i);PriorityQueue<int[]> busy=new PriorityQueue<>(Comparator.comparingInt(a->a[0]));for(int i:order){int t=times[i][0];while(!busy.isEmpty()&&busy.peek()[0]<=t)free.offer(busy.poll()[1]);int chair=free.poll();if(i==targetFriend)return chair;busy.offer(new int[]{times[i][1],chair});}return -1;}
+}
+```
+
+**Key logic / correctness invariant**
+
+Each resource is represented in exactly one free or busy heap; release eligible resources before allocating. Determine chair occupied by a particular arriving person: sort arrivals, min-heap free chair IDs, min-heap busy (departure,chair), assign smallest free ID.
+
+**Complexity**
+
+O(n log n); O(n) auxiliary; O(1) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="lc-2402"></a>
+### 28. LeetCode 2402
+
+**Problem statement**
+
+Assign meetings in original start-time order to the lowest free room. If none free, delay until earliest room release, preserving duration. Ties choose lowest room. Return most-used room, ties lowest index.
+
+**Examples**
+
+- n=2,[[0,10],[1,5],[2,7],[3,4]] → 0
+- n=3,[[1,20],[2,10],[3,5],[4,9],[6,8]] → 1
+
+**Constraints**
+
+1 ≤ n ≤100; 1 ≤ meetings count m ≤100000; 0 ≤ start < end ≤500000; distinct starts.
+
+**Why this family applies**
+
+Assign meetings to numbered rooms with delays when all busy: same free-room and busy-release heaps; if none free, delay meeting to earliest release while preserving duration, then count assignments.
+
+**Exact evolution from previous solution**
+
+From LC 1942: Keep two heaps and chronological processing; add delayed scheduling when free heap empty, preserve meeting duration and select earliest freed room.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public int mostBooked(int n,int[][] meetings){Arrays.sort(meetings,Comparator.comparingInt(a->a[0]));PriorityQueue<Integer> free=new PriorityQueue<>();for(int i=0;i<n;i++)free.offer(i);PriorityQueue<long[]> busy=new PriorityQueue<>((a,b)->a[0]!=b[0]?Long.compare(a[0],b[0]):Long.compare(a[1],b[1]));int[] count=new int[n];for(int[] m:meetings){long start=m[0],duration=m[1]-m[0];while(!busy.isEmpty()&&busy.peek()[0]<=start)free.offer((int)busy.poll()[1]);int room;if(free.isEmpty()){long[] x=busy.poll();start=x[0];room=(int)x[1];}else room=free.poll();count[room]++;busy.offer(new long[]{start+duration,room});}int best=0;for(int i=1;i<n;i++)if(count[i]>count[best])best=i;return best;}
+}
+```
+
+**Key logic / correctness invariant**
+
+Each resource is represented in exactly one free or busy heap; release eligible resources before allocating. Assign meetings to numbered rooms with delays when all busy: same free-room and busy-release heaps; if none free, delay meeting to earliest release while preserving duration, then count assignments.
+
+**Complexity**
+
+O(m log m+(m+n)log(n+1)); O(m+n) auxiliary including sort; O(1) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="lc-1882"></a>
+### 29. LeetCode 1882
+
+**Problem statement**
+
+Task j arrives at second j and requires tasks[j] seconds. Assign queued tasks in arrival order to the available server of smallest weight, then smallest index. If none available, wait until one finishes. Return server index for every task.
+
+**Examples**
+
+- servers=[3,3,2],tasks=[1,2,3,2,1,2] → [2,2,0,2,1,2]
+- [5,1,4,3,2],[2,1,2,4,5,2,1] → [1,4,1,4,1,3,2]
+
+**Constraints**
+
+1 ≤ servers count n, tasks count m ≤200000; weights and durations 1–200000.
+
+**Why this family applies**
+
+Assign tasks to servers with processing times and weights: free heap orders (serverWeight,index), busy heap by completion time; when none available, advance time to earliest release.
+
+**Exact evolution from previous solution**
+
+From LC 2402: Reuse free/busy heap lifecycle; change free-resource comparator from room ID to (weight,index), and derive busy completion from task duration and effective start time.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public int[] assignTasks(int[] servers,int[] tasks){Comparator<Integer> cmp=(a,b)->servers[a]!=servers[b]?Integer.compare(servers[a],servers[b]):Integer.compare(a,b);PriorityQueue<Integer> free=new PriorityQueue<>(cmp);for(int i=0;i<servers.length;i++)free.offer(i);PriorityQueue<long[]> busy=new PriorityQueue<>(Comparator.comparingLong(a->a[0]));int[] ans=new int[tasks.length];long time=0;for(int j=0;j<tasks.length;j++){time=Math.max(time,j);if(free.isEmpty()&&!busy.isEmpty())time=Math.max(time,busy.peek()[0]);while(!busy.isEmpty()&&busy.peek()[0]<=time)free.offer((int)busy.poll()[1]);int s=free.poll();ans[j]=s;busy.offer(new long[]{time+tasks[j],s});}return ans;}
+}
+```
+
+**Key logic / correctness invariant**
+
+Each resource is represented in exactly one free or busy heap; release eligible resources before allocating. Assign tasks to servers with processing times and weights: free heap orders (serverWeight,index), busy heap by completion time; when none available, advance time to earliest release.
+
+**Complexity**
+
+O((n+m)log(n+1)); O(n) auxiliary; O(m) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="pq19"></a>
+## PQ19 — Single-machine shortest-job-first simulation
+
+**Recognition:** Jobs arrive over time; at each idle/complete moment, choose available task by processing duration and original index.
+
+**Invariant:** Ready heap contains all arrived unfinished jobs; current time never decreases.
+
+**Core reusable logic:** Single-thread CPU order: sort tasks by enqueue time, choose shortest processing duration then smallest index among available tasks; O(n log n).
+
+**Ordered problems:** 1834
+
+### Reusable Java 21 template
+
+The following is a reusable helper, not a LeetCode submission. Place it inside a class with `import java.util.*;` and honor its stated preconditions.
+
+```java
+static int enqueue(int[][] sortedJobs,int i,long time,PriorityQueue<int[]> ready) {
+    while(i<sortedJobs.length&&sortedJobs[i][0]<=time)ready.offer(sortedJobs[i++]);
+    return i;
+} // ready ordered by duration then original index; jump time only when empty.
+```
+
+
+<a id="lc-1834"></a>
+### 30. LeetCode 1834
+
+**Problem statement**
+
+A single CPU processes tasks nonpreemptively. Each task has enqueue time and duration. When free, pick shortest available duration, ties smallest original index; if no task ready, wait. Return execution order.
+
+**Examples**
+
+- [[1,2],[2,4],[3,2],[4,1]] → [0,2,3,1]
+- [[7,10],[7,12],[7,5],[7,4],[7,2]] → [4,3,2,0,1]
+
+**Constraints**
+
+1 ≤ n ≤100000; enqueue and duration 1–10^9.
+
+**Why this family applies**
+
+Single-thread CPU order: sort tasks by enqueue time, choose shortest processing duration then smallest index among available tasks; O(n log n).
+
+**Exact evolution from previous solution**
+
+Foundation of this subpattern. NEW ALGORITHM FAMILY: ready queue ranks JOBS by processing time; unlike PQ18, no multiple resource allocation or free/busy server heaps.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public int[] getOrder(int[][] tasks){int n=tasks.length;Integer[] order=new Integer[n];for(int i=0;i<n;i++)order[i]=i;Arrays.sort(order,Comparator.comparingInt(i->tasks[i][0]));PriorityQueue<Integer> q=new PriorityQueue<>((a,b)->tasks[a][1]!=tasks[b][1]?Integer.compare(tasks[a][1],tasks[b][1]):Integer.compare(a,b));long time=0;int i=0;int[] ans=new int[n];for(int j=0;j<n;j++){if(q.isEmpty())time=Math.max(time,tasks[order[i]][0]);while(i<n&&tasks[order[i]][0]<=time)q.offer(order[i++]);int x=q.poll();ans[j]=x;time+=tasks[x][1];}return ans;}
+}
+```
+
+**Key logic / correctness invariant**
+
+Ready heap contains all arrived unfinished jobs; current time never decreases. Single-thread CPU order: sort tasks by enqueue time, choose shortest processing duration then smallest index among available tasks; O(n log n).
+
+**Complexity**
+
+O(n log n); O(n) auxiliary; O(n) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="pq20"></a>
+## PQ20 — Normalize and shrink extremes
+
+**Recognition:** Allowed multiplicative changes can be normalized first so only monotone reductions remain; max-heap repeatedly reduces current maximum.
+
+**Invariant:** All values begin at their maximum reachable normalized value; tracked minimum is exact and only the maximum is reduced.
+
+**Core reusable logic:** Minimize range deviation with permitted doubling/halving: double odd numbers once, max-heap all values, repeatedly halve current largest even value and track global minimum.
+
+**Ordered problems:** 1675
+
+### Reusable Java 21 template
+
+The following is a reusable helper, not a LeetCode submission. Place it inside a class with `import java.util.*;` and honor its stated preconditions.
+
+```java
+static int shrinkRange(PriorityQueue<Integer> max,int min) {
+    int best=Integer.MAX_VALUE;
+    while(!max.isEmpty()) {int x=max.poll();best=Math.min(best,x-min);
+        if((x&1)==1)break;x/=2;min=Math.min(min,x);max.offer(x);}
+    return best;
+} // Start with positive normalized values, odds doubled.
+```
+
+
+<a id="lc-1675"></a>
+### 31. LeetCode 1675
+
+**Problem statement**
+
+For any even value you may halve it; for any odd value you may double it. Perform any number of operations. Minimize deviation (maximum minus minimum).
+
+**Examples**
+
+- [1,2,3,4] → 1
+- [4,1,5,20,3] → 3
+
+**Constraints**
+
+2 ≤ n ≤50000; values 1–10^9.
+
+**Why this family applies**
+
+Minimize range deviation with permitted doubling/halving: double odd numbers once, max-heap all values, repeatedly halve current largest even value and track global minimum.
+
+**Exact evolution from previous solution**
+
+Foundation of this subpattern. NEW ALGORITHM FAMILY: normalize all choices into maximal allowed even values and monotonically decrease only the heap maximum.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public int minimumDeviation(int[] nums){PriorityQueue<Integer> q=new PriorityQueue<>(Comparator.reverseOrder());int min=Integer.MAX_VALUE,best=Integer.MAX_VALUE;for(int x:nums){if((x&1)==1)x*=2;q.offer(x);min=Math.min(min,x);}while(true){int x=q.poll();best=Math.min(best,x-min);if((x&1)==1)break;x/=2;min=Math.min(min,x);q.offer(x);}return best;}
+}
+```
+
+**Key logic / correctness invariant**
+
+All values begin at their maximum reachable normalized value; tracked minimum is exact and only the maximum is reduced. Minimize range deviation with permitted doubling/halving: double odd numbers once, max-heap all values, repeatedly halve current largest even value and track global minimum.
+
+**Complexity**
+
+O((n+R)log n), R≤n log(max value); O(n) auxiliary; O(1) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="pq21"></a>
+## PQ21 — Heap-ordered best-first boundary flood
+
+**Recognition:** Surface levels are determined by the lowest currently reachable boundary; process cells in min-level order and elevate trapped neighbors.
+
+**Invariant:** Frontier cells carry the lowest known escape level; each cell enters once, and popped levels are nondecreasing.
+
+**Core reusable logic:** Compute rain trapped on a 2D height map: min-heap of boundary water levels, visit neighbors and accumulate level-height; O(mn log(mn)).
+
+**Ordered problems:** 407
+
+### Reusable Java 21 template
+
+The following is a reusable helper, not a LeetCode submission. Place it inside a class with `import java.util.*;` and honor its stated preconditions.
+
+```java
+record Cell(int level,int r,int c) {}
+static int expand(Cell cell,int r,int c,int[][] height,boolean[][] seen,PriorityQueue<Cell> heap) {
+    if(r<0||r>=height.length||c<0||c>=height[0].length||seen[r][c])return 0;
+    seen[r][c]=true;int h=height[r][c];
+    heap.offer(new Cell(Math.max(h,cell.level()),r,c));
+    return Math.max(0,cell.level()-h);
+} // Seed unique boundary cells and use a min-level heap.
+```
+
+
+<a id="lc-407"></a>
+### 32. LeetCode 407
+
+**Problem statement**
+
+Given a rectangular grid of nonnegative elevations, calculate how many units of rainwater remain trapped after water can escape across the outer boundary.
+
+**Examples**
+
+- [[1,4,3,1,3,2],[3,2,1,3,2,4],[2,3,3,2,3,1]] → 4
+- [[3,3,3],[3,1,3],[3,3,3]] → 2
+
+**Constraints**
+
+1 ≤ m,n ≤200; heights 0–20000.
+
+**Why this family applies**
+
+Compute rain trapped on a 2D height map: min-heap of boundary water levels, visit neighbors and accumulate level-height; O(mn log(mn)).
+
+**Exact evolution from previous solution**
+
+Foundation of this subpattern. NEW ALGORITHM FAMILY: priority-first boundary expansion with effective water level; not the graph-shortest-path algorithm family in T22.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+ public int trapRainWater(int[][] heightMap){int m=heightMap.length,n=heightMap[0].length;if(m<3||n<3)return 0;boolean[][] seen=new boolean[m][n];PriorityQueue<int[]> q=new PriorityQueue<>(Comparator.comparingInt(a->a[0]));for(int r=0;r<m;r++)for(int c=0;c<n;c++)if(r==0||r==m-1||c==0||c==n-1){q.offer(new int[]{heightMap[r][c],r,c});seen[r][c]=true;}int water=0;int[] d={-1,0,1,0,-1};while(!q.isEmpty()){int[] x=q.poll();for(int i=0;i<4;i++){int r=x[1]+d[i],c=x[2]+d[i+1];if(r<0||r>=m||c<0||c>=n||seen[r][c])continue;seen[r][c]=true;int h=heightMap[r][c];water+=Math.max(0,x[0]-h);q.offer(new int[]{Math.max(h,x[0]),r,c});}}return water;}
+}
+```
+
+**Key logic / correctness invariant**
+
+Frontier cells carry the lowest known escape level; each cell enters once, and popped levels are nondecreasing. Compute rain trapped on a 2D height map: min-heap of boundary water levels, visit neighbors and accumulate level-height; O(mn log(mn)).
+
+**Complexity**
+
+O(mn log(mn+1)); O(mn) auxiliary; O(1) output.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+<a id="pq22"></a>
+## PQ22 — Best-first merged social feeds
+
+**Recognition:** Each followed user message history is sorted newest first; return top few across streams by pushing one head per stream.
+
+**Invariant:** Each nonexhausted visible history contributes its newest unseen tweet; extraction returns the newest remaining tweet globally.
+
+**Core reusable logic:** Design a mini social feed: maintain per-user newest-first tweet chains, follow relations, and merge their head tweets using a bounded max-heap for latest 10 results.
+
+**Ordered problems:** 355
+
+### Reusable Java 21 template
+
+The following is a reusable helper, not a LeetCode submission. Place it inside a class with `import java.util.*;` and honor its stated preconditions.
+
+```java
+record Message(int id,long timestamp,Message next) {}
+static List<Integer> latest(Collection<Message> heads,int limit) {
+    PriorityQueue<Message> heap=new PriorityQueue<>((a,b)->Long.compare(b.timestamp(),a.timestamp()));
+    for(Message h:heads)if(h!=null)heap.offer(h);
+    List<Integer> out=new ArrayList<>();
+    while(!heap.isEmpty()&&out.size()<limit){Message m=heap.poll();out.add(m.id());if(m.next()!=null)heap.offer(m.next());}
+    return out;
+}
+```
+
+
+<a id="lc-355"></a>
+### 33. LeetCode 355
+
+**Problem statement**
+
+Design Twitter: postTweet(userId,tweetId) posts a unique tweet; getNewsFeed returns up to 10 newest tweet IDs from the user and users they follow; follow and unfollow update relationships. A user always sees their own tweets.
+
+**Examples**
+
+- postTweet(1,5),getNewsFeed(1) → [5]
+- follow(1,2),postTweet(2,6),getNewsFeed(1),unfollow(1,2),getNewsFeed(1) → [6,5], [5] (after first example)
+
+**Constraints**
+
+User IDs 1–500; tweet IDs 0–10000, unique; up to 30000 API calls; self-follow need not be supported.
+
+**Why this family applies**
+
+Design a mini social feed: maintain per-user newest-first tweet chains, follow relations, and merge their head tweets using a bounded max-heap for latest 10 results.
+
+**Exact evolution from previous solution**
+
+Foundation of this subpattern. NEW ALGORITHM FAMILY (reuses PQ3 idea, not sequential from PQ21): max-heap merges descending timestamp streams with an early top-10 stop.
+
+**Complete Java 21 solution**
+
+```java
+import java.util.*;
+
+class Twitter {
+ private record Tweet(int id,long time,Tweet next){}
+ private final Map<Integer,Tweet> heads=new HashMap<>();private final Map<Integer,Set<Integer>> follows=new HashMap<>();private long clock;
+ public Twitter(){}
+ public void postTweet(int userId,int tweetId){heads.put(userId,new Tweet(tweetId,clock++,heads.get(userId)));}
+ public List<Integer> getNewsFeed(int userId){PriorityQueue<Tweet> q=new PriorityQueue<>((a,b)->Long.compare(b.time(),a.time()));Tweet own=heads.get(userId);if(own!=null)q.offer(own);for(int u:follows.getOrDefault(userId,Collections.emptySet())){Tweet t=heads.get(u);if(t!=null)q.offer(t);}List<Integer> out=new ArrayList<>();while(!q.isEmpty()&&out.size()<10){Tweet t=q.poll();out.add(t.id());if(t.next()!=null)q.offer(t.next());}return out;}
+ public void follow(int followerId,int followeeId){if(followerId!=followeeId)follows.computeIfAbsent(followerId,x->new HashSet<>()).add(followeeId);}
+ public void unfollow(int followerId,int followeeId){Set<Integer> s=follows.get(followerId);if(s!=null)s.remove(followeeId);}
+}
+```
+
+**Key logic / correctness invariant**
+
+Each nonexhausted visible history contributes its newest unseen tweet; extraction returns the newest remaining tweet globally. Design a mini social feed: maintain per-user newest-first tweet chains, follow relations, and merge their head tweets using a bounded max-heap for latest 10 results.
+
+**Complexity**
+
+Expected O(1) post/follow/unfollow; feed O(f+ (f+10)log(f+2)) with incremental heap seeding; O(f+1) auxiliary and ≤10 output; persistent O(P+F) for posts and follow edges.
+
+**Compilation:** Passed isolated Java 21 compilation.
+
+
+## Final locked registry
+
+| Sequence | LeetCode | Family | Compile |
+
+|---:|---:|---|---|
+
+| 01 | 347 | PQ1 | Pass |
+
+| 02 | 692 | PQ1 | Pass |
+
+| 03 | 703 | PQ2 | Pass |
+
+| 04 | 23 | PQ3 | Pass |
+
+| 05 | 632 | PQ3 | Pass |
+
+| 06 | 373 | PQ4 | Pass |
+
+| 07 | 786 | PQ4 | Pass |
+
+| 08 | 295 | PQ5 | Pass |
+
+| 09 | 480 | PQ5 | Pass |
+
+| 10 | 1046 | PQ6 | Pass |
+
+| 11 | 1962 | PQ6 | Pass |
+
+| 12 | 2530 | PQ6 | Pass |
+
+| 13 | 3066 | PQ7 | Pass |
+
+| 14 | 1353 | PQ8 | Pass |
+
+| 15 | 1851 | PQ8 | Pass |
+
+| 16 | 1642 | PQ9 | Pass |
+
+| 17 | 871 | PQ10 | Pass |
+
+| 18 | 630 | PQ11 | Pass |
+
+| 19 | 502 | PQ12 | Pass |
+
+| 20 | 2462 | PQ13 | Pass |
+
+| 21 | 2542 | PQ14 | Pass |
+
+| 22 | 1383 | PQ14 | Pass |
+
+| 23 | 857 | PQ15 | Pass |
+
+| 24 | 767 | PQ16 | Pass |
+
+| 25 | 1054 | PQ16 | Pass |
+
+| 26 | 621 | PQ17 | Pass |
+
+| 27 | 1942 | PQ18 | Pass |
+
+| 28 | 2402 | PQ18 | Pass |
+
+| 29 | 1882 | PQ18 | Pass |
+
+| 30 | 1834 | PQ19 | Pass |
+
+| 31 | 1675 | PQ20 | Pass |
+
+| 32 | 407 | PQ21 | Pass |
+
+| 33 | 355 | PQ22 | Pass |
+
+
+## Verification and limitations
+
+- Exact ID sequence and family count matched programmatically against C21: 33 questions, 22 families.
+
+- All 33 solution classes and all 22 reusable templates compiled in separate wrapper classes with OpenJDK 21 (`javac --release 21`). LC 23 used a minimal platform ListNode stub for compilation only.
+
+- LC 480 includes periodic rebuilding to bound physical heap size and achieve the stated amortized complexity; ordinary lazy deletion alone does not guarantee O(k) physical space.
+
+- The locked heap strategy is preserved even where another algorithm may have a better asymptotic bound.
+
+- No live LeetCode submissions were made. Compilation is not proof of correctness; runtime tests were not performed.
+
+- The master file was not modified; practice progress remains 0/33.

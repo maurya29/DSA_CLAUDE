@@ -1,0 +1,2851 @@
+# T14 — Linked Lists: Complete Solutions Workbook
+
+**38 questions • 27 algorithm families (L1–L27) • Java 21**
+
+**Curriculum:** `MASTER_DSA_CURRICULUM.md`, version 1.14, C14 (LOCKED). All IDs and family boundaries are retained exactly. This reference does not change practice progress or the master curriculum.
+
+## How to use this workbook
+
+Read the family recognition rule and reusable snippet first, then study each full solution in order. Compare the exact code change before practicing the next problem in that family. Each `class Solution` block is an independent submission; do not combine classes in one file. For design problems 146, 460 and 707, LeetCode requires the named classes `LRUCache`, `LFUCache` and `MyLinkedList` instead of `Solution`. The judge supplies `ListNode` and the problem-specific `Node` definitions where relevant. Examples use arrays to represent linked lists unless otherwise noted. All space bounds are auxiliary unless output or stored data is explicitly stated. Problem statements are paraphrased, and numerical constraints are supplied from standard problem specifications rather than the curriculum (which does not include full constraints); they have not been independently checked against current LeetCode pages.
+
+## Table of contents
+
+- [L1 — One-pass payload aggregation](#subpattern-l1): [1290](#leetcode-1290)
+- [L2 — In-place contiguous segment reversal](#subpattern-l2): [206](#leetcode-206), [92](#leetcode-92)
+- [L3 — Local group reversal](#subpattern-l3): [24](#leetcode-24), [25](#leetcode-25)
+- [L4 — Fast/slow midpoint + second-half reversal](#subpattern-l4): [876](#leetcode-876), [2095](#leetcode-2095), [234](#leetcode-234), [2130](#leetcode-2130)
+- [L5 — Floyd cycle detection and entry](#subpattern-l5): [141](#leetcode-141), [142](#leetcode-142)
+- [L6 — Sorted-list merging as primitive](#subpattern-l6): [21](#leetcode-21), [148](#leetcode-148)
+- [L7 — Predicate-driven removal and sorted-run deduplication](#subpattern-l7): [203](#leetcode-203), [3217](#leetcode-3217), [83](#leetcode-83), [82](#leetcode-82)
+- [L8 — Fixed-distance two-pointer deletion](#subpattern-l8): [19](#leetcode-19)
+- [L9 — Stable multi-chain partition](#subpattern-l9): [86](#leetcode-86), [328](#leetcode-328)
+- [L10 — Split–reverse–weave reordering](#subpattern-l10): [143](#leetcode-143)
+- [L11 — Circular tail connection and cut](#subpattern-l11): [61](#leetcode-61)
+- [L12 — Least-significant-digit-first list arithmetic](#subpattern-l12): [2](#leetcode-2)
+- [L13 — Most-significant-digit-first list arithmetic](#subpattern-l13): [445](#leetcode-445)
+- [L14 — Identity-based list intersection](#subpattern-l14): [160](#leetcode-160)
+- [L15 — Copying non-linear random-pointer links](#subpattern-l15): [138](#leetcode-138)
+- [L16 — Flattening multilevel doubly linked nodes](#subpattern-l16): [430](#leetcode-430)
+- [L17 — Doubly linked LRU order + hash index](#subpattern-l17): [146](#leetcode-146)
+- [L18 — Frequency buckets with LRU tie-breaking](#subpattern-l18): [460](#leetcode-460)
+- [L19 — Implementing indexed linked-list API](#subpattern-l19): [707](#leetcode-707)
+- [L20 — Linked-list values with monotonic stack](#subpattern-l20): [1019](#leetcode-1019)
+- [L21 — Prefix sums and node-boundary bypass](#subpattern-l21): [1171](#leetcode-1171)
+- [L22 — Reservoir sampling on unknown-length list](#subpattern-l22): [382](#leetcode-382)
+- [L23 — In-place deletion without head access](#subpattern-l23): [237](#leetcode-237)
+- [L24 — Cut-and-splice segment editing](#subpattern-l24): [1669](#leetcode-1669)
+- [L25 — Suffix-dominance node filtering](#subpattern-l25): [2487](#leetcode-2487)
+- [L26 — Local extrema with index-distance tracking](#subpattern-l26): [2058](#leetcode-2058)
+- [L27 — Delimiter-bounded list aggregation](#subpattern-l27): [2181](#leetcode-2181)
+
+- [Final question registry and verification](#final-question-registry)
+
+
+<a id="subpattern-l1"></a>
+
+## Subpattern L1: One-pass payload aggregation
+
+**When to Apply:** A linked sequence carries digits or delimiters, and an answer can be accumulated without mutating links.
+
+**Basic Java Code Snippet:**
+
+```java
+int value = 0;
+for (ListNode node = head; node != null; node = node.next) {
+    value = value * base + node.val; // base supplied by constraints
+}
+```
+
+**Core Logic:** The accumulator represents the entire prefix already consumed. Multiplying by the radix shifts that prefix one place before incorporating the next digit.
+
+**Questions Covered:** 1290
+
+
+### LeetCode 1290
+
+**Question:**
+
+Given a nonempty singly linked list of binary digits, with the most significant bit at the head, return the integer represented by the entire sequence.
+
+**Examples:**
+
+- [1,0,1] → 5
+- [0] → 0
+- [1,1,0] → 6
+
+**Constraints:**
+
+1–30 nodes; values are 0 or 1.
+
+**Why This Subpattern Applies:**
+
+Binary digits arranged from head to tail; fold `value = 2*value + bit` in one forward traversal; O(n)/O(1). The accumulator represents the entire prefix already consumed.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int getDecimalValue(ListNode head) {
+        int value = 0;
+        for (; head != null; head = head.next) value = value * 2 + head.val;
+        return value;
+    }
+}
+```
+
+**Key Logic:**
+
+Each update shifts the existing binary prefix left by one bit and adds the current bit. Leading zeroes are harmless.
+
+**Time Complexity:** O(n), one scan.
+
+**Space Complexity:** O(1), scalar accumulator.
+
+---
+
+
+<a id="subpattern-l2"></a>
+
+## Subpattern L2: In-place contiguous segment reversal
+
+**When to Apply:** A contiguous set of `next` edges must reverse while node identity and O(1) auxiliary space are preserved.
+
+**Basic Java Code Snippet:**
+
+```java
+ListNode prev = null, curr = head;
+while (curr != null) {
+    ListNode next = curr.next;
+    curr.next = prev;
+    prev = curr;
+    curr = next;
+}
+// prev is the head of the reversed segment.
+```
+
+**Core Logic:** At each iteration prev heads the reversed prefix and curr heads the unread suffix. Save the original successor before redirecting the current edge.
+
+**Questions Covered:** 206, 92
+
+
+### LeetCode 206
+
+**Question:**
+
+Given the head of a singly linked list, reverse its links and return the new head. An empty list remains empty; reuse the original nodes.
+
+**Examples:**
+
+- [1,2,3] → [3,2,1]
+- [1] → [1]
+- [] → []
+
+**Constraints:**
+
+0–5000 nodes; -5000 ≤ value ≤ 5000.
+
+**Why This Subpattern Applies:**
+
+Reverse all `next` pointers iteratively with `prev/current/next`; O(n)/O(1). At each iteration prev heads the reversed prefix and curr heads the unread suffix.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public ListNode reverseList(ListNode head) {
+        ListNode prev = null;
+        while (head != null) {
+            ListNode next = head.next;
+            head.next = prev;
+            prev = head;
+            head = next;
+        }
+        return prev;
+    }
+}
+```
+
+**Key Logic:**
+
+Save the successor before overwriting next. The reversed prefix ends at the original head, and prev is its current head.
+
+**Time Complexity:** O(n), each link visited once.
+
+**Space Complexity:** O(1), three references.
+
+---
+
+
+### LeetCode 92
+
+**Question:**
+
+Reverse the nodes from position left through right inclusive (positions start at one), leaving all other nodes in their original order. Return the possibly changed head.
+
+**Examples:**
+
+- [1,2,3,4,5], 2,4 → [1,4,3,2,5]
+- [5],1,1 → [5]
+- [1,2],1,2 → [2,1]
+
+**Constraints:**
+
+1 ≤ n ≤ 500; -500 ≤ value ≤ 500; 1 ≤ left ≤ right ≤ n.
+
+**Why This Subpattern Applies:**
+
+Reverse just 1-indexed interval `[left,right]` in-place using dummy sentinel, preceding node and head-insertion; O(n)/O(1). At each iteration prev heads the reversed prefix and curr heads the unread suffix.
+
+**Connection to Previous Solution:**
+
+From LeetCode 206: Replace the whole-list prev/current loop with a dummy and fixed predecessor at left−1. Keep the original interval head as tail; repeat `move = tail.next; tail.next = move.next; move.next = before.next; before.next = move` exactly right−left times. The outside prefix and suffix remain connected.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public ListNode reverseBetween(ListNode head, int left, int right) {
+        ListNode dummy = new ListNode(0, head), before = dummy;
+        for (int i = 1; i < left; i++) before = before.next;
+        ListNode tail = before.next;
+        for (int i = left; i < right; i++) {
+            ListNode move = tail.next;
+            tail.next = move.next;
+            move.next = before.next;
+            before.next = move;
+        }
+        return dummy.next;
+    }
+}
+```
+
+**Key Logic:**
+
+The sentinel locates the predecessor even when left is one. Keep the original interval head as its tail; repeatedly extract its successor and insert it at the interval front.
+
+**Time Complexity:** O(n), locate and reverse interval.
+
+**Space Complexity:** O(1), sentinel and cursors.
+
+---
+
+
+<a id="subpattern-l3"></a>
+
+## Subpattern L3: Local group reversal
+
+**When to Apply:** Swap actual nodes, not just values; the operation repeats on bounded consecutive groups.
+
+**Basic Java Code Snippet:**
+
+```java
+// before precedes a complete group of size k; verify before calling.
+ListNode first = before.next, after = first;
+for (int i = 0; i < k; i++) after = after.next;
+ListNode prev = after, curr = first;
+while (curr != after) {
+    ListNode next = curr.next;
+    curr.next = prev;
+    prev = curr;
+    curr = next;
+}
+before.next = prev;
+before = first;
+```
+
+**Core Logic:** A group boundary remains anchored by before. Starting prev at the successor after the group makes the reversed tail reconnect automatically; only complete groups should be processed.
+
+**Questions Covered:** 24, 25
+
+
+### LeetCode 24
+
+**Question:**
+
+Swap every adjacent pair of nodes in a singly linked list and return its head. Do not change node values; an unpaired final node stays in place.
+
+**Examples:**
+
+- [1,2,3,4] → [2,1,4,3]
+- [1,2,3] → [2,1,3]
+- [] → []
+
+**Constraints:**
+
+0–100 nodes; 0 ≤ value ≤ 100.
+
+**Why This Subpattern Applies:**
+
+Reverse adjacent pairs with dummy anchor and three pointer rewires per pair; O(n)/O(1). A group boundary remains anchored by before.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public ListNode swapPairs(ListNode head) {
+        ListNode dummy = new ListNode(0, head), before = dummy;
+        while (before.next != null && before.next.next != null) {
+            ListNode a = before.next, b = a.next;
+            a.next = b.next;
+            b.next = a;
+            before.next = b;
+            before = a;
+        }
+        return dummy.next;
+    }
+}
+```
+
+**Key Logic:**
+
+Before each pair, before points to the preceding node. Reconnect a to the suffix, b to a, and before to b; advance before to a.
+
+**Time Complexity:** O(n), one visit per pair.
+
+**Space Complexity:** O(1), constant pointers.
+
+---
+
+
+### LeetCode 25
+
+**Question:**
+
+Reverse each consecutive group of k nodes, using node rewiring rather than modifying values. If fewer than k nodes remain at the end, preserve their order. Return the new head.
+
+**Examples:**
+
+- [1,2,3,4,5],2 → [2,1,4,3,5]
+- same list,3 → [3,2,1,4,5]
+- [1],1 → [1]
+
+**Constraints:**
+
+1 ≤ k ≤ n ≤ 5000; 0 ≤ value ≤ 1000.
+
+**Why This Subpattern Applies:**
+
+Reverse only *complete* groups of `k` by finding kth node, reversing group and reconnecting; O(n)/O(1). A group boundary remains anchored by before.
+
+**Connection to Previous Solution:**
+
+From LeetCode 24: Replace the two-node `a/b` swap with a k-step lookahead from before. Seed `prev = after`, reverse links until `curr == after`, reconnect `before.next = kth`, then set before to the old first node. An incomplete group is returned unchanged.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public ListNode reverseKGroup(ListNode head, int k) {
+        ListNode dummy = new ListNode(0, head), before = dummy;
+        while (true) {
+            ListNode kth = before;
+            for (int i = 0; i < k && kth != null; i++) kth = kth.next;
+            if (kth == null) return dummy.next;
+            ListNode after = kth.next, curr = before.next, prev = after;
+            ListNode oldFirst = curr;
+            while (curr != after) {
+                ListNode next = curr.next;
+                curr.next = prev;
+                prev = curr;
+                curr = next;
+            }
+            before.next = kth;
+            before = oldFirst;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+First verify k nodes exist. Seed prev with the group successor so reversal automatically attaches the suffix. The old first node becomes the next group predecessor.
+
+**Time Complexity:** O(n), at most two visits per group.
+
+**Space Complexity:** O(1), constant pointers.
+
+---
+
+
+<a id="subpattern-l4"></a>
+
+## Subpattern L4: Fast/slow midpoint + second-half reversal
+
+**When to Apply:** A middle position or symmetric nodes are needed without array conversion.
+
+**Basic Java Code Snippet:**
+
+```java
+ListNode slow = head, fast = head;
+while (fast != null && fast.next != null) {
+    slow = slow.next;
+    fast = fast.next.next;
+}
+// slow is middle; optionally reverse/compare second half.
+```
+
+**Core Logic:** The two-to-one speed ratio identifies a midpoint without length counting. For symmetric comparisons, reverse only the second half to align pairs.
+
+**Questions Covered:** 876, 2095, 234, 2130
+
+
+### LeetCode 876
+
+**Question:**
+
+Return the actual middle node of a nonempty singly linked list. If there are two middle nodes, return the second one. The returned node includes its remaining suffix.
+
+**Examples:**
+
+- [1,2,3,4,5] → [3,4,5]
+- [1,2,3,4,5,6] → [4,5,6]
+- [1] → [1]
+
+**Constraints:**
+
+1–100 nodes; 1 ≤ value ≤ 100.
+
+**Why This Subpattern Applies:**
+
+Find second middle of singly linked list with slow/fast cursors; O(n)/O(1). The two-to-one speed ratio identifies a midpoint without length counting.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public ListNode middleNode(ListNode head) {
+        ListNode slow = head, fast = head;
+        while (fast != null && fast.next != null) {
+            slow = slow.next;
+            fast = fast.next.next;
+        }
+        return slow;
+    }
+}
+```
+
+**Key Logic:**
+
+Fast moves twice as far as slow. When fast reaches the end, slow has moved floor(n/2) positions from head.
+
+**Time Complexity:** O(n), fast traverses list.
+
+**Space Complexity:** O(1), two pointers.
+
+---
+
+
+### LeetCode 2095
+
+**Question:**
+
+Delete the node at zero-based index floor(n/2) and return the head. For a one-node list, the result is empty.
+
+**Examples:**
+
+- [1,3,4,7,1,2,6] → [1,3,4,1,2,6]
+- [1,2,3,4] → [1,2,4]
+- [1] → []
+
+**Constraints:**
+
+1–100000 nodes; 1 ≤ value ≤ 100000.
+
+**Why This Subpattern Applies:**
+
+Delete middle node using previous+slow+fast; O(n)/O(1). The two-to-one speed ratio identifies a midpoint without length counting.
+
+**Connection to Previous Solution:**
+
+From LeetCode 876: Keep the identical slow/fast loop, but assign `prev = slow` before advancing slow. Replace `return slow` with `prev.next = slow.next; return head`; return null for a singleton.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public ListNode deleteMiddle(ListNode head) {
+        if (head.next == null) return null;
+        ListNode slow = head, fast = head, prev = null;
+        while (fast != null && fast.next != null) {
+            prev = slow;
+            slow = slow.next;
+            fast = fast.next.next;
+        }
+        prev.next = slow.next;
+        return head;
+    }
+}
+```
+
+**Key Logic:**
+
+Track the predecessor before advancing slow; after the fast scan it points immediately before the required deletion. Handle singleton separately.
+
+**Time Complexity:** O(n), midpoint scan.
+
+**Space Complexity:** O(1), constant pointers.
+
+---
+
+
+### LeetCode 234
+
+**Question:**
+
+Determine whether the sequence of values in a singly linked list is a palindrome, meaning it reads identically in either direction. Return a boolean; target linear time and constant auxiliary memory.
+
+**Examples:**
+
+- [1,2,2,1] → true
+- [1,2] → false
+- [1,2,1] → true
+
+**Constraints:**
+
+1–100000 nodes; 0 ≤ value ≤ 9.
+
+**Why This Subpattern Applies:**
+
+Test palindrome by finding midpoint, reversing the second half, pairwise comparing, then optionally restoring links; O(n)/O(1). The two-to-one speed ratio identifies a midpoint without length counting.
+
+**Connection to Previous Solution:**
+
+From LeetCode 2095: Replace predecessor tracking/deletion with a midpoint loop that stops at the first-half tail (`fast.next != null && fast.next.next != null`). Reverse `slow.next`, compare aligned values, and restore the reversed segment before returning the boolean.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public boolean isPalindrome(ListNode head) {
+        ListNode slow = head, fast = head;
+        while (fast.next != null && fast.next.next != null) {
+            slow = slow.next;
+            fast = fast.next.next;
+        }
+        ListNode second = reverse(slow.next);
+        boolean equal = true;
+        for (ListNode a = head, b = second; b != null; a = a.next, b = b.next) {
+            if (a.val != b.val) { equal = false; break; }
+        }
+        slow.next = reverse(second);
+        return equal;
+    }
+    private ListNode reverse(ListNode p) {
+        ListNode prev = null;
+        while (p != null) {
+            ListNode next = p.next;
+            p.next = prev;
+            prev = p;
+            p = next;
+        }
+        return prev;
+    }
+}
+```
+
+**Key Logic:**
+
+Find the end of the first half, reverse the following nodes and compare until that reversed half ends. Restore even after a mismatch so the caller retains the original list.
+
+**Time Complexity:** O(n), midpoint, reversal, comparison and restoration.
+
+**Space Complexity:** O(1), constant pointers.
+
+---
+
+
+### LeetCode 2130
+
+**Question:**
+
+For an even-length list of n nodes, node i and node n-1-i are twins for 0 ≤ i < n/2. Return the largest sum of values of any twin pair.
+
+**Examples:**
+
+- [5,4,2,1] → 6
+- [4,2,2,3] → 7
+- [1,100000] → 100001
+
+**Constraints:**
+
+Even n, 2–100000 nodes; 1 ≤ value ≤ 100000.
+
+**Why This Subpattern Applies:**
+
+Compute maximum twin sum on even-length list by reversing second half and scanning paired halves; O(n)/O(1). The two-to-one speed ratio identifies a midpoint without length counting.
+
+**Connection to Previous Solution:**
+
+From LeetCode 234: Retain the same midpoint, reverse helper and restoration as LC 234. Replace the mismatch branch with `best = Math.max(best, a.val + b.val)` and return best; the list length is guaranteed even.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int pairSum(ListNode head) {
+        ListNode slow = head, fast = head;
+        while (fast.next != null && fast.next.next != null) {
+            slow = slow.next;
+            fast = fast.next.next;
+        }
+        ListNode second = reverse(slow.next);
+        int best = 0;
+        for (ListNode a = head, b = second; b != null; a = a.next, b = b.next)
+            best = Math.max(best, a.val + b.val);
+        slow.next = reverse(second);
+        return best;
+    }
+    private ListNode reverse(ListNode p) {
+        ListNode prev = null;
+        while (p != null) {
+            ListNode next = p.next;
+            p.next = prev;
+            prev = p;
+            p = next;
+        }
+        return prev;
+    }
+}
+```
+
+**Key Logic:**
+
+Reverse the second half to align each twin with its partner from the head. Track the maximum sum and restore the original links.
+
+**Time Complexity:** O(n), half reversal and scan.
+
+**Space Complexity:** O(1), constant pointers.
+
+---
+
+
+<a id="subpattern-l5"></a>
+
+## Subpattern L5: Floyd cycle detection and entry
+
+**When to Apply:** Nodes may revisit a predecessor and only O(1) extra memory is allowed.
+
+**Basic Java Code Snippet:**
+
+```java
+ListNode slow = head, fast = head;
+while (fast != null && fast.next != null) {
+    slow = slow.next;
+    fast = fast.next.next;
+    if (slow == fast) { /* meeting inside cycle */ break; }
+}
+```
+
+**Core Logic:** Acyclic traversal eventually reaches null; in a cycle, the faster cursor gains one position per iteration. A meeting proves a cycle, and a second phase can locate its entrance.
+
+**Questions Covered:** 141, 142
+
+
+### LeetCode 141
+
+**Question:**
+
+Return whether a linked list contains a cycle: following next repeatedly can revisit the same node. The judge may describe a tail connection using pos, but pos is not an argument. Do not modify the list.
+
+**Examples:**
+
+- [3,2,0,-4], pos=1 → true
+- [1,2], pos=0 → true
+- [1], pos=-1 → false
+
+**Constraints:**
+
+0–10000 nodes; -100000 ≤ value ≤ 100000; pos is -1 or a valid index.
+
+**Why This Subpattern Applies:**
+
+Detect cycle via slow/fast identity meeting; O(n)/O(1). Acyclic traversal eventually reaches null; in a cycle, the faster cursor gains one position per iteration.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public boolean hasCycle(ListNode head) {
+        ListNode slow = head, fast = head;
+        while (fast != null && fast.next != null) {
+            slow = slow.next;
+            fast = fast.next.next;
+            if (slow == fast) return true;
+        }
+        return false;
+    }
+}
+```
+
+**Key Logic:**
+
+If acyclic, fast reaches null. Within a cycle the relative distance changes by one each step, so the references must meet. Compare references, not values.
+
+**Time Complexity:** O(n), meeting or termination.
+
+**Space Complexity:** O(1), two pointers.
+
+---
+
+
+### LeetCode 142
+
+**Question:**
+
+Return the actual node where the cycle begins, or null if there is no cycle. The judge describes the tail link using pos, which is not a method argument. Preserve the list.
+
+**Examples:**
+
+- [3,2,0,-4], pos=1 → node at index 1
+- [1,2], pos=0 → head
+- [1], pos=-1 → null
+
+**Constraints:**
+
+0–10000 nodes; -100000 ≤ value ≤ 100000; pos is -1 or valid index.
+
+**Why This Subpattern Applies:**
+
+Locate cycle entrance after detecting a meeting; O(n)/O(1). Acyclic traversal eventually reaches null; in a cycle, the faster cursor gains one position per iteration.
+
+**Connection to Previous Solution:**
+
+From LeetCode 141: Keep the Floyd meeting test. Instead of returning true, reset `slow = head` and advance both pointers one edge at a time until their references agree. Replace false with null for acyclic lists.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public ListNode detectCycle(ListNode head) {
+        ListNode slow = head, fast = head;
+        while (fast != null && fast.next != null) {
+            slow = slow.next;
+            fast = fast.next.next;
+            if (slow == fast) {
+                slow = head;
+                while (slow != fast) { slow = slow.next; fast = fast.next; }
+                return slow;
+            }
+        }
+        return null;
+    }
+}
+```
+
+**Key Logic:**
+
+At a meeting, the distance from head to entry equals the distance from meeting to entry modulo cycle length. Reset slow to head and move both one step until they meet at entry.
+
+**Time Complexity:** O(n), two Floyd phases.
+
+**Space Complexity:** O(1), two pointers.
+
+---
+
+
+<a id="subpattern-l6"></a>
+
+## Subpattern L6: Sorted-list merging as primitive
+
+**When to Apply:** Two sorted runs can be consumed by selecting smaller front node and relinking, without copying payloads.
+
+**Basic Java Code Snippet:**
+
+```java
+ListNode dummy = new ListNode(), tail = dummy;
+while (a != null && b != null) {
+    if (a.val <= b.val) { tail.next = a; a = a.next; }
+    else { tail.next = b; b = b.next; }
+    tail = tail.next;
+}
+tail.next = a != null ? a : b;
+```
+
+**Core Logic:** The output prefix remains sorted and contains all consumed nodes. The smallest remaining value must be at the head of one of the sorted inputs.
+
+**Questions Covered:** 21, 148
+
+
+### LeetCode 21
+
+**Question:**
+
+Merge two nondecreasing singly linked lists into one nondecreasing list by splicing together their original nodes. Return the merged head; either input can be empty.
+
+**Examples:**
+
+- [1,2,4], [1,3,4] → [1,1,2,3,4]
+- [],[] → []
+- [],[0] → [0]
+
+**Constraints:**
+
+0–50 nodes per list; -100 ≤ value ≤ 100; both sorted nondecreasing.
+
+**Why This Subpattern Applies:**
+
+Merge two sorted lists with dummy tail, attaching smaller head until one list ends; O(n+m)/O(1). The output prefix remains sorted and contains all consumed nodes.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public ListNode mergeTwoLists(ListNode a, ListNode b) {
+        ListNode dummy = new ListNode(), tail = dummy;
+        while (a != null && b != null) {
+            if (a.val <= b.val) { tail.next = a; a = a.next; }
+            else { tail.next = b; b = b.next; }
+            tail = tail.next;
+        }
+        tail.next = a != null ? a : b;
+        return dummy.next;
+    }
+}
+```
+
+**Key Logic:**
+
+The smaller front is the smallest remaining value. Append it to the sorted prefix, then attach the entire remaining run when one input ends.
+
+**Time Complexity:** O(n+m), each node consumed once.
+
+**Space Complexity:** O(1), sentinel and cursors.
+
+---
+
+
+### LeetCode 148
+
+**Question:**
+
+Sort a singly linked list in ascending order and return its head. The required efficient approach runs in O(n log n); the follow-up requests constant auxiliary space.
+
+**Examples:**
+
+- [4,2,1,3] → [1,2,3,4]
+- [-1,5,3,4,0] → [-1,0,3,4,5]
+- [] → []
+
+**Constraints:**
+
+0–50000 nodes; -100000 ≤ value ≤ 100000.
+
+**Why This Subpattern Applies:**
+
+Sort list in O(n log n) time using linked-list merge sort; split by middle and reuse two-list merge; O(log n) recursion. The output prefix remains sorted and contains all consumed nodes.
+
+**Connection to Previous Solution:**
+
+From LeetCode 21: Extract LC 21’s merge loop into a helper. Add a base case for zero/one node, find the first-half tail using fast=head.next, sever its next, recursively sort both halves, then pass them into merge.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public ListNode sortList(ListNode head) {
+        if (head == null || head.next == null) return head;
+        ListNode slow = head, fast = head.next;
+        while (fast != null && fast.next != null) {
+            slow = slow.next;
+            fast = fast.next.next;
+        }
+        ListNode right = slow.next;
+        slow.next = null;
+        return merge(sortList(head), sortList(right));
+    }
+    private ListNode merge(ListNode a, ListNode b) {
+        ListNode dummy = new ListNode(), tail = dummy;
+        while (a != null && b != null) {
+            if (a.val <= b.val) { tail.next = a; a = a.next; }
+            else { tail.next = b; b = b.next; }
+            tail = tail.next;
+        }
+        tail.next = a != null ? a : b;
+        return dummy.next;
+    }
+}
+```
+
+**Key Logic:**
+
+Split into two nonempty halves by stopping slow at the first half tail and severing its next. Recursively sort each half and merge using the same front-selection rule. This follows the locked recursive strategy.
+
+**Time Complexity:** O(n log n), linear merging per level.
+
+**Space Complexity:** O(log n), recursive call stack; bottom-up variant meets constant-space follow-up.
+
+---
+
+
+<a id="subpattern-l7"></a>
+
+## Subpattern L7: Predicate-driven removal and sorted-run deduplication
+
+**When to Apply:** Nodes are removed or retained based on a local predicate, and a sentinel simplifies head deletion.
+
+**Basic Java Code Snippet:**
+
+```java
+ListNode dummy = new ListNode(0, head), prev = dummy;
+while (prev.next != null) {
+    if (shouldRemove(prev.next)) prev.next = prev.next.next;
+    else prev = prev.next;
+}
+// shouldRemove(...) represents a problem-specific predicate.
+```
+
+**Core Logic:** The predecessor always belongs to the retained prefix. Removing its successor does not move the predecessor; retaining a successor advances it. Sorted runs enable whole-group removal.
+
+**Questions Covered:** 203, 3217, 83, 82
+
+
+### LeetCode 203
+
+**Question:**
+
+Remove every node whose value equals val from a singly linked list. Return the head of the remaining list, retaining the order of all other nodes.
+
+**Examples:**
+
+- [1,2,6,3,4,5,6],6 → [1,2,3,4,5]
+- [7,7],7 → []
+- [],1 → []
+
+**Constraints:**
+
+0–10000 nodes; 1 ≤ node value ≤ 50; 0 ≤ val ≤ 50.
+
+**Why This Subpattern Applies:**
+
+Remove all nodes whose value equals a constant using dummy and predecessor/current rewiring; O(n)/O(1). The predecessor always belongs to the retained prefix.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public ListNode removeElements(ListNode head, int val) {
+        ListNode dummy = new ListNode(0, head), prev = dummy;
+        while (prev.next != null) {
+            if (prev.next.val == val) prev.next = prev.next.next;
+            else prev = prev.next;
+        }
+        return dummy.next;
+    }
+}
+```
+
+**Key Logic:**
+
+Inspect prev.next; on deletion do not advance prev, allowing consecutive matches. The dummy handles removing the original head.
+
+**Time Complexity:** O(n), inspect each node.
+
+**Space Complexity:** O(1), sentinel and predecessor.
+
+---
+
+
+### LeetCode 3217
+
+**Question:**
+
+Given an integer array nums and a linked list, delete all nodes whose values occur anywhere in nums. Return the remaining head; preserve the original order of retained nodes.
+
+**Examples:**
+
+- nums=[1,2,3], head=[1,2,3,4,5] → [4,5]
+- nums=[1], head=[1,2,1,2] → [2,2]
+- nums=[5], head=[1,2] → [1,2]
+
+**Constraints:**
+
+1–100000 array entries and list nodes; values 1–100000; nums distinct; at least one list node has a value absent from nums.
+
+**Why This Subpattern Applies:**
+
+Delete nodes whose values belong to a provided set; use `HashSet` and the same dummy removal loop; expected O(n+m) time/O(m) space. The predecessor always belongs to the retained prefix.
+
+**Connection to Previous Solution:**
+
+From LeetCode 203: Build a HashSet from nums, then replace `prev.next.val == val` with `forbidden.contains(prev.next.val)`. The sentinel and deletion/advance branches are unchanged.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public ListNode modifiedList(int[] nums, ListNode head) {
+        java.util.Set<Integer> forbidden = new java.util.HashSet<>();
+        for (int x : nums) forbidden.add(x);
+        ListNode dummy = new ListNode(0, head), prev = dummy;
+        while (prev.next != null) {
+            if (forbidden.contains(prev.next.val)) prev.next = prev.next.next;
+            else prev = prev.next;
+        }
+        return dummy.next;
+    }
+}
+```
+
+**Key Logic:**
+
+Precompute membership once, then reuse predecessor deletion without advancing on matches. No retained nodes are copied.
+
+**Time Complexity:** O(n+m) expected, set build and scan.
+
+**Space Complexity:** O(m), membership set.
+
+---
+
+
+### LeetCode 83
+
+**Question:**
+
+Given a nondecreasing linked list, remove duplicate occurrences so that every distinct value appears exactly once. Return the sorted list with one representative per value.
+
+**Examples:**
+
+- [1,1,2] → [1,2]
+- [1,1,2,3,3] → [1,2,3]
+- [] → []
+
+**Constraints:**
+
+0–300 nodes; -100 ≤ value ≤ 100; sorted nondecreasing.
+
+**Why This Subpattern Applies:**
+
+From a *sorted* list, retain one representative of each run; compare current and next and bypass duplicates; O(n)/O(1). The predecessor always belongs to the retained prefix.
+
+**Connection to Previous Solution:**
+
+From LeetCode 3217: Remove the forbidden set and sentinel (the first node of a sorted run is always retained). Replace membership with `p.val == p.next.val`; bypass equal successors and advance only at a new value.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public ListNode deleteDuplicates(ListNode head) {
+        ListNode p = head;
+        while (p != null && p.next != null) {
+            if (p.val == p.next.val) p.next = p.next.next;
+            else p = p.next;
+        }
+        return head;
+    }
+}
+```
+
+**Key Logic:**
+
+Equal values are consecutive. Keep the first node of a run and repeatedly bypass equal successors; advance only when the next value differs.
+
+**Time Complexity:** O(n), each successor inspected.
+
+**Space Complexity:** O(1), one cursor.
+
+---
+
+
+### LeetCode 82
+
+**Question:**
+
+Given a nondecreasing linked list, delete every node whose value occurs more than once, including the first occurrence. Return only values occurring exactly once, in sorted order.
+
+**Examples:**
+
+- [1,2,3,3,4,4,5] → [1,2,5]
+- [1,1,1,2,3] → [2,3]
+- [1,1] → []
+
+**Constraints:**
+
+0–300 nodes; -100 ≤ value ≤ 100; sorted nondecreasing.
+
+**Why This Subpattern Applies:**
+
+From sorted list, remove *entire* runs whose value repeats; dummy plus run-end scan and bypass whole repeated group; O(n)/O(1). The predecessor always belongs to the retained prefix.
+
+**Connection to Previous Solution:**
+
+From LeetCode 83: Replace LC 83’s one-at-a-time duplicate bypass with a run-end scan. Restore a dummy predecessor to allow removing the first run; if `start != end`, assign `prev.next = end.next`, otherwise advance prev to start.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public ListNode deleteDuplicates(ListNode head) {
+        ListNode dummy = new ListNode(0, head), prev = dummy;
+        while (prev.next != null) {
+            ListNode start = prev.next, end = start;
+            while (end.next != null && end.next.val == start.val) end = end.next;
+            if (start != end) prev.next = end.next;
+            else prev = start;
+        }
+        return dummy.next;
+    }
+}
+```
+
+**Key Logic:**
+
+Scan to the end of each equal-value run. If its first and last references differ, bypass the entire run; otherwise advance the retained predecessor.
+
+**Time Complexity:** O(n), each run scanned once.
+
+**Space Complexity:** O(1), sentinel and cursors.
+
+---
+
+
+<a id="subpattern-l8"></a>
+
+## Subpattern L8: Fixed-distance two-pointer deletion
+
+**When to Apply:** Remove the kth node measured backward from the tail in one scan.
+
+**Basic Java Code Snippet:**
+
+```java
+ListNode dummy = new ListNode(0, head);
+ListNode fast = dummy, slow = dummy;
+for (int i = 0; i < gap; i++) fast = fast.next;
+while (fast.next != null) { fast = fast.next; slow = slow.next; }
+// slow.next identifies the node to unlink.
+```
+
+**Core Logic:** After initialization fast is exactly gap edges ahead of slow. Preserve this distance until fast reaches the final node, making slow the target predecessor.
+
+**Questions Covered:** 19
+
+
+### LeetCode 19
+
+**Question:**
+
+Remove the nth node counted from the end of the linked list and return its head. A one-pass solution is desired; n is guaranteed valid.
+
+**Examples:**
+
+- [1,2,3,4,5],2 → [1,2,3,5]
+- [1],1 → []
+- [1,2],1 → [1]
+
+**Constraints:**
+
+1 ≤ n ≤ list length ≤ 30; 0 ≤ value ≤ 100.
+
+**Why This Subpattern Applies:**
+
+Maintain fixed gap of n between fast and slow pointers from dummy node; unlink target when fast reaches end; O(n)/O(1). After initialization fast is exactly gap edges ahead of slow.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public ListNode removeNthFromEnd(ListNode head, int n) {
+        ListNode dummy = new ListNode(0, head), fast = dummy, slow = dummy;
+        for (int i = 0; i < n; i++) fast = fast.next;
+        while (fast.next != null) { fast = fast.next; slow = slow.next; }
+        slow.next = slow.next.next;
+        return dummy.next;
+    }
+}
+```
+
+**Key Logic:**
+
+Advance fast n edges from dummy. When fast reaches the last node, slow is immediately before the target. Bypass slow.next, including when it is head.
+
+**Time Complexity:** O(L), L is list length.
+
+**Space Complexity:** O(1), two pointers and dummy.
+
+---
+
+
+<a id="subpattern-l9"></a>
+
+## Subpattern L9: Stable multi-chain partition
+
+**When to Apply:** Nodes must be rearranged into categories preserving original order inside each category.
+
+**Basic Java Code Snippet:**
+
+```java
+ListNode leftDummy = new ListNode(), rightDummy = new ListNode();
+ListNode left = leftDummy, right = rightDummy;
+for (ListNode node = head; node != null; ) {
+    ListNode next = node.next; node.next = null;
+    if (inFirstGroup(node)) { left.next = node; left = node; }
+    else { right.next = node; right = node; }
+    node = next;
+}
+left.next = rightDummy.next;
+```
+
+**Core Logic:** Each category tail is the last node encountered in that category. Detach each incoming node, append it without reordering, and concatenate the finished chains.
+
+**Questions Covered:** 86, 328
+
+
+### LeetCode 86
+
+**Question:**
+
+Partition a list around x so that all nodes with values below x precede all nodes with values at least x. Preserve relative order within both groups and return the head.
+
+**Examples:**
+
+- [1,4,3,2,5,2],3 → [1,2,2,4,3,5]
+- [2,1],2 → [1,2]
+- [],0 → []
+
+**Constraints:**
+
+0–200 nodes; -100 ≤ value ≤ 100; -200 ≤ x ≤ 200.
+
+**Why This Subpattern Applies:**
+
+Split nodes into `< x` and `>= x` chains, append each to its own tail and concatenate; O(n)/O(1). Each category tail is the last node encountered in that category.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public ListNode partition(ListNode head, int x) {
+        ListNode low = new ListNode(), high = new ListNode(), a = low, b = high;
+        while (head != null) {
+            ListNode next = head.next;
+            head.next = null;
+            if (head.val < x) { a.next = head; a = head; }
+            else { b.next = head; b = head; }
+            head = next;
+        }
+        a.next = high.next;
+        return low.next;
+    }
+}
+```
+
+**Key Logic:**
+
+Append each original node to its category tail, saving its successor first. Terminate the right chain to prevent stale links and concatenate both chains.
+
+**Time Complexity:** O(n), one scan.
+
+**Space Complexity:** O(1), two sentinels and tails.
+
+---
+
+
+### LeetCode 328
+
+**Question:**
+
+Group nodes at odd one-based positions followed by nodes at even one-based positions. Preserve the original relative order within each group. Rearrange the links in linear time and constant auxiliary memory.
+
+**Examples:**
+
+- [1,2,3,4,5] → [1,3,5,2,4]
+- [2,1,3,5,6,4,7] → [2,3,6,7,1,5,4]
+- [] → []
+
+**Constraints:**
+
+0–10000 nodes; -1000000 ≤ value ≤ 1000000.
+
+**Why This Subpattern Applies:**
+
+Rearrange odd/even *position* nodes into two stable chains in O(n)/O(1). Each category tail is the last node encountered in that category.
+
+**Connection to Previous Solution:**
+
+From LeetCode 86: Keep two stable chains, but classify by alternating original positions instead of value comparison. Initialize odd=head, even=head.next and save evenHead; advance each chain by two original positions via rewiring and join odd.next to evenHead.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public ListNode oddEvenList(ListNode head) {
+        if (head == null) return null;
+        ListNode odd = head, even = head.next, evenHead = even;
+        while (even != null && even.next != null) {
+            odd.next = even.next;
+            odd = odd.next;
+            even.next = odd.next;
+            even = even.next;
+        }
+        odd.next = evenHead;
+        return head;
+    }
+}
+```
+
+**Key Logic:**
+
+Maintain odd and even tails and save the first even node. Each iteration moves the next odd then next even into its chain; finally concatenate. Parity refers to positions, not values.
+
+**Time Complexity:** O(n), each node relinked once.
+
+**Space Complexity:** O(1), constant pointers.
+
+---
+
+
+<a id="subpattern-l10"></a>
+
+## Subpattern L10: Split–reverse–weave reordering
+
+**When to Apply:** First and last nodes must alternate without allocating a new list.
+
+**Basic Java Code Snippet:**
+
+```java
+// a and b head two disjoint chains; a is at least as long as b.
+// Reverse b before weaving if the desired order is back-to-front.
+while (b != null) {
+    ListNode an = a.next, bn = b.next;
+    a.next = b;
+    b.next = an;
+    a = an;
+    b = bn;
+}
+```
+
+**Core Logic:** After splitting and reversing the back half, weaving consumes one node from each chain per iteration. Save both next references before rewiring; the longer front half retains any final middle node.
+
+**Questions Covered:** 143
+
+
+### LeetCode 143
+
+**Question:**
+
+Reorder nodes L0→L1→…→Ln into L0→Ln→L1→Ln-1→L2→Ln-2 and so on. Modify the list in place without changing node values; the method returns nothing.
+
+**Examples:**
+
+- [1,2,3,4] → [1,4,2,3]
+- [1,2,3,4,5] → [1,5,2,4,3]
+- [1] → [1]
+
+**Constraints:**
+
+1–50000 nodes; 1 ≤ value ≤ 1000.
+
+**Why This Subpattern Applies:**
+
+Find middle, reverse second half, then interleave front and reversed back, O(n)/O(1). After splitting and reversing the back half, weaving consumes one node from each chain per iteration.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public void reorderList(ListNode head) {
+        if (head == null || head.next == null) return;
+        ListNode slow = head, fast = head;
+        while (fast.next != null && fast.next.next != null) {
+            slow = slow.next; fast = fast.next.next;
+        }
+        ListNode b = slow.next, prev = null;
+        slow.next = null;
+        while (b != null) {
+            ListNode next = b.next; b.next = prev; prev = b; b = next;
+        }
+        ListNode a = head;
+        b = prev;
+        while (b != null) {
+            ListNode an = a.next, bn = b.next;
+            a.next = b; b.next = an;
+            a = an; b = bn;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Split after the first half tail (first half may be one longer), reverse the second half, and alternate nodes. Save both successors before writing links to prevent losing nodes or cycles.
+
+**Time Complexity:** O(n), split, reverse and weave.
+
+**Space Complexity:** O(1), constant pointers.
+
+---
+
+
+<a id="subpattern-l11"></a>
+
+## Subpattern L11: Circular tail connection and cut
+
+**When to Apply:** Right rotation must move an entire suffix ahead of prefix while preserving relative order.
+
+**Basic Java Code Snippet:**
+
+```java
+// Nonempty list, and cutCount is in [1, length].
+ListNode tail = head;
+while (tail.next != null) tail = tail.next;
+tail.next = head;
+ListNode cut = head;
+for (int i = 1; i < cutCount; i++) cut = cut.next;
+ListNode newHead = cut.next;
+cut.next = null;
+```
+
+**Core Logic:** A temporary ring makes any node a possible head. Cutting one edge at the intended predecessor preserves all nodes and cyclic relative order.
+
+**Questions Covered:** 61
+
+
+### LeetCode 61
+
+**Question:**
+
+Rotate a singly linked list to the right by k positions. Each single rotation moves the last node to the front. Return the resulting head; k may greatly exceed the length.
+
+**Examples:**
+
+- [1,2,3,4,5],2 → [4,5,1,2,3]
+- [0,1,2],4 → [2,0,1]
+- [],5 → []
+
+**Constraints:**
+
+0–500 nodes; -100 ≤ value ≤ 100; 0 ≤ k ≤ 2000000000.
+
+**Why This Subpattern Applies:**
+
+Compute length and tail, reduce k modulo n, temporarily make ring, cut after n-k steps, O(n)/O(1). A temporary ring makes any node a possible head.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public ListNode rotateRight(ListNode head, int k) {
+        if (head == null || head.next == null) return head;
+        int n = 1;
+        ListNode tail = head;
+        while (tail.next != null) { tail = tail.next; n++; }
+        k %= n;
+        if (k == 0) return head;
+        tail.next = head;
+        ListNode cut = head;
+        for (int i = 1; i < n - k; i++) cut = cut.next;
+        ListNode result = cut.next;
+        cut.next = null;
+        return result;
+    }
+}
+```
+
+**Key Logic:**
+
+Reduce k modulo length. If nonzero, connect tail to head and walk to the node at index n-k-1. Its successor is the new head; break the ring there.
+
+**Time Complexity:** O(n), length and cut scan.
+
+**Space Complexity:** O(1), constant pointers.
+
+---
+
+
+<a id="subpattern-l12"></a>
+
+## Subpattern L12: Least-significant-digit-first list arithmetic
+
+**When to Apply:** Digits appear in reverse numerical order so carry propagates in the list traversal direction.
+
+**Basic Java Code Snippet:**
+
+```java
+int carry = 0;
+ListNode dummy = new ListNode(), tail = dummy;
+while (a != null || b != null || carry != 0) {
+    int sum = carry;
+    if (a != null) { sum += a.val; a = a.next; }
+    if (b != null) { sum += b.val; b = b.next; }
+    tail.next = new ListNode(sum % 10);
+    tail = tail.next; carry = sum / 10;
+}
+```
+
+**Core Logic:** The two cursors expose aligned low-order digits. The carry is the only arithmetic state passed to the next column; output is appended in traversal order.
+
+**Questions Covered:** 2
+
+
+### LeetCode 2
+
+**Question:**
+
+Two nonempty linked lists represent nonnegative decimal integers, with one digit per node and least significant digit first. Add the integers and return a list in the same reversed-digit format. Inputs have no leading zeroes except zero itself.
+
+**Examples:**
+
+- [2,4,3],[5,6,4] → [7,0,8] (342+465=807)
+- [0],[0] → [0]
+- [9,9],[1] → [0,0,1]
+
+**Constraints:**
+
+1–100 nodes per input; digits 0–9; no leading zeroes in represented integers except zero.
+
+**Why This Subpattern Applies:**
+
+Walk two digit lists and carry concurrently, build resulting list via dummy tail; O(max(n,m)) time/output. The two cursors expose aligned low-order digits.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public ListNode addTwoNumbers(ListNode a, ListNode b) {
+        ListNode dummy = new ListNode(), tail = dummy;
+        int carry = 0;
+        while (a != null || b != null || carry != 0) {
+            int sum = carry;
+            if (a != null) { sum += a.val; a = a.next; }
+            if (b != null) { sum += b.val; b = b.next; }
+            tail.next = new ListNode(sum % 10);
+            tail = tail.next;
+            carry = sum / 10;
+        }
+        return dummy.next;
+    }
+}
+```
+
+**Key Logic:**
+
+Process both digit cursors, treating missing digits as zero. Append sum modulo ten and retain sum divided by ten; continue while carry remains.
+
+**Time Complexity:** O(max(n,m)), digit columns.
+
+**Space Complexity:** O(1) auxiliary, O(max(n,m)) output.
+
+---
+
+
+<a id="subpattern-l13"></a>
+
+## Subpattern L13: Most-significant-digit-first list arithmetic
+
+**When to Apply:** Digits appear highest place first so carry must be computed from the end.
+
+**Basic Java Code Snippet:**
+
+```java
+java.util.Deque<Integer> digits = new java.util.ArrayDeque<>();
+for (ListNode p = head; p != null; p = p.next) digits.push(p.val);
+ListNode out = null;
+while (!digits.isEmpty()) {
+    int digit = digits.pop(); // low-order digit first
+    out = new ListNode(digit, out); // prepend in high-order-first result
+}
+```
+
+**Core Logic:** LIFO order gives access to the least significant digit first without mutating inputs. Prepending produced digits restores most-significant-first representation.
+
+**Questions Covered:** 445
+
+
+### LeetCode 445
+
+**Question:**
+
+Two nonempty lists represent nonnegative decimal integers with the most significant digit first. Return their sum in the same order, without leading zeroes except zero itself. Use the approach that does not reverse or mutate input lists.
+
+**Examples:**
+
+- [7,2,4,3],[5,6,4] → [7,8,0,7]
+- [2,4,3],[5,6,4] → [8,0,7]
+- [0],[0] → [0]
+
+**Constraints:**
+
+1–100 nodes per input; digits 0–9; no leading zeroes except zero.
+
+**Why This Subpattern Applies:**
+
+Push digits from each list onto stacks and pop least-significant first, prepending output digits; O(n+m) time/space. LIFO order gives access to the least significant digit first without mutating inputs.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public ListNode addTwoNumbers(ListNode a, ListNode b) {
+        java.util.Deque<Integer> x = new java.util.ArrayDeque<>(), y = new java.util.ArrayDeque<>();
+        for (; a != null; a = a.next) x.push(a.val);
+        for (; b != null; b = b.next) y.push(b.val);
+        ListNode result = null;
+        int carry = 0;
+        while (!x.isEmpty() || !y.isEmpty() || carry != 0) {
+            int sum = carry + (x.isEmpty() ? 0 : x.pop()) + (y.isEmpty() ? 0 : y.pop());
+            result = new ListNode(sum % 10, result);
+            carry = sum / 10;
+        }
+        return result;
+    }
+}
+```
+
+**Key Logic:**
+
+Stacks expose least significant unprocessed digits first. Add with carry and prepend each new result node, so the resulting head is the most significant digit.
+
+**Time Complexity:** O(n+m), push and pop each digit.
+
+**Space Complexity:** O(n+m) auxiliary stacks; O(max(n,m)) output.
+
+---
+
+
+<a id="subpattern-l14"></a>
+
+## Subpattern L14: Identity-based list intersection
+
+**When to Apply:** Two lists may share actual node objects and their prefix lengths may differ.
+
+**Basic Java Code Snippet:**
+
+```java
+ListNode a = headA, b = headB;
+while (a != b) {
+    a = a == null ? headB : a.next;
+    b = b == null ? headA : b.next;
+}
+// Same reference (or both null).
+```
+
+**Core Logic:** Switching heads makes each cursor traverse the same combined distance. Comparing references identifies shared objects rather than equal payloads.
+
+**Questions Covered:** 160
+
+
+### LeetCode 160
+
+**Question:**
+
+Given heads of two singly linked lists, return the node at which they intersect by object identity, or null if they do not intersect. Lists are acyclic and must retain their structure. Equal values alone do not imply intersection.
+
+**Examples:**
+
+- A=[4,1,8,4,5], B=[5,6,1,8,4,5], shared suffix starts at 8 → shared node 8
+- A=[2,6,4], B=[1,5], disjoint → null
+- A=[1], B=[1], distinct nodes → null
+
+**Constraints:**
+
+1–30000 nodes per list; 1 ≤ value ≤ 100000; judge supplies valid shared-suffix metadata or no intersection.
+
+**Why This Subpattern Applies:**
+
+Run pointers across A→B and B→A and compare *node references*, converging at shared node or null; O(n+m)/O(1). Switching heads makes each cursor traverse the same combined distance.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public ListNode getIntersectionNode(ListNode headA, ListNode headB) {
+        ListNode a = headA, b = headB;
+        while (a != b) {
+            a = a == null ? headB : a.next;
+            b = b == null ? headA : b.next;
+        }
+        return a;
+    }
+}
+```
+
+**Key Logic:**
+
+Each pointer traverses both prefixes in opposite order. After switching heads their remaining distances to the shared suffix agree; if disjoint they both reach null.
+
+**Time Complexity:** O(n+m), equalized traversal.
+
+**Space Complexity:** O(1), two references.
+
+---
+
+
+<a id="subpattern-l15"></a>
+
+## Subpattern L15: Copying non-linear random-pointer links
+
+**When to Apply:** Besides `next`, each node has a `random` edge and clone must preserve graph identity.
+
+**Basic Java Code Snippet:**
+
+```java
+// Interleave clones; Node has val, next and random fields.
+for (Node p = head; p != null; p = p.next.next) {
+    Node copy = new Node(p.val);
+    copy.next = p.next;
+    p.next = copy;
+}
+for (Node p = head; p != null; p = p.next.next)
+    p.next.random = p.random == null ? null : p.random.next;
+// Original p and its clone p.next are now directly adjacent.
+```
+
+**Core Logic:** Interleaving gives an implicit original-to-copy map: each original is immediately followed by its clone. Random edges can be assigned before separating the two chains.
+
+**Questions Covered:** 138
+
+
+### LeetCode 138
+
+**Question:**
+
+Each node has a value, next pointer and random pointer that may point to any node in the list or null. Construct a deep copy with exactly one new node per original and equivalent next/random relationships. No copy pointer may reference an original; return the copied head.
+
+**Examples:**
+
+- [[7,null],[13,0],[11,4],[10,2],[1,0]] → identical serialization with new identities
+- [[1,1],[2,1]] → identical serialization
+- [] → [] (pairs are value, random index)
+
+**Constraints:**
+
+0–1000 nodes; -10000 ≤ value ≤ 10000; random is null or points within list.
+
+**Why This Subpattern Applies:**
+
+Interleave copied nodes after originals, map random edges via `original.random.next`, then detach; O(n)/O(1) auxiliary excluding copies. Interleaving gives an implicit original-to-copy map: each original is immediately followed by its clone.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public Node copyRandomList(Node head) {
+        if (head == null) return null;
+        for (Node p = head; p != null; p = p.next.next) {
+            Node copy = new Node(p.val);
+            copy.next = p.next;
+            p.next = copy;
+        }
+        for (Node p = head; p != null; p = p.next.next)
+            p.next.random = p.random == null ? null : p.random.next;
+        Node result = head.next;
+        for (Node p = head; p != null; ) {
+            Node copy = p.next;
+            p.next = copy.next;
+            copy.next = p.next == null ? null : p.next.next;
+            p = p.next;
+        }
+        return result;
+    }
+}
+```
+
+**Key Logic:**
+
+Insert each copy immediately after its original. A random target's copy is therefore target.next. Detach both chains in the final scan, restoring original next links.
+
+**Time Complexity:** O(n), three scans.
+
+**Space Complexity:** O(1) auxiliary, O(n) new output nodes.
+
+---
+
+
+<a id="subpattern-l16"></a>
+
+## Subpattern L16: Flattening multilevel doubly linked nodes
+
+**When to Apply:** Nested `child` chains must be spliced into an ordered doubly linked traversal.
+
+**Basic Java Code Snippet:**
+
+```java
+// p is the current node; deferred contains original siblings.
+if (p.child != null) {
+    if (p.next != null) deferred.push(p.next);
+    p.next = p.child;
+    p.next.prev = p;
+    p.child = null;
+} else if (p.next == null && !deferred.isEmpty()) {
+    p.next = deferred.pop();
+    p.next.prev = p;
+}
+// Continue at p.next.
+```
+
+**Core Logic:** The stack stores deferred siblings in the order required by depth-first traversal. Every splice sets both directions and removes the consumed child edge.
+
+**Questions Covered:** 430
+
+
+### LeetCode 430
+
+**Question:**
+
+A doubly linked list has prev and next pointers and an optional child pointer to another doubly linked list. Flatten it so every child chain appears immediately after its parent and before the parent's original successor, recursively in depth-first order. Clear every child pointer and maintain valid prev/next links.
+
+**Examples:**
+
+- 1→2→3 with child 2→[4,5] → [1,2,4,5,3]
+- 1 with child [2] → [1,2]
+- [] → []
+
+**Constraints:**
+
+0–1000 nodes; 1 ≤ value ≤ 100000; valid multilevel doubly linked structure.
+
+**Why This Subpattern Applies:**
+
+Iterative DFS with stack of deferred next nodes; link both `prev` and `next`, clear child; O(n) time/O(depth or n) stack. The stack stores deferred siblings in the order required by depth-first traversal.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public Node flatten(Node head) {
+        java.util.Deque<Node> deferred = new java.util.ArrayDeque<>();
+        for (Node p = head; p != null; p = p.next) {
+            if (p.child != null) {
+                if (p.next != null) deferred.push(p.next);
+                p.next = p.child;
+                p.next.prev = p;
+                p.child = null;
+            } else if (p.next == null && !deferred.isEmpty()) {
+                p.next = deferred.pop();
+                p.next.prev = p;
+            }
+        }
+        return head;
+    }
+}
+```
+
+**Key Logic:**
+
+Save a parent's original successor on a stack before splicing its child. At a chain end, pop the nearest deferred sibling and connect both directions. Clear child as it is consumed.
+
+**Time Complexity:** O(n), each node processed once.
+
+**Space Complexity:** O(d) deferred siblings, worst O(n), d nesting depth.
+
+---
+
+
+<a id="subpattern-l17"></a>
+
+## Subpattern L17: Doubly linked LRU order + hash index
+
+**When to Apply:** O(1) cache access must move a key to most-recent position and evict least-recent.
+
+**Basic Java Code Snippet:**
+
+```java
+// Entry has prev/next; head and tail are linked sentinels.
+void detach(Entry e) {
+    e.prev.next = e.next;
+    e.next.prev = e.prev;
+}
+void append(Entry e) {
+    e.prev = tail.prev;
+    e.next = tail;
+    tail.prev.next = e;
+    tail.prev = e;
+}
+// Map lookup returns e; detach(e), append(e) refreshes recency.
+```
+
+**Core Logic:** A hash map locates entries directly, while a doubly linked list orders recency. Removing or appending an existing node updates only neighboring edges, independent of cache size.
+
+**Questions Covered:** 146
+
+
+### LeetCode 146
+
+**Question:**
+
+Design a fixed positive-capacity least-recently-used cache. get(key) returns its value or -1 if absent; put(key,value) inserts or updates a key. Successful reads and writes make a key most recently used. When inserting beyond capacity, evict the least recently used key. Both operations must run in average O(1).
+
+**Examples:**
+
+- capacity=2; put(1,1),put(2,2),get(1),put(3,3),get(2) → [null,null,1,null,-1]
+- capacity=1; put(1,7),put(1,8),get(1) → [null,null,8]
+- capacity=1; get(9) → -1
+
+**Constraints:**
+
+1 ≤ capacity ≤ 3000; 0 ≤ key ≤ 10000; 0 ≤ value ≤ 100000; at most 200000 get/put calls.
+
+**Why This Subpattern Applies:**
+
+HashMap key→node plus doubly linked sentinel head/tail; detach, move-to-tail, evict from head in O(1). A hash map locates entries directly, while a doubly linked list orders recency.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class LRUCache {
+    private static class Entry {
+        int key, value;
+        Entry prev, next;
+        Entry(int k, int v) { key = k; value = v; }
+    }
+    private final java.util.Map<Integer, Entry> map = new java.util.HashMap<>();
+    private final Entry head = new Entry(0,0), tail = new Entry(0,0);
+    private final int capacity;
+    public LRUCache(int capacity) {
+        this.capacity = capacity; head.next = tail; tail.prev = head;
+    }
+    private void detach(Entry e) { e.prev.next = e.next; e.next.prev = e.prev; }
+    private void append(Entry e) {
+        e.prev = tail.prev; e.next = tail; tail.prev.next = e; tail.prev = e;
+    }
+    public int get(int key) {
+        Entry e = map.get(key);
+        if (e == null) return -1;
+        detach(e); append(e); return e.value;
+    }
+    public void put(int key, int value) {
+        Entry e = map.get(key);
+        if (e != null) { e.value = value; detach(e); append(e); return; }
+        if (map.size() == capacity) {
+            Entry victim = head.next; detach(victim); map.remove(victim.key);
+        }
+        e = new Entry(key,value); map.put(key,e); append(e);
+    }
+}
+```
+
+**Key Logic:**
+
+Map stores the actual list node. The head sentinel's successor is LRU, tail predecessor MRU. Detach and append on hits; evict from head when full. Judge requires LRUCache rather than Solution.
+
+**Time Complexity:** O(1) expected per operation, hash lookup and constant splices.
+
+**Space Complexity:** O(capacity), map and nodes.
+
+---
+
+
+<a id="subpattern-l18"></a>
+
+## Subpattern L18: Frequency buckets with LRU tie-breaking
+
+**When to Apply:** Evict lowest access frequency, breaking ties by least-recent use.
+
+**Basic Java Code Snippet:**
+
+```java
+// Entry has freq; Bucket exposes remove, add and empty.
+int f = entry.freq;
+Bucket old = buckets.get(f);
+old.remove(entry);
+if (old.empty()) {
+    buckets.remove(f);
+    if (minFrequency == f) minFrequency = f + 1;
+}
+entry.freq = f + 1;
+buckets.computeIfAbsent(entry.freq, ignored -> new Bucket()).add(entry);
+```
+
+**Core Logic:** Each nonempty frequency bucket maintains its own recency order. Promotion moves an entry exactly one frequency higher; minFrequency identifies the eviction bucket.
+
+**Questions Covered:** 460
+
+
+### LeetCode 460
+
+**Question:**
+
+Design a least-frequently-used cache. get returns a stored value or -1; put updates or inserts. Each new key starts with frequency one; a successful get or an update increments frequency. On overflow evict the lowest-frequency key, breaking ties by least recent use among that frequency. Operations must average O(1).
+
+**Examples:**
+
+- capacity=2; put(1,1),put(2,2),get(1),put(3,3),get(2),get(3) → [null,null,1,null,-1,3]
+- capacity=2; put(1,1),put(2,2),put(3,3),get(1) → [null,null,null,-1]
+- capacity=1; put(1,4),put(1,9),get(1) → [null,null,9]
+
+**Constraints:**
+
+1 ≤ capacity ≤ 10000; 0 ≤ key ≤ 100000; 0 ≤ value ≤ 1000000000; at most 200000 calls (implementation also handles zero capacity).
+
+**Why This Subpattern Applies:**
+
+HashMap key→(value,freq) and freq→doubly linked recency bucket; track minimum frequency; O(1) operations. Each nonempty frequency bucket maintains its own recency order.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class LFUCache {
+    private static class Entry {
+        int key, value, freq = 1;
+        Entry prev, next;
+        Entry(int k, int v) { key = k; value = v; }
+    }
+    private static class Bucket {
+        final Entry head = new Entry(0,0), tail = new Entry(0,0);
+        Bucket() { head.next = tail; tail.prev = head; }
+        void add(Entry e) { e.prev = tail.prev; e.next = tail; tail.prev.next = e; tail.prev = e; }
+        void remove(Entry e) { e.prev.next = e.next; e.next.prev = e.prev; }
+        boolean empty() { return head.next == tail; }
+    }
+    private final java.util.Map<Integer,Entry> entries = new java.util.HashMap<>();
+    private final java.util.Map<Integer,Bucket> buckets = new java.util.HashMap<>();
+    private final int capacity;
+    private int minFrequency;
+    public LFUCache(int capacity) { this.capacity = capacity; }
+    private void touch(Entry e) {
+        int f = e.freq;
+        Bucket old = buckets.get(f); old.remove(e);
+        if (old.empty()) { buckets.remove(f); if (minFrequency == f) minFrequency++; }
+        e.freq++;
+        buckets.computeIfAbsent(e.freq, ignored -> new Bucket()).add(e);
+    }
+    public int get(int key) {
+        Entry e = entries.get(key);
+        if (e == null) return -1;
+        touch(e); return e.value;
+    }
+    public void put(int key, int value) {
+        if (capacity == 0) return;
+        Entry e = entries.get(key);
+        if (e != null) { e.value = value; touch(e); return; }
+        if (entries.size() == capacity) {
+            Bucket b = buckets.get(minFrequency);
+            Entry victim = b.head.next; b.remove(victim); entries.remove(victim.key);
+            if (b.empty()) buckets.remove(minFrequency);
+        }
+        e = new Entry(key,value); entries.put(key,e);
+        buckets.computeIfAbsent(1, ignored -> new Bucket()).add(e);
+        minFrequency = 1;
+    }
+}
+```
+
+**Key Logic:**
+
+Every frequency bucket stores an LRU list. Touch removes the entry from its old bucket, deletes an empty bucket and raises minFrequency if necessary, then appends to frequency+1. Insertion resets minimum to one; eviction removes the oldest entry of the minimum bucket. Judge requires LFUCache.
+
+**Time Complexity:** O(1) expected per operation, hash lookup and bucket splices.
+
+**Space Complexity:** O(capacity), live entries and nonempty buckets.
+
+---
+
+
+<a id="subpattern-l19"></a>
+
+## Subpattern L19: Implementing indexed linked-list API
+
+**When to Apply:** Users request head/tail/index-based insert/delete; pointer updates must handle index zero and out-of-range.
+
+**Basic Java Code Snippet:**
+
+```java
+// Given dummy and size, locate the predecessor of a valid index.
+ListNode before(int index) {
+    ListNode p = dummy;
+    for (int i = 0; i < index; i++) p = p.next;
+    return p;
+}
+// Insert: before(index).next = new ListNode(val, before(index).next);
+// Delete: p.next = p.next.next; maintain size and tail as applicable.
+```
+
+**Core Logic:** A sentinel makes index zero equivalent to any other predecessor-based edit. Track size for validity checks and maintain the tail for constant-time append.
+
+**Questions Covered:** 707
+
+
+### LeetCode 707
+
+**Question:**
+
+Implement a linked list supporting get(index), addAtHead(val), addAtTail(val), addAtIndex(index,val), and deleteAtIndex(index). Indices are zero-based. get returns -1 for invalid index; addAtIndex inserts before the current index, appends when index equals size, and ignores larger indices; delete ignores invalid indices.
+
+**Examples:**
+
+- addAtHead(1),addAtTail(3),addAtIndex(1,2),get(1),deleteAtIndex(1),get(1) → [null,null,null,2,null,3]
+- empty get(0) → -1
+- addAtIndex(0,5),get(0) → [null,5]
+
+**Constraints:**
+
+0 ≤ index,val ≤ 1000; at most 2000 calls.
+
+**Why This Subpattern Applies:**
+
+Maintain dummy head and size; traverse to indexed predecessor for get/add/delete; O(n) arbitrary index, O(1) head operations. A sentinel makes index zero equivalent to any other predecessor-based edit.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class MyLinkedList {
+    private static class Entry {
+        int val; Entry next;
+        Entry(int val) { this.val = val; }
+    }
+    private final Entry dummy = new Entry(0);
+    private Entry tail = dummy;
+    private int size;
+    public MyLinkedList() {}
+    private Entry before(int index) {
+        Entry p = dummy;
+        for (int i = 0; i < index; i++) p = p.next;
+        return p;
+    }
+    public int get(int index) {
+        return index < 0 || index >= size ? -1 : before(index).next.val;
+    }
+    public void addAtHead(int val) { addAtIndex(0,val); }
+    public void addAtTail(int val) { addAtIndex(size,val); }
+    public void addAtIndex(int index, int val) {
+        if (index < 0) index = 0;
+        if (index > size) return;
+        Entry p = index == size ? tail : before(index), e = new Entry(val);
+        e.next = p.next; p.next = e;
+        if (index == size) tail = e;
+        size++;
+    }
+    public void deleteAtIndex(int index) {
+        if (index < 0 || index >= size) return;
+        Entry p = before(index);
+        if (p.next == tail) tail = p;
+        p.next = p.next.next; size--;
+    }
+}
+```
+
+**Key Logic:**
+
+Maintain dummy, size and tail. Find predecessors only when needed; update tail when deleting the last node or appending. Judge requires MyLinkedList.
+
+**Time Complexity:** O(index) get/indexed edits, O(1) head and tail insertion.
+
+**Space Complexity:** O(n), stored nodes; O(1) per operation auxiliary.
+
+---
+
+
+<a id="subpattern-l20"></a>
+
+## Subpattern L20: Linked-list values with monotonic stack
+
+**When to Apply:** Find next greater *to the right* for each list node without random access.
+
+**Basic Java Code Snippet:**
+
+```java
+java.util.List<Integer> values = new java.util.ArrayList<>();
+java.util.List<Integer> answer = new java.util.ArrayList<>();
+java.util.Deque<Integer> pending = new java.util.ArrayDeque<>();
+for (ListNode p = head; p != null; p = p.next) {
+    int i = values.size();
+    while (!pending.isEmpty() && values.get(pending.peek()) < p.val)
+        answer.set(pending.pop(), p.val);
+    values.add(p.val); answer.add(0); pending.push(i);
+}
+```
+
+**Core Logic:** The stack holds unresolved indices in nonincreasing value order. A new greater value resolves all smaller entries at the top; each index enters and leaves at most once.
+
+**Questions Covered:** 1019
+
+
+### LeetCode 1019
+
+**Question:**
+
+For every node in a singly linked list, return the value of the first later node whose value is strictly greater. If no such node exists, output zero at that position. Return an array aligned with original node order.
+
+**Examples:**
+
+- [2,1,5] → [5,5,0]
+- [2,7,4,3,5] → [7,0,5,5,0]
+- [3,3] → [0,0]
+
+**Constraints:**
+
+1–10000 nodes; 1 ≤ value ≤ 1000000000.
+
+**Why This Subpattern Applies:**
+
+Traverse list once, append values/results to arrays and maintain decreasing stack of unresolved indices; O(n) time/space. The stack holds unresolved indices in nonincreasing value order.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int[] nextLargerNodes(ListNode head) {
+        java.util.List<Integer> values = new java.util.ArrayList<>();
+        java.util.List<Integer> result = new java.util.ArrayList<>();
+        java.util.Deque<Integer> pending = new java.util.ArrayDeque<>();
+        for (ListNode p = head; p != null; p = p.next) {
+            while (!pending.isEmpty() && values.get(pending.peek()) < p.val)
+                result.set(pending.pop(), p.val);
+            pending.push(values.size()); values.add(p.val); result.add(0);
+        }
+        int[] out = new int[result.size()];
+        for (int i = 0; i < out.length; i++) out[i] = result.get(i);
+        return out;
+    }
+}
+```
+
+**Key Logic:**
+
+Maintain unresolved indices with nonincreasing values. A larger incoming value resolves all smaller indices at stack top; equal values do not resolve one another. Unresolved output entries stay zero.
+
+**Time Complexity:** O(n), each index pushed and popped at most once.
+
+**Space Complexity:** O(n) auxiliary stack and values, O(n) output.
+
+---
+
+
+<a id="subpattern-l21"></a>
+
+## Subpattern L21: Prefix sums and node-boundary bypass
+
+**When to Apply:** Remove maximal zero-sum contiguous chains without one-by-one trial deletion.
+
+**Basic Java Code Snippet:**
+
+```java
+ListNode dummy = new ListNode(0, head);
+java.util.Map<Long, ListNode> last = new java.util.HashMap<>();
+long prefix = 0;
+for (ListNode p = dummy; p != null; p = p.next) {
+    prefix += p.val; last.put(prefix, p);
+}
+prefix = 0;
+for (ListNode p = dummy; p != null; p = p.next) {
+    prefix += p.val; p.next = last.get(prefix).next;
+}
+```
+
+**Core Logic:** Two equal prefix sums bound a zero-sum interval. The last-occurrence map permits bypassing entire intervals while preserving the running sum of the surviving chain.
+
+**Questions Covered:** 1171
+
+
+### LeetCode 1171
+
+**Question:**
+
+Repeatedly remove contiguous nonempty sequences of nodes whose values sum to zero until no such sequence remains. Return any resulting list satisfying that condition; different valid removal orders may yield different answers.
+
+**Examples:**
+
+- [1,2,-3,3,1] → [3,1] (also [1,2,1])
+- [1,2,3,-3,4] → [1,2,4]
+- [1,2,3,-3,-2] → [1]
+
+**Constraints:**
+
+1–1000 nodes; -1000 ≤ value ≤ 1000.
+
+**Why This Subpattern Applies:**
+
+Use dummy and two prefix-sum passes; map each prefix total to its last node, then jump `next` to last matching-prefix successor; expected O(n)/O(n). Two equal prefix sums bound a zero-sum interval.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public ListNode removeZeroSumSublists(ListNode head) {
+        ListNode dummy = new ListNode(0,head);
+        java.util.Map<Long,ListNode> last = new java.util.HashMap<>();
+        long sum = 0;
+        for (ListNode p = dummy; p != null; p = p.next) { sum += p.val; last.put(sum,p); }
+        sum = 0;
+        for (ListNode p = dummy; p != null; p = p.next) { sum += p.val; p.next = last.get(sum).next; }
+        return dummy.next;
+    }
+}
+```
+
+**Key Logic:**
+
+Equal prefix sums enclose a zero-sum segment. Record the last node for each prefix, then jump past the last matching node in the second scan. Removing a zero-sum segment leaves subsequent prefix sums unchanged.
+
+**Time Complexity:** O(n) expected, two hash-assisted passes.
+
+**Space Complexity:** O(n), last-prefix map.
+
+---
+
+
+<a id="subpattern-l22"></a>
+
+## Subpattern L22: Reservoir sampling on unknown-length list
+
+**When to Apply:** Choose one linked-list node uniformly at random without knowing length in advance.
+
+**Basic Java Code Snippet:**
+
+```java
+int seen = 0, chosen = 0;
+for (ListNode p = head; p != null; p = p.next) {
+    if (java.util.concurrent.ThreadLocalRandom.current().nextInt(++seen) == 0)
+        chosen = p.val;
+}
+```
+
+**Core Logic:** At visit i, choose the current node with probability 1/i. Every earlier choice survives with probability (i−1)/i, maintaining uniformity over the visited prefix.
+
+**Questions Covered:** 382
+
+
+### LeetCode 382
+
+**Question:**
+
+Implement Solution(head) and getRandom(), returning the value of a uniformly randomly selected node from a nonempty linked list. Each node must have equal probability, including distinct nodes with equal values. The follow-up asks for constant extra space without knowing length in advance.
+
+**Examples:**
+
+- [1,2,3] → each call returns 1,2,or 3 with probability 1/3
+- [7] → always 7
+- [4,4,9] → value 4 with probability 2/3
+
+**Constraints:**
+
+1–10000 nodes; -10000 ≤ value ≤ 10000; at most 10000 getRandom calls.
+
+**Why This Subpattern Applies:**
+
+One-pass reservoir sampling: replace selected value with probability 1/i at ith visited node; O(n)/O(1) memory per sample. At visit i, choose the current node with probability 1/i.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    private final ListNode head;
+    public Solution(ListNode head) { this.head = head; }
+    public int getRandom() {
+        int seen = 0, chosen = 0;
+        for (ListNode p = head; p != null; p = p.next)
+            if (java.util.concurrent.ThreadLocalRandom.current().nextInt(++seen) == 0) chosen = p.val;
+        return chosen;
+    }
+}
+```
+
+**Key Logic:**
+
+At the ith node replace the sample with probability 1/i. An earlier node survives with probability (1/(i-1))×(i-1)/i = 1/i, proving uniformity inductively.
+
+**Time Complexity:** O(n) per sample; O(1) constructor.
+
+**Space Complexity:** O(1), stored head and sampling state.
+
+---
+
+
+<a id="subpattern-l23"></a>
+
+## Subpattern L23: In-place deletion without head access
+
+**When to Apply:** Only a non-tail node reference is provided, not a list head or preceding pointer.
+
+**Basic Java Code Snippet:**
+
+```java
+// Assumption: node != null and node.next != null.
+node.val = node.next.val;
+node.next = node.next.next;
+```
+
+**Core Logic:** Without a predecessor, the supplied node cannot itself be unlinked. Copying the next payload and bypassing its node preserves the externally observable sequence.
+
+**Questions Covered:** 237
+
+
+### LeetCode 237
+
+**Question:**
+
+Delete a specified node from a singly linked list when only that node reference is provided, not the head. The node is guaranteed not to be the tail. After deletion, its original value must be absent, list length must decrease by one, and all other values must retain their order.
+
+**Examples:**
+
+- [4,5,1,9], node=5 → [4,1,9]
+- [4,5,1,9], node=1 → [4,5,9]
+- [1,2], node=1 → [2]
+
+**Constraints:**
+
+2–1000 nodes; -1000 ≤ value ≤ 1000; values distinct; supplied node exists and is not tail.
+
+**Why This Subpattern Applies:**
+
+Copy successor payload to current node, bypass successor; O(1) time/space under non-tail precondition. Without a predecessor, the supplied node cannot itself be unlinked.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public void deleteNode(ListNode node) {
+        node.val = node.next.val;
+        node.next = node.next.next;
+    }
+}
+```
+
+**Key Logic:**
+
+Copy the successor value into the supplied node, then bypass the successor. This removes the logical value but not the actual supplied object; the non-tail guarantee makes it possible.
+
+**Time Complexity:** O(1), two assignments.
+
+**Space Complexity:** O(1), no allocation.
+
+---
+
+
+<a id="subpattern-l24"></a>
+
+## Subpattern L24: Cut-and-splice segment editing
+
+**When to Apply:** Replace a contiguous interval with an existing list, preserving connected outer segments.
+
+**Basic Java Code Snippet:**
+
+```java
+// before and after are the already located cut boundaries.
+// replacement is nonempty; preserve after before overwriting links.
+ListNode tail = replacement;
+while (tail.next != null) tail = tail.next;
+before.next = replacement;
+tail.next = after;
+```
+
+**Core Logic:** Only two external edges need changing: the predecessor points to the replacement head, and the replacement tail points to the original successor. All internal replacement links stay intact.
+
+**Questions Covered:** 1669
+
+
+### LeetCode 1669
+
+**Question:**
+
+Given list1, list2 and zero-based indices a,b, remove nodes a through b inclusive from list1 and splice all of list2 into their place. Return the head of the resulting list, preserving both outer parts of list1 and order of list2.
+
+**Examples:**
+
+- [10,1,13,6,9,5],3,4,[1000000,1000001,1000002] → [10,1,13,1000000,1000001,1000002,5]
+- [0,1,2,3,4,5,6],2,5,[9,8] → [0,1,9,8,6]
+
+**Constraints:**
+
+3 ≤ list1 length ≤ 10000; 1 ≤ a ≤ b < list1 length-1; 1–10000 nodes in list2.
+
+**Why This Subpattern Applies:**
+
+Find predecessor of index a and successor of index b, attach replacement-list head and tail, reconnect suffix; O(n+m)/O(1). Only two external edges need changing: the predecessor points to the replacement head, and the replacement tail points to the original successor.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public ListNode mergeInBetween(ListNode list1, int a, int b, ListNode list2) {
+        ListNode before = list1;
+        for (int i = 1; i < a; i++) before = before.next;
+        ListNode after = before.next;
+        for (int i = a; i <= b; i++) after = after.next;
+        ListNode tail = list2;
+        while (tail.next != null) tail = tail.next;
+        before.next = list2;
+        tail.next = after;
+        return list1;
+    }
+}
+```
+
+**Key Logic:**
+
+Find predecessor of a and node after b before changing links. Attach replacement head to predecessor and replacement tail to saved suffix. No nodes need copying.
+
+**Time Complexity:** O(n+m), locate cut and replacement tail.
+
+**Space Complexity:** O(1), constant pointers.
+
+---
+
+
+<a id="subpattern-l25"></a>
+
+## Subpattern L25: Suffix-dominance node filtering
+
+**When to Apply:** Keep a node only if no greater node occurs to its right.
+
+**Basic Java Code Snippet:**
+
+```java
+// head has been reversed; the original suffix is now the prefix.
+ListNode dummy = new ListNode(0, head), prev = dummy;
+int max = Integer.MIN_VALUE;
+while (prev.next != null) {
+    if (prev.next.val < max) prev.next = prev.next.next;
+    else { prev = prev.next; max = prev.val; }
+}
+// Reverse dummy.next again to recover original order.
+```
+
+**Core Logic:** Reverse traversal converts an original right-side condition into a running maximum. A value below that maximum is dominated; equality must be retained.
+
+**Questions Covered:** 2487
+
+
+### LeetCode 2487
+
+**Question:**
+
+Remove every node for which some node strictly to its right has a greater value. Return the list of remaining nodes in original order. Equal values do not cause deletion.
+
+**Examples:**
+
+- [5,2,13,3,8] → [13,8]
+- [1,1,1,1] → [1,1,1,1]
+- [1,2,3] → [3]
+
+**Constraints:**
+
+1–100000 nodes; 1 ≤ value ≤ 100000.
+
+**Why This Subpattern Applies:**
+
+Reverse list, keep running maximum while unlinking dominated nodes, then reverse back; O(n)/O(1). Reverse traversal converts an original right-side condition into a running maximum.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public ListNode removeNodes(ListNode head) {
+        ListNode reversed = reverse(head), prev = null;
+        int max = Integer.MIN_VALUE;
+        for (ListNode p = reversed; p != null; p = p.next) {
+            if (p.val >= max) { max = p.val; prev = p; }
+            else prev.next = p.next;
+        }
+        return reverse(reversed);
+    }
+    private ListNode reverse(ListNode p) {
+        ListNode prev = null;
+        while (p != null) {
+            ListNode next = p.next; p.next = prev; prev = p; p = next;
+        }
+        return prev;
+    }
+}
+```
+
+**Key Logic:**
+
+Reverse to expose original suffix values first. Keep the running maximum; bypass nodes strictly smaller than it and retain ties. Reverse the survivors to restore original order.
+
+**Time Complexity:** O(n), two reversals and filtering.
+
+**Space Complexity:** O(1), constant pointers.
+
+---
+
+
+<a id="subpattern-l26"></a>
+
+## Subpattern L26: Local extrema with index-distance tracking
+
+**When to Apply:** Find spacing between consecutive local minima/maxima in a singly linked list.
+
+**Basic Java Code Snippet:**
+
+```java
+int i = 1, first = -1, previous = -1, min = Integer.MAX_VALUE;
+for (ListNode a = head, b = head.next; b != null && b.next != null;
+     a = b, b = b.next, i++) {
+    boolean extreme = (b.val > a.val && b.val > b.next.val)
+                   || (b.val < a.val && b.val < b.next.val);
+    if (!extreme) continue;
+    if (first == -1) first = i;
+    else min = Math.min(min, i - previous);
+    previous = i;
+}
+// With at least two extrema, maximum gap is previous - first.
+```
+
+**Core Logic:** Only interior nodes can qualify. Consecutive critical positions determine the minimum gap; the first and last determine the maximum gap.
+
+**Questions Covered:** 2058
+
+
+### LeetCode 2058
+
+**Question:**
+
+A critical point is a node strictly greater than both immediate neighbors or strictly smaller than both. Head and tail cannot be critical. Return [minimum distance between any two distinct critical points, maximum such distance], measured in index differences. If fewer than two exist, return [-1,-1].
+
+**Examples:**
+
+- [3,1] → [-1,-1]
+- [5,3,1,2,5,1,2] → [1,3]
+- [1,3,2,2,3,2,2,2,7] → [3,3]
+
+**Constraints:**
+
+2–100000 nodes; 1 ≤ value ≤ 100000.
+
+**Why This Subpattern Applies:**
+
+Traverse triplets `(prev,current,next)` and track first/previous critical positions to obtain min/max gaps; O(n)/O(1). Only interior nodes can qualify.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int[] nodesBetweenCriticalPoints(ListNode head) {
+        int first = -1, previous = -1, min = Integer.MAX_VALUE, i = 1;
+        for (ListNode a = head, b = head.next; b != null && b.next != null; a = b, b = b.next, i++) {
+            if ((b.val > a.val && b.val > b.next.val) || (b.val < a.val && b.val < b.next.val)) {
+                if (first == -1) first = i;
+                else min = Math.min(min, i - previous);
+                previous = i;
+            }
+        }
+        return min == Integer.MAX_VALUE ? new int[]{-1,-1} : new int[]{min,previous-first};
+    }
+}
+```
+
+**Key Logic:**
+
+Evaluate only interior triplets. The minimum gap occurs between adjacent critical points; the maximum is last minus first. Equal neighbors never form a strict extremum.
+
+**Time Complexity:** O(n), triplet scan.
+
+**Space Complexity:** O(1), first/previous positions and minimum.
+
+---
+
+
+<a id="subpattern-l27"></a>
+
+## Subpattern L27: Delimiter-bounded list aggregation
+
+**When to Apply:** Values between marker nodes form independent groups which become output nodes.
+
+**Basic Java Code Snippet:**
+
+```java
+ListNode dummy = new ListNode(), tail = dummy;
+int sum = 0;
+for (ListNode p = head.next; p != null; p = p.next) {
+    if (p.val == 0) {
+        tail.next = new ListNode(sum); tail = tail.next; sum = 0;
+    } else sum += p.val;
+}
+```
+
+**Core Logic:** The accumulator holds the sum since the last delimiter. A delimiter finalizes exactly one output group and resets state for the next group.
+
+**Questions Covered:** 2181
+
+
+### LeetCode 2181
+
+**Question:**
+
+A linked list begins and ends with zero, and consecutive zero delimiters enclose one or more positive values. Replace each enclosed group with a single node containing its sum. Return a list containing only group sums, with no zero delimiters.
+
+**Examples:**
+
+- [0,3,1,0,4,5,2,0] → [4,11]
+- [0,1,0,3,0,2,2,0] → [1,3,4]
+- [0,5,0] → [5]
+
+**Constraints:**
+
+3–200000 nodes; 0 ≤ value ≤ 1000; first and last are zero; no consecutive zeroes.
+
+**Why This Subpattern Applies:**
+
+Run through zero-delimited groups, accumulate sums and append one output node per completed group; O(n) time/output. The accumulator holds the sum since the last delimiter.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public ListNode mergeNodes(ListNode head) {
+        ListNode dummy = new ListNode(), tail = dummy;
+        int sum = 0;
+        for (ListNode p = head.next; p != null; p = p.next) {
+            if (p.val == 0) {
+                tail.next = new ListNode(sum); tail = tail.next; sum = 0;
+            } else sum += p.val;
+        }
+        return dummy.next;
+    }
+}
+```
+
+**Key Logic:**
+
+Skip the initial delimiter, accumulate positive values, emit a node at every subsequent zero, then reset sum. The final zero flushes the last group; no partial group remains.
+
+**Time Complexity:** O(n), each group consumed once.
+
+**Space Complexity:** O(1) auxiliary, O(g) output nodes for g groups.
+
+---
+
+
+## Final question registry
+
+| Sequence | LeetCode | Family |
+|---:|---:|---|
+| 01 | 1290 | L1 |
+| 02 | 206 | L2 |
+| 03 | 92 | L2 |
+| 04 | 24 | L3 |
+| 05 | 25 | L3 |
+| 06 | 876 | L4 |
+| 07 | 2095 | L4 |
+| 08 | 234 | L4 |
+| 09 | 2130 | L4 |
+| 10 | 141 | L5 |
+| 11 | 142 | L5 |
+| 12 | 21 | L6 |
+| 13 | 148 | L6 |
+| 14 | 203 | L7 |
+| 15 | 3217 | L7 |
+| 16 | 83 | L7 |
+| 17 | 82 | L7 |
+| 18 | 19 | L8 |
+| 19 | 86 | L9 |
+| 20 | 328 | L9 |
+| 21 | 143 | L10 |
+| 22 | 61 | L11 |
+| 23 | 2 | L12 |
+| 24 | 445 | L13 |
+| 25 | 160 | L14 |
+| 26 | 138 | L15 |
+| 27 | 430 | L16 |
+| 28 | 146 | L17 |
+| 29 | 460 | L18 |
+| 30 | 707 | L19 |
+| 31 | 1019 | L20 |
+| 32 | 1171 | L21 |
+| 33 | 382 | L22 |
+| 34 | 237 | L23 |
+| 35 | 1669 | L24 |
+| 36 | 2487 | L25 |
+| 37 | 2058 | L26 |
+| 38 | 2181 | L27 |
+
+**Registry verification:** 38/38 IDs, 27/27 families, no duplicates; sequence matches C14 exactly.

@@ -1,0 +1,1103 @@
+# T13 — Queue, Deque & Monotonic Queue
+
+**15 questions · 12 algorithm families · Java 21**
+
+Reference workbook; practice progress unchanged. Design problems use the required LeetCode class names rather than `Solution`. Problem statements are independently paraphrased; constraints are recalled, not live-verified.
+
+## Table of contents
+
+- [Q1: Queue implemented with two stacks](#subpattern-q1) — [LC 232](#leetcode-232)
+- [Q2: Stack implemented with queues](#subpattern-q2) — [LC 225](#leetcode-225)
+- [Q3: Fixed-capacity circular buffer](#subpattern-q3) — [LC 622](#leetcode-622), [LC 641](#leetcode-641)
+- [Q4: Timestamp eviction queue](#subpattern-q4) — [LC 933](#leetcode-933)
+- [Q5: Queue of positions and deferred reveal](#subpattern-q5) — [LC 950](#leetcode-950)
+- [Q6: Paired turn queues with circular round offsets](#subpattern-q6) — [LC 649](#leetcode-649)
+- [Q7: Balanced two-deque middle operations](#subpattern-q7) — [LC 1670](#leetcode-1670)
+- [Q8: Fixed-width monotonic maximum deque](#subpattern-q8) — [LC 239](#leetcode-239), [LC 1696](#leetcode-1696), [LC 1425](#leetcode-1425)
+- [Q9: Coordinate-range monotonic candidate deque](#subpattern-q9) — [LC 1499](#leetcode-1499)
+- [Q10: Variable-window maximum plus additive budget](#subpattern-q10) — [LC 2398](#leetcode-2398)
+- [Q11: Increasing prefix deque for shortest threshold span](#subpattern-q11) — [LC 862](#leetcode-862)
+- [Q12: Sorted matching with deque and limited resource](#subpattern-q12) — [LC 2071](#leetcode-2071)
+
+<a id="subpattern-q1"></a>
+## Subpattern Q1: Queue implemented with two stacks
+
+**When to Apply:** implement FIFO using only push/pop of stacks; transfer only when output stack is empty.
+
+**Basic Java Code Snippet:**
+
+```java
+Deque<Integer> in = new ArrayDeque<>(), out = new ArrayDeque<>();
+// enqueue: in.push(x);
+if (out.isEmpty()) while (!in.isEmpty()) out.push(in.pop());
+// dequeue/front: out.pop() / out.peek(); guard nonempty.
+```
+
+**Core Logic:** The output stack exposes the oldest item. Transfer only when it is empty, otherwise newer arrivals would jump ahead. Each item crosses stacks at most once.
+
+**Questions Covered:** 232
+
+### LeetCode 232
+
+**Question:**
+
+Implement a FIFO queue using only two stacks. Support push(x) to append, pop() to remove and return the oldest element, peek() to return it without removal, and empty() to report whether the queue is empty. Only ordinary stack operations (push, pop, peek, size, empty) are allowed. Achieve amortized constant time per operation.
+
+**Examples:**
+
+push(1), push(2), peek(), pop(), empty() → 1, 1, false; push(7), pop(), empty() → 7, true.
+
+**Constraints:**
+
+1 ≤ x ≤ 9; at most 100 calls; pop and peek are always valid.
+
+**Why This Subpattern Applies:**
+
+Q1; FIFO operations when only LIFO primitives are available. Use input/output stacks and lazy transfer on demand; amortized O(1) per operation.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class MyQueue {
+    private final Deque<Integer> in = new ArrayDeque<>(), out = new ArrayDeque<>();
+    public MyQueue() {}
+    public void push(int x) { in.push(x); }
+    private void transfer() {
+        if (out.isEmpty()) while (!in.isEmpty()) out.push(in.pop());
+    }
+    public int pop() { transfer(); return out.pop(); }
+    public int peek() { transfer(); return out.peek(); }
+    public boolean empty() { return in.isEmpty() && out.isEmpty(); }
+}
+```
+
+**Key Logic:**
+
+The output stack exposes the oldest item. Transfer only when it is empty, otherwise newer arrivals would jump ahead. Each item crosses stacks at most once.
+
+**Time Complexity:** O(1) amortized per operation; a transfer can cost O(n).
+
+**Space Complexity:** O(n) for n stored items.
+
+---
+
+<a id="subpattern-q2"></a>
+## Subpattern Q2: Stack implemented with queues
+
+**When to Apply:** implement LIFO using only FIFO operations; rotate all prior elements behind the new head.
+
+**Basic Java Code Snippet:**
+
+```java
+Queue<Integer> q = new ArrayDeque<>();
+q.offer(x);
+for (int i = 0, moves = q.size() - 1; i < moves; i++) q.offer(q.remove());
+// q.peek() is newest element; q.remove() pops it.
+```
+
+**Core Logic:** Rotate exactly the old size after insertion. The newest element becomes the front and older elements preserve their stack order.
+
+**Questions Covered:** 225
+
+### LeetCode 225
+
+**Question:**
+
+Implement a LIFO stack using only queue operations. push(x) inserts an element, pop() removes and returns the newest, top() reads the newest, and empty() reports emptiness. Only enqueue at rear, dequeue or peek at front, size and empty are permitted. Use one queue.
+
+**Examples:**
+
+push(1), push(2), top(), pop(), empty() → 2, 2, false; push(8), pop(), empty() → 8, true.
+
+**Constraints:**
+
+1 ≤ x ≤ 9; at most 100 calls; pop and top are valid.
+
+**Why This Subpattern Applies:**
+
+Q2; LIFO operations when queue primitives only are permitted. Maintain one queue, rotating older elements after each push so newest is front; push O(n), pop/top O(1).
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class MyStack {
+    private final Queue<Integer> q = new ArrayDeque<>();
+    public MyStack() {}
+    public void push(int x) {
+        int n = q.size(); q.offer(x);
+        while (n-- > 0) q.offer(q.remove());
+    }
+    public int pop() { return q.remove(); }
+    public int top() { return q.element(); }
+    public boolean empty() { return q.isEmpty(); }
+}
+```
+
+**Key Logic:**
+
+Rotate exactly the old size after insertion. The newest element becomes the front and older elements preserve their stack order.
+
+**Time Complexity:** Push O(n); other operations O(1).
+
+**Space Complexity:** O(n) stored items.
+
+---
+
+<a id="subpattern-q3"></a>
+## Subpattern Q3: Fixed-capacity circular buffer
+
+**When to Apply:** fixed capacity, both ends accessible without shifting; wrap positions using modulo capacity.
+
+**Basic Java Code Snippet:**
+
+```java
+int[] buffer = new int[capacity];
+int head = 0, size = 0;
+// rear insertion: buffer[(head + size) % capacity] = x; size++;
+// front insertion: head = (head - 1 + capacity) % capacity; buffer[head] = x; size++;
+// front removal: head = (head + 1) % capacity; size--;
+// rear removal: size--;
+// Guard capacity>0, empty (size==0), full (size==capacity).
+```
+
+**Core Logic:** Head identifies the oldest element; size distinguishes full from empty even when indices wrap. Rear is one position before the next insertion slot.
+
+**Questions Covered:** 622, 641
+
+### LeetCode 622
+
+**Question:**
+
+Design a circular FIFO queue with capacity k without using a built-in queue. enQueue(value) inserts at rear and deQueue() removes front; both return whether successful. Front() and Rear() return the corresponding value or -1 when empty. isEmpty() and isFull() report state. Freed positions must be reusable.
+
+**Examples:**
+
+k=2: enQueue(1), enQueue(2), enQueue(3), Rear() → true,true,false,2; deQueue(), enQueue(3), Front(), Rear() → true,true,2,3. Empty queue: Front(), deQueue() → -1,false.
+
+**Constraints:**
+
+1 ≤ k ≤ 1000; 0 ≤ value ≤ 1000; at most 3000 calls.
+
+**Why This Subpattern Applies:**
+
+Q3; Fixed-sized FIFO queue with wraparound and no shifting. Use int array, head index, size, and modulo capacity for tail. O(1) operations.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class MyCircularQueue {
+    private final int[] a;
+    private int head, size;
+    public MyCircularQueue(int k) { a = new int[k]; }
+    public boolean enQueue(int value) {
+        if (isFull()) return false;
+        a[(head + size) % a.length] = value; size++; return true;
+    }
+    public boolean deQueue() {
+        if (isEmpty()) return false;
+        head = (head + 1) % a.length; size--; return true;
+    }
+    public int Front() { return isEmpty() ? -1 : a[head]; }
+    public int Rear() { return isEmpty() ? -1 : a[(head+size-1)%a.length]; }
+    public boolean isEmpty() { return size == 0; }
+    public boolean isFull() { return size == a.length; }
+}
+```
+
+**Key Logic:**
+
+Head identifies the oldest element; size distinguishes full from empty even when indices wrap. Rear is one position before the next insertion slot.
+
+**Time Complexity:** O(1) per operation; constructor O(k).
+
+**Space Complexity:** O(k) fixed storage.
+
+---
+
+### LeetCode 641
+
+**Question:**
+
+Design a fixed-capacity circular deque without a built-in deque. insertFront and insertLast insert at either end; deleteFront and deleteLast remove from either end. Each mutation returns false if impossible, true otherwise. getFront and getRear return -1 when empty; isEmpty and isFull report state.
+
+**Examples:**
+
+k=2: insertLast(1), insertFront(2), insertLast(3), getRear() → true,true,false,1; deleteLast(), getFront() → true,2. Empty deque: deleteFront(), getRear() → false,-1.
+
+**Constraints:**
+
+1 ≤ k ≤ 1000; 0 ≤ value ≤ 1000; at most 2000 calls.
+
+**Why This Subpattern Applies:**
+
+Q3; Support both-end insertion/removal under fixed capacity. Reuse ring storage, head, size; front insert decrements head modulo n and rear removal reduces size. O(1) operations.
+
+**Connection to Previous Solution:**
+
+Retain circular-array head/size invariant; add pushFront/popRear, circular decrement, and peekRear.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class MyCircularDeque {
+    private final int[] a;
+    private int head, size;
+    public MyCircularDeque(int k) { a = new int[k]; }
+    public boolean insertFront(int value) {
+        if (isFull()) return false;
+        head = (head+a.length-1)%a.length; a[head]=value; size++; return true;
+    }
+    public boolean insertLast(int value) {
+        if (isFull()) return false;
+        a[(head+size)%a.length]=value; size++; return true;
+    }
+    public boolean deleteFront() {
+        if (isEmpty()) return false;
+        head=(head+1)%a.length; size--; return true;
+    }
+    public boolean deleteLast() {
+        if (isEmpty()) return false;
+        size--; return true;
+    }
+    public int getFront() { return isEmpty() ? -1 : a[head]; }
+    public int getRear() { return isEmpty() ? -1 : a[(head+size-1)%a.length]; }
+    public boolean isEmpty() { return size==0; }
+    public boolean isFull() { return size==a.length; }
+}
+```
+
+**Key Logic:**
+
+Front insertion moves head backward with positive modulo. Rear deletion only reduces size. All existing positions remain valid, including capacity one.
+
+**Time Complexity:** O(1) per operation; constructor O(k).
+
+**Space Complexity:** O(k) fixed storage.
+
+---
+
+<a id="subpattern-q4"></a>
+## Subpattern Q4: Timestamp eviction queue
+
+**When to Apply:** input timestamps arrive in order and only recent events remain active.
+
+**Basic Java Code Snippet:**
+
+```java
+Deque<Integer> times = new ArrayDeque<>();
+times.addLast(now);
+while (!times.isEmpty() && times.peekFirst() < now - horizon) times.removeFirst();
+// times.size() counts surviving events, inclusive lower bound.
+```
+
+**Core Logic:** Oldest timestamps expire first. Strict inequality preserves the inclusive lower boundary; the newly added timestamp guarantees nonemptiness.
+
+**Questions Covered:** 933
+
+### LeetCode 933
+
+**Question:**
+
+Implement RecentCounter. Each ping(t) records a request at time t and returns the number of requests in the inclusive interval [t-3000,t]. Calls have strictly increasing timestamps.
+
+**Examples:**
+
+ping times [1,100,3001,3002] → [1,2,3,3]; [1,3002] → [1,1].
+
+**Constraints:**
+
+1 ≤ t ≤ 10^9; at most 10^4 calls; timestamps strictly increase.
+
+**Why This Subpattern Applies:**
+
+Q4; Events arrive in nondecreasing timestamps; count only events in the last inclusive 3000 units. Append time, remove expired head, return queue size. Amortized O(1) per call.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class RecentCounter {
+    private final Deque<Integer> q = new ArrayDeque<>();
+    public RecentCounter() {}
+    public int ping(int t) {
+        q.addLast(t);
+        while (q.peekFirst() < t-3000) q.removeFirst();
+        return q.size();
+    }
+}
+```
+
+**Key Logic:**
+
+Oldest timestamps expire first. Strict inequality preserves the inclusive lower boundary; the newly added timestamp guarantees nonemptiness.
+
+**Time Complexity:** O(1) amortized per ping; O(n) total for n calls.
+
+**Space Complexity:** O(min(n,3001)) retained timestamps.
+
+---
+
+<a id="subpattern-q5"></a>
+## Subpattern Q5: Queue of positions and deferred reveal
+
+**When to Apply:** values need to be arranged so a future reveal/rotate process produces a target order.
+
+**Basic Java Code Snippet:**
+
+```java
+Queue<Integer> slots = new ArrayDeque<>();
+for (int i = 0; i < n; i++) slots.offer(i);
+for (int value : sortedValues) {
+    result[slots.remove()] = value;
+    if (!slots.isEmpty()) slots.offer(slots.remove());
+}
+```
+
+**Core Logic:** Simulate the reveal order of positions rather than cards. Assign each successive smallest value to the next revealed position; rotate the remaining front position.
+
+**Questions Covered:** 950
+
+### LeetCode 950
+
+**Question:**
+
+Given distinct card values, return an initial deck order such that repeatedly revealing and removing the top card, then moving the next top card to the bottom if any remain, reveals all values in increasing order. The first array element is the top.
+
+**Examples:**
+
+[17,13,11,2,3,5,7] → [2,13,3,11,5,17,7]; [1,1000] → [1,1000]; [5] → [5].
+
+**Constraints:**
+
+1 ≤ deck.length ≤ 1000; 1 ≤ deck[i] ≤ 10^6; values distinct.
+
+**Why This Subpattern Applies:**
+
+Q5; A sorted set of values must match an alternating reveal-and-rotate deck process. Queue original indices; assign next smallest to front index, rotate next index to back. O(n log n) with sort.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[] deckRevealedIncreasing(int[] deck) {
+        Arrays.sort(deck);
+        int n=deck.length; int[] ans=new int[n];
+        Deque<Integer> q=new ArrayDeque<>();
+        for(int i=0;i<n;i++) q.addLast(i);
+        for(int x:deck) {
+            ans[q.removeFirst()]=x;
+            if(!q.isEmpty()) q.addLast(q.removeFirst());
+        }
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+Simulate the reveal order of positions rather than cards. Assign each successive smallest value to the next revealed position; rotate the remaining front position.
+
+**Time Complexity:** O(n log n) sorting; O(n) simulation.
+
+**Space Complexity:** O(n) auxiliary queue and O(n) output; input sorted in place.
+
+---
+
+<a id="subpattern-q6"></a>
+## Subpattern Q6: Paired turn queues with circular round offsets
+
+**When to Apply:** two teams/participants alternate in cyclic order; the earliest active index acts first.
+
+**Basic Java Code Snippet:**
+
+```java
+Queue<Integer> a = new ArrayDeque<>(), b = new ArrayDeque<>();
+// enqueue initial indices by group.
+while (!a.isEmpty() && !b.isEmpty()) {
+    int ia = a.remove(), ib = b.remove();
+    if (ia < ib) a.offer(ia + n);
+    else b.offer(ib + n);
+}
+```
+
+**Core Logic:** The earlier turn bans the earliest opposing turn, preventing its next action. Requeue the survivor at its next-round index. Each duel permanently removes one senator.
+
+**Questions Covered:** 649
+
+### LeetCode 649
+
+**Question:**
+
+A senate consists of Radiant (R) and Dire (D) members in a string. In repeated rounds, active senators act in original order. Each may ban another senator permanently or announce victory when all active senators belong to their party. Assuming optimal play, return Radiant or Dire for the winning party.
+
+**Examples:**
+
+RD → Radiant; RDD → Dire; RRR → Radiant.
+
+**Constraints:**
+
+1 ≤ senate.length ≤ 10^4; characters R or D.
+
+**Why This Subpattern Applies:**
+
+Q6; Competing active agents repeatedly ban opponents with cyclic priority. Two index queues; process smaller front index, requeue winner at index+n. O(n) amortized queue operations overall.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public String predictPartyVictory(String senate) {
+        int n=senate.length();
+        Deque<Integer> r=new ArrayDeque<>(), d=new ArrayDeque<>();
+        for(int i=0;i<n;i++) (senate.charAt(i)=='R'?r:d).addLast(i);
+        while(!r.isEmpty()&&!d.isEmpty()) {
+            int a=r.removeFirst(), b=d.removeFirst();
+            if(a<b) r.addLast(a+n); else d.addLast(b+n);
+        }
+        return r.isEmpty()?"Dire":"Radiant";
+    }
+}
+```
+
+**Key Logic:**
+
+The earlier turn bans the earliest opposing turn, preventing its next action. Requeue the survivor at its next-round index. Each duel permanently removes one senator.
+
+**Time Complexity:** O(n) total duels and initialization.
+
+**Space Complexity:** O(n) auxiliary queues.
+
+---
+
+<a id="subpattern-q7"></a>
+## Subpattern Q7: Balanced two-deque middle operations
+
+**When to Apply:** O(1) operations at front/middle/back; left half has same number as right or one extra.
+
+**Basic Java Code Snippet:**
+
+```java
+Deque<Integer> left = new ArrayDeque<>(), right = new ArrayDeque<>();
+// After any mutation, restore left.size()==right.size() or left.size()==right.size()+1.
+while (left.size() > right.size() + 1) right.addFirst(left.removeLast());
+while (left.size() < right.size()) left.addLast(right.removeFirst());
+// Middle is left.peekLast(); maintain problem's exact middle tie behavior.
+```
+
+**Core Logic:** Maintain left size equal to right size or larger by one. The middle is always left.last. Before middle insertion move the old middle right if necessary; one boundary transfer suffices after other operations.
+
+**Questions Covered:** 1670
+
+### LeetCode 1670
+
+**Question:**
+
+Design a queue supporting pushFront, pushMiddle, pushBack and popFront, popMiddle, popBack. Push operations insert at the named position; pop operations remove and return the named element or -1 if empty. When two middle positions are possible, choose the earlier one: inserting 6 into [1,2,3,4,5] gives [1,2,6,3,4,5], and popping the middle of [1,2,3,4] removes 2.
+
+**Examples:**
+
+pushFront(1), pushBack(2), pushMiddle(3), pushMiddle(4) produces [1,4,3,2]; popFront(), popMiddle(), popMiddle(), popBack(), popFront() → 1,3,4,2,-1. Empty popMiddle() → -1.
+
+**Constraints:**
+
+1 ≤ val ≤ 10^9; at most 1000 calls.
+
+**Why This Subpattern Applies:**
+
+Q7; Need queue operations at front, back, and the left-of-center middle. Keep two deques, left.size equal to right.size or one larger; rebalance after each change. O(1) each.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class FrontMiddleBackQueue {
+    private final Deque<Integer> l=new ArrayDeque<>(), r=new ArrayDeque<>();
+    public FrontMiddleBackQueue() {}
+    private void balance() {
+        if(l.size()>r.size()+1) r.addFirst(l.removeLast());
+        else if(l.size()<r.size()) l.addLast(r.removeFirst());
+    }
+    public void pushFront(int val) { l.addFirst(val); balance(); }
+    public void pushMiddle(int val) {
+        if(l.size()>r.size()) r.addFirst(l.removeLast());
+        l.addLast(val);
+    }
+    public void pushBack(int val) { r.addLast(val); balance(); }
+    public int popFront() {
+        if(l.isEmpty()) return -1;
+        int v=l.removeFirst(); balance(); return v;
+    }
+    public int popMiddle() {
+        if(l.isEmpty()) return -1;
+        int v=l.removeLast(); balance(); return v;
+    }
+    public int popBack() {
+        if(l.isEmpty()) return -1;
+        int v=r.isEmpty()?l.removeLast():r.removeLast(); balance(); return v;
+    }
+}
+```
+
+**Key Logic:**
+
+Maintain left size equal to right size or larger by one. The middle is always left.last. Before middle insertion move the old middle right if necessary; one boundary transfer suffices after other operations.
+
+**Time Complexity:** O(1) amortized per operation (ArrayDeque resizing).
+
+**Space Complexity:** O(n) stored elements.
+
+---
+
+<a id="subpattern-q8"></a>
+## Subpattern Q8: Fixed-width monotonic maximum deque
+
+**When to Apply:** each index needs best eligible previous index in a fixed-width range, using original array values or computed DP values.
+
+**Basic Java Code Snippet:**
+
+```java
+Deque<Integer> dq = new ArrayDeque<>();
+for (int i = 0; i < score.length; i++) {
+    while (!dq.isEmpty() && dq.peekFirst() < i - k) dq.removeFirst();
+    // Query dq.peekFirst() for best eligible PREVIOUS index when doing DP.
+    // Calculate score[i] from available candidate, then insert it:
+    while (!dq.isEmpty() && score[dq.peekLast()] <= score[i]) dq.removeLast();
+    dq.addLast(i);
+}
+// For window maxima, query AFTER insertion with the correct window bound.
+```
+
+**Core Logic:** Expire indices outside the window. A newer equal or larger value dominates an older one because it expires later. The front is the maximum.
+
+**Questions Covered:** 239, 1696, 1425
+
+### LeetCode 239
+
+**Question:**
+
+Given nums and window width k, slide a contiguous window from the first k elements to the last k elements, moving one position each time. Return the maximum of each window in order.
+
+**Examples:**
+
+[1,3,-1,-3,5,3,6,7], k=3 → [3,3,5,5,6,7]; [1], k=1 → [1]; [2,2], k=2 → [2].
+
+**Constraints:**
+
+1 ≤ n ≤ 10^5; -10^4 ≤ nums[i] ≤ 10^4; 1 ≤ k ≤ n.
+
+**Why This Subpattern Applies:**
+
+Q8; Max for each contiguous window of width k. Store indices of decreasing values, expire heads outside window, discard dominated tails. O(n).
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[] maxSlidingWindow(int[] nums,int k) {
+        Deque<Integer> q=new ArrayDeque<>();
+        int[] ans=new int[nums.length-k+1];
+        for(int i=0;i<nums.length;i++) {
+            while(!q.isEmpty()&&q.peekFirst()<=i-k) q.removeFirst();
+            while(!q.isEmpty()&&nums[q.peekLast()]<=nums[i]) q.removeLast();
+            q.addLast(i);
+            if(i>=k-1) ans[i-k+1]=nums[q.peekFirst()];
+        }
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+Expire indices outside the window. A newer equal or larger value dominates an older one because it expires later. The front is the maximum.
+
+**Time Complexity:** O(n), each index inserted and removed at most once.
+
+**Space Complexity:** O(k) auxiliary; O(n-k+1) output.
+
+---
+
+### LeetCode 1696
+
+**Question:**
+
+Start at index 0 of nums and jump forward by any distance from 1 to k without leaving the array. Reach the final index and maximize the sum of all visited values, including both endpoints. Return that score.
+
+**Examples:**
+
+[1,-1,-2,4,-7,3], k=2 → 7; [10,-5,-2,4,0,3], k=3 → 17; [-5], k=1 → -5.
+
+**Constraints:**
+
+1 ≤ n,k ≤ 10^5; -10^4 ≤ nums[i] ≤ 10^4.
+
+**Why This Subpattern Applies:**
+
+Q8; Maximize score by jumps of length ≤k. DP[i]=nums[i]+max DP[j] for previous k indices; maintain indices by decreasing DP instead of raw values. O(n).
+
+**Connection to Previous Solution:**
+
+Retain decreasing deque and index expiry; change expiry from <= i-k to < i-k, compute DP in nums[i] before insertion, and return the final DP score instead of a window array.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int maxResult(int[] nums,int k) {
+        Deque<Integer> q=new ArrayDeque<>();
+        q.addLast(0);
+        for(int i=1;i<nums.length;i++) {
+            while(q.peekFirst()<i-k) q.removeFirst();
+            nums[i]+=nums[q.peekFirst()];
+            while(!q.isEmpty()&&nums[q.peekLast()]<=nums[i]) q.removeLast();
+            q.addLast(i);
+        }
+        return nums[nums.length-1];
+    }
+}
+```
+
+**Key Logic:**
+
+Reuse nums as DP storage: processed entries hold best scores ending there. The previous k indices include i-k, so expire strictly smaller indices. No restart is permitted; even negative predecessors must be used.
+
+**Time Complexity:** O(n) amortized deque operations.
+
+**Space Complexity:** O(min(n,k+1)) auxiliary; mutates input to avoid DP array.
+
+---
+
+### LeetCode 1425
+
+**Question:**
+
+Find the largest sum of a nonempty subsequence of nums such that any two consecutive selected indices differ by at most k. Elements need not be contiguous; the subsequence may start or end anywhere.
+
+**Examples:**
+
+[10,2,-10,5,20], k=2 → 37; [-1,-2,-3], k=1 → -1; [10,-2,-10,-5,20], k=2 → 23.
+
+**Constraints:**
+
+1 ≤ n ≤ 10^5; -10^4 ≤ nums[i] ≤ 10^4; 1 ≤ k ≤ n.
+
+**Why This Subpattern Applies:**
+
+Q8; Maximum nonempty constrained subsequence sum, consecutive selected positions ≤k apart. Same deque of descending DP values; allow restarting at current number when best previous contribution ≤0. O(n).
+
+**Connection to Previous Solution:**
+
+Retain DP max deque and k-gap eviction; change transition to nums[i]+max(0,bestPrev) and aggregate global maximum instead of final DP state.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int constrainedSubsetSum(int[] nums,int k) {
+        Deque<Integer> q=new ArrayDeque<>();
+        int best=Integer.MIN_VALUE;
+        for(int i=0;i<nums.length;i++) {
+            while(!q.isEmpty()&&q.peekFirst()<i-k) q.removeFirst();
+            if(!q.isEmpty()) nums[i]+=Math.max(0,nums[q.peekFirst()]);
+            best=Math.max(best,nums[i]);
+            while(!q.isEmpty()&&nums[q.peekLast()]<=nums[i]) q.removeLast();
+            q.addLast(i);
+        }
+        return best;
+    }
+}
+```
+
+**Key Logic:**
+
+DP may restart at any index by taking zero previous contribution. Track the best ending score globally, initialized below all possible values so an all-negative array returns a nonempty answer.
+
+**Time Complexity:** O(n) amortized.
+
+**Space Complexity:** O(min(n,k+1)) auxiliary; mutates input.
+
+---
+
+<a id="subpattern-q9"></a>
+## Subpattern Q9: Coordinate-range monotonic candidate deque
+
+**When to Apply:** each new increasing-x point needs maximum transformed key among previous points within distance k.
+
+**Basic Java Code Snippet:**
+
+```java
+Deque<Integer> dq = new ArrayDeque<>();
+for (int j = 0; j < points.length; j++) {
+    long x = points[j][0];
+    while (!dq.isEmpty() && x - points[dq.peekFirst()][0] > k) dq.removeFirst();
+    // If nonempty: evaluate current y+x plus previous best y-x BEFORE insertion.
+    long key = (long) points[j][1] - points[j][0];
+    while (!dq.isEmpty() && (long)points[dq.peekLast()][1] - points[dq.peekLast()][0] <= key) dq.removeLast();
+    dq.addLast(j);
+}
+```
+
+**Core Logic:** Rewrite the expression as xj+yj+yi-xi. Maintain decreasing yi-xi among eligible earlier points. Query before insertion to forbid pairing a point with itself.
+
+**Questions Covered:** 1499
+
+### LeetCode 1499
+
+**Question:**
+
+Given points [xi,yi] sorted by strictly increasing x, maximize yi+yj+|xi-xj| over distinct points i<j satisfying |xi-xj|≤k. At least one qualifying pair exists.
+
+**Examples:**
+
+[[1,3],[2,0],[5,10],[6,-10]], k=1 → 4; [[0,0],[3,0],[9,2]], k=3 → 3.
+
+**Constraints:**
+
+2 ≤ n ≤ 10^5; -10^8 ≤ xi,yi ≤ 10^8; 0 ≤ k ≤ 2×10^8; x strictly increasing; valid pair guaranteed.
+
+**Why This Subpattern Applies:**
+
+Q9; Points sorted by x; maximize yj+xj + (yi-xi) for xi within k of current xj. Expire xj-xi>k and keep decreasing yi-xi candidates. O(n).
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int findMaxValueOfEquation(int[][] points,int k) {
+        Deque<Integer> q=new ArrayDeque<>();
+        int best=Integer.MIN_VALUE;
+        for(int j=0;j<points.length;j++) {
+            int x=points[j][0], y=points[j][1];
+            while(!q.isEmpty()&&x-points[q.peekFirst()][0]>k) q.removeFirst();
+            if(!q.isEmpty()) {
+                int i=q.peekFirst();
+                best=Math.max(best,x+y+points[i][1]-points[i][0]);
+            }
+            while(!q.isEmpty()&&points[q.peekLast()][1]-points[q.peekLast()][0]<=y-x) q.removeLast();
+            q.addLast(j);
+        }
+        return best;
+    }
+}
+```
+
+**Key Logic:**
+
+Rewrite the expression as xj+yj+yi-xi. Maintain decreasing yi-xi among eligible earlier points. Query before insertion to forbid pairing a point with itself.
+
+**Time Complexity:** O(n) amortized.
+
+**Space Complexity:** O(n) worst-case auxiliary deque.
+
+---
+
+<a id="subpattern-q10"></a>
+## Subpattern Q10: Variable-window maximum plus additive budget
+
+**When to Apply:** a subarray's feasibility depends on its maximum and an additive running cost multiplied by its length.
+
+**Basic Java Code Snippet:**
+
+```java
+Deque<Integer> maxQ = new ArrayDeque<>();
+long sum = 0;
+int left = 0;
+for (int right = 0; right < charge.length; right++) {
+    sum += running[right];
+    while (!maxQ.isEmpty() && charge[maxQ.peekLast()] <= charge[right]) maxQ.removeLast();
+    maxQ.addLast(right);
+    while (!maxQ.isEmpty() && charge[maxQ.peekFirst()] + (long)(right-left+1)*sum > budget) {
+        if (maxQ.peekFirst() == left) maxQ.removeFirst();
+        sum -= running[left++];
+    }
+    // [left,right] is valid; inspect its length.
+}
+```
+
+**Core Logic:** Maintain the running sum and maximum charge separately. Positive costs ensure shrinking cannot increase cost, and an invalid left boundary cannot become valid by extending right. Use long for the product.
+
+**Questions Covered:** 2398
+
+### LeetCode 2398
+
+**Question:**
+
+Given equal-length chargeTimes and runningCosts arrays and a budget, find the maximum number of consecutive robots that can run together. For a group of length k its cost is max(chargeTimes)+k×sum(runningCosts). Return zero if no nonempty group fits.
+
+**Examples:**
+
+charge=[3,6,1,3,4], running=[2,1,3,4,5], budget=25 → 3; charge=[11,12,19], running=[10,8,7], budget=19 → 0.
+
+**Constraints:**
+
+1 ≤ n ≤ 5×10^4; 1 ≤ chargeTimes[i],runningCosts[i] ≤ 10^5; 1 ≤ budget ≤ 10^15.
+
+**Why This Subpattern Applies:**
+
+Q10; Maximum consecutive robots subject to max(charge)+length*sum(runningCost) ≤ budget. Maintain decreasing charge-index deque, running sum, shrink left while over budget. O(n).
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int maximumRobots(int[] chargeTimes,int[] runningCosts,long budget) {
+        Deque<Integer> q=new ArrayDeque<>();
+        long sum=0; int left=0,best=0;
+        for(int right=0;right<chargeTimes.length;right++) {
+            sum+=runningCosts[right];
+            while(!q.isEmpty()&&chargeTimes[q.peekLast()]<=chargeTimes[right]) q.removeLast();
+            q.addLast(right);
+            while(!q.isEmpty()&&chargeTimes[q.peekFirst()]+(right-left+1L)*sum>budget) {
+                if(q.peekFirst()==left) q.removeFirst();
+                sum-=runningCosts[left++];
+            }
+            best=Math.max(best,right-left+1);
+        }
+        return best;
+    }
+}
+```
+
+**Key Logic:**
+
+Maintain the running sum and maximum charge separately. Positive costs ensure shrinking cannot increase cost, and an invalid left boundary cannot become valid by extending right. Use long for the product.
+
+**Time Complexity:** O(n) amortized.
+
+**Space Complexity:** O(n) worst-case auxiliary deque.
+
+---
+
+<a id="subpattern-q11"></a>
+## Subpattern Q11: Increasing prefix deque for shortest threshold span
+
+**When to Apply:** seek shortest qualifying subarray while negative elements invalidate ordinary sliding-window sum monotonicity.
+
+**Basic Java Code Snippet:**
+
+```java
+long[] prefix = new long[n + 1];
+for (int i = 0; i < n; i++) prefix[i + 1] = prefix[i] + nums[i];
+Deque<Integer> dq = new ArrayDeque<>();
+for (int i = 0; i <= n; i++) {
+    while (!dq.isEmpty() && prefix[i] - prefix[dq.peekFirst()] >= target) {
+        int start = dq.removeFirst();
+        // consider length i - start
+    }
+    while (!dq.isEmpty() && prefix[dq.peekLast()] >= prefix[i]) dq.removeLast();
+    dq.addLast(i);
+}
+```
+
+**Core Logic:** Prefix differences represent subarray sums. Once a start qualifies, future ends only make its length longer. A newer smaller or equal prefix dominates an older one because it yields at least as large a sum and shorter length. Long prevents overflow.
+
+**Questions Covered:** 862
+
+### LeetCode 862
+
+**Question:**
+
+Return the length of the shortest nonempty contiguous subarray of nums whose sum is at least k. Return -1 if none exists. Values may be negative, so removing a left element can increase the sum.
+
+**Examples:**
+
+[1], k=1 → 1; [1,2], k=4 → -1; [2,-1,2], k=3 → 3.
+
+**Constraints:**
+
+1 ≤ n ≤ 10^5; -10^5 ≤ nums[i] ≤ 10^5; 1 ≤ k ≤ 10^9.
+
+**Why This Subpattern Applies:**
+
+Q11; Shortest subarray with sum ≥k allowing negative numbers. Maintain prefix sums and deque of indices with strictly increasing prefix; pop head when qualifying, pop dominated tail before insert. O(n).
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int shortestSubarray(int[] nums,int k) {
+        int n=nums.length,best=n+1;
+        long[] p=new long[n+1];
+        for(int i=0;i<n;i++) p[i+1]=p[i]+nums[i];
+        Deque<Integer> q=new ArrayDeque<>();
+        for(int i=0;i<=n;i++) {
+            while(!q.isEmpty()&&p[i]-p[q.peekFirst()]>=k)
+                best=Math.min(best,i-q.removeFirst());
+            while(!q.isEmpty()&&p[q.peekLast()]>=p[i]) q.removeLast();
+            q.addLast(i);
+        }
+        return best==n+1?-1:best;
+    }
+}
+```
+
+**Key Logic:**
+
+Prefix differences represent subarray sums. Once a start qualifies, future ends only make its length longer. A newer smaller or equal prefix dominates an older one because it yields at least as large a sum and shorter length. Long prevents overflow.
+
+**Time Complexity:** O(n) amortized.
+
+**Space Complexity:** O(n) prefix array and deque.
+
+---
+
+<a id="subpattern-q12"></a>
+## Subpattern Q12: Sorted matching with deque and limited resource
+
+**When to Apply:** after sorting jobs and capacity, an eligible task may consume either an unboosted strong worker or a boosted weaker worker; selecting easiest/hardest needs deque ends.
+
+**Basic Java Code Snippet:**
+
+```java
+Deque<Integer> eligible = new ArrayDeque<>();
+// Add sorted tasks <= worker + strength, processing workers ascending.
+if (!eligible.isEmpty()) {
+    if (eligible.peekFirst() <= worker) eligible.removeFirst();
+    else if (pills > 0) { pills--; eligible.removeLast(); }
+    else { /* infeasible */ }
+}
+```
+
+**Core Logic:** Test the easiest count tasks against the strongest count workers, processed weakest first. If the easiest eligible task needs no pill, assign it; otherwise a pill is mandatory and assign the hardest eligible task, saving easier tasks for later workers. Feasibility is monotonic in count. This corrects the master template’s reversed end choices for ascending worker traversal.
+
+**Questions Covered:** 2071
+
+### LeetCode 2071
+
+**Question:**
+
+Given task strength requirements and worker strengths, assign at most one task to each worker and each task to at most one worker. A worker can perform a task if their strength meets its requirement. There are pills available, each increasing one worker’s strength by strength; each worker may receive at most one pill. Return the maximum number of assignable tasks.
+
+**Examples:**
+
+tasks=[3,2,1], workers=[0,3,3], pills=1, strength=1 → 3; tasks=[5,4], workers=[0,0,0], pills=1, strength=5 → 1; tasks=[10,15,30], workers=[0,10,10,10,10], pills=3, strength=10 → 2.
+
+**Constraints:**
+
+1 ≤ n,m ≤ 5×10^4; 0 ≤ pills ≤ m; 0 ≤ tasks[i],workers[i],strength ≤ 10^9.
+
+**Why This Subpattern Applies:**
+
+Q12; Maximum tasks assigned to workers with limited boosting pills. Sort tasks/workers, binary search number handled; for each candidate greedily process strongest selected workers with a deque of eligible tasks, take hardest without pill or easiest with pill. Sorting O(n log n + m log m); binary-search feasibility O(t log t) total for t=min(n,m), with O(t) deque memory.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int maxTaskAssign(int[] tasks,int[] workers,int pills,int strength) {
+        Arrays.sort(tasks); Arrays.sort(workers);
+        int lo=0,hi=Math.min(tasks.length,workers.length);
+        while(lo<hi) {
+            int mid=lo+(hi-lo+1)/2;
+            if(can(tasks,workers,pills,strength,mid)) lo=mid; else hi=mid-1;
+        }
+        return lo;
+    }
+    private boolean can(int[] t,int[] w,int pills,int strength,int count) {
+        Deque<Integer> q=new ArrayDeque<>();
+        int j=0;
+        for(int i=w.length-count;i<w.length;i++) {
+            while(j<count && t[j]<=(long)w[i]+strength) q.addLast(t[j++]);
+            if(q.isEmpty()) return false;
+            if(q.peekFirst()<=w[i]) q.removeFirst();
+            else {
+                if(pills==0) return false;
+                pills--; q.removeLast();
+            }
+        }
+        return true;
+    }
+}
+```
+
+**Key Logic:**
+
+Test the easiest count tasks against the strongest count workers, processed weakest first. If the easiest eligible task needs no pill, assign it; otherwise a pill is mandatory and assign the hardest eligible task, saving easier tasks for later workers. Feasibility is monotonic in count. This corrects the master template’s reversed end choices for ascending worker traversal.
+
+**Time Complexity:** O(n log n + m log m + t log t), t=min(n,m); each feasibility test O(count).
+
+**Space Complexity:** O(t) auxiliary deque, plus sorting stack; input arrays sorted in place.
+
+---
+
+## Final question registry
+
+232 → 225 → 622 → 641 → 933 → 950 → 649 → 1670 → 239 → 1696 → 1425 → 1499 → 2398 → 862 → 2071
+
+Verified exact order and uniqueness against master: 15/15; 12 family templates. All 15 solution classes compiled individually with Java 21. Runtime tests and online judge submissions were not performed. Q12 uses corrected greedy end selection for ascending workers.

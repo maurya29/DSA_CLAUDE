@@ -1,0 +1,820 @@
+# T17 — Divide & Conquer
+
+**10 locked questions · 5 algorithm families · Java 21**
+
+Reference workbook; practice progress unchanged. Problem statements are independently paraphrased.
+
+## Table of contents
+
+- [DC1: Merge-sort cross-half counting](#dc1) — [315](#leetcode-315), [1395](#leetcode-1395), [493](#leetcode-493), [2426](#leetcode-2426), [327](#leetcode-327)
+
+- [DC2: Split on globally invalid character](#dc2) — [1763](#leetcode-1763), [395](#leetcode-395)
+
+- [DC3: Split at operators, combine all recursive outcomes](#dc3) — [241](#leetcode-241)
+
+- [DC4: Parity-class divide, transform and combine](#dc4) — [932](#leetcode-932)
+
+- [DC5: Balanced primitive decomposition and recursive canonical ordering](#dc5) — [761](#leetcode-761)
+
+<a id="dc1"></a>
+
+## Subpattern DC1: Merge-sort cross-half counting
+
+**When to Apply:**
+
+Use when ordered index pairs can be counted in bulk after sorting independent halves. Each recursive call returns a sorted segment; count cross pairs before losing the original half membership.
+
+**Basic Java Code Snippet:**
+
+```java
+
+static long count(long[] a, long[] t, int l, int r) {
+    if (r-l<=1) return 0;
+    int m=(l+r)/2;
+    long ans=count(a,t,l,m)+count(a,t,m,r);
+    int j=m;
+    for(int i=l;i<m;i++) {
+        while(j<r && a[j]<a[i]) j++;
+        ans+=j-m;
+    }
+    int i=l; j=m;
+    for(int w=l;w<r;w++)
+        t[w]=j==r || (i<m && a[i]<=a[j]) ? a[i++] : a[j++];
+    System.arraycopy(t,l,a,l,r-l);
+    return ans;
+}
+
+```
+
+**Core Logic:**
+
+Count strict inversions using a monotone cursor, then merge; every pair belongs to exactly one recursion node.
+
+**Questions Covered:** 315, 1395, 493, 2426, 327
+
+### LeetCode 315
+
+**Question:**
+
+Given an integer array nums, return an array counts where counts[i] is the number of elements strictly smaller than nums[i] to its right. Preserve original index order; equal values do not count.
+
+**Examples:**
+
+[5,2,6,1] → [2,1,1,0]; [-1] → [0]; [-1,-1] → [0,0].
+
+**Constraints:**
+
+1 ≤ n ≤ 100000; -10000 ≤ nums[i] ≤ 10000.
+
+**Why This Subpattern Applies:**
+
+Sorted halves allow all consumed smaller right elements to be counted for each left index.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public List<Integer> countSmaller(int[] nums) {
+        List<Integer> out=new ArrayList<>();
+        for(int x:smaller(nums)) out.add(x);
+        return out;
+    }
+    private void sort(int[] a,int[] idx,int[] tmp,int[] count,int l,int r) {
+        if(r-l<=1) return;
+        int m=(l+r)/2;
+        sort(a,idx,tmp,count,l,m); sort(a,idx,tmp,count,m,r);
+        int i=l,j=m,w=l;
+        while(i<m) {
+            if(j<r && a[idx[j]]<a[idx[i]]) tmp[w++]=idx[j++];
+            else { count[idx[i]]+=j-m; tmp[w++]=idx[i++]; }
+        }
+        while(j<r) tmp[w++]=idx[j++];
+        System.arraycopy(tmp,l,idx,l,r-l);
+    }
+    private int[] smaller(int[] a) {
+        int n=a.length; int[] idx=new int[n],tmp=new int[n],count=new int[n];
+        for(int i=0;i<n;i++) idx[i]=i;
+        sort(a,idx,tmp,count,0,n); return count;
+    }
+}
+```
+
+**Key Logic:**
+
+Sort indices rather than values to preserve identity. j-m counts strictly smaller right items already consumed. Equal values choose the left item first. Each cross pair is counted once at its lowest separating recursion node.
+
+**Time Complexity:**
+
+O(n log n): linear work per merge level.
+
+**Space Complexity:**
+
+O(n) auxiliary arrays plus O(log n) stack; O(n) output.
+
+---
+
+### LeetCode 1395
+
+**Question:**
+
+Given distinct soldier ratings in a line, count teams of three indices i < j < k whose ratings are strictly increasing or strictly decreasing. A soldier may belong to multiple teams. Return the total number of teams.
+
+**Examples:**
+
+[2,5,3,4,1] → 3; [2,1,3] → 0; [1,2,3,4] → 4.
+
+**Constraints:**
+
+3 ≤ n ≤ 1000; 1 ≤ rating[i] ≤ 100000; ratings distinct.
+
+**Why This Subpattern Applies:**
+
+For each middle index, independent left and right smaller counts determine both monotonic triple counts.
+
+**Connection to Previous Solution:**
+
+Reuse 315’s smaller() unchanged on the original and reversed arrays. Reversed right-smaller counts become original left-smaller counts; replace list output with products of side counts.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int numTeams(int[] rating) {
+        int n=rating.length,ans=0;
+        int[] right=smaller(rating),rev=new int[n];
+        for(int i=0;i<n;i++) rev[n-1-i]=rating[i];
+        int[] left=smaller(rev);
+        for(int i=0;i<n;i++) {
+            int ll=left[n-1-i],rl=right[i];
+            ans+=ll*(n-1-i-rl)+(i-ll)*rl;
+        }
+        return ans;
+    }
+    private void sort(int[] a,int[] idx,int[] tmp,int[] count,int l,int r) {
+        if(r-l<=1) return;
+        int m=(l+r)/2;
+        sort(a,idx,tmp,count,l,m); sort(a,idx,tmp,count,m,r);
+        int i=l,j=m,w=l;
+        while(i<m) {
+            if(j<r && a[idx[j]]<a[idx[i]]) tmp[w++]=idx[j++];
+            else { count[idx[i]]+=j-m; tmp[w++]=idx[i++]; }
+        }
+        while(j<r) tmp[w++]=idx[j++];
+        System.arraycopy(tmp,l,idx,l,r-l);
+    }
+    private int[] smaller(int[] a) {
+        int n=a.length; int[] idx=new int[n],tmp=new int[n],count=new int[n];
+        for(int i=0;i<n;i++) idx[i]=i;
+        sort(a,idx,tmp,count,0,n); return count;
+    }
+}
+```
+
+**Key Logic:**
+
+Distinctness means greater counts equal side length minus smaller count. Increasing teams use leftLess × rightGreater; decreasing teams use leftGreater × rightLess. Each triple has one middle index.
+
+**Time Complexity:**
+
+O(n log n): two merge-count passes.
+
+**Space Complexity:**
+
+O(n) auxiliary arrays and O(log n) stack; scalar output.
+
+---
+
+### LeetCode 493
+
+**Question:**
+
+Given nums, return the number of reverse pairs (i,j) such that 0 ≤ i < j < nums.length and nums[i] > 2 × nums[j]. Negative values are allowed.
+
+**Examples:**
+
+[1,3,2,3,1] → 2; [2,4,3,5,1] → 3; [-5,-5] → 1.
+
+**Constraints:**
+
+1 ≤ n ≤ 50000; -2^31 ≤ nums[i] ≤ 2^31-1.
+
+**Why This Subpattern Applies:**
+
+Sorted halves make the qualifying right values a prefix for each left value.
+
+**Connection to Previous Solution:**
+
+Replace indexed per-element counts from 1395 with a scalar count before merging. Change the predicate to a[i] > 2L*a[j]; retain recursive split and merge.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int reversePairs(int[] nums) {
+        long[] a=new long[nums.length];
+        for(int i=0;i<a.length;i++) a[i]=nums[i];
+        return (int)sort(a,new long[a.length],0,a.length);
+    }
+    private long sort(long[] a,long[] t,int l,int r) {
+        if(r-l<=1) return 0;
+        int m=(l+r)/2;
+        long ans=sort(a,t,l,m)+sort(a,t,m,r);
+        int j=m;
+        for(int i=l;i<m;i++) {
+            while(j<r && a[i]>2L*a[j]) j++;
+            ans+=j-m;
+        }
+        merge(a,t,l,m,r); return ans;
+    }
+    private void merge(long[] a,long[] t,int l,int m,int r) {
+        int i=l,j=m;
+        for(int w=l;w<r;w++)
+            t[w]=j==r || (i<m && a[i]<=a[j]) ? a[i++] : a[j++];
+        System.arraycopy(t,l,a,l,r-l);
+    }
+}
+```
+
+**Key Logic:**
+
+The right cursor never retreats because left values increase. Count before merging to preserve i<j. Long multiplication prevents overflow; strict comparison handles equality.
+
+**Time Complexity:**
+
+O(n log n): count and merge are linear per level.
+
+**Space Complexity:**
+
+O(n) auxiliary arrays plus O(log n) stack.
+
+---
+
+### LeetCode 2426
+
+**Question:**
+
+Given equally sized integer arrays nums1 and nums2 and an integer diff, count pairs i<j satisfying nums1[i]-nums1[j] ≤ nums2[i]-nums2[j]+diff. Return the number of such pairs.
+
+**Examples:**
+
+nums1=[3,2,5], nums2=[2,2,1], diff=1 → 3; nums1=[3,-1], nums2=[-2,2], diff=-1 → 0.
+
+**Constraints:**
+
+2 ≤ n ≤ 100000; -10000 ≤ nums1[i], nums2[i], diff ≤ 10000.
+
+**Why This Subpattern Applies:**
+
+Rearrange to delta[i] ≤ delta[j]+diff; sorted right halves provide a qualifying suffix.
+
+**Connection to Previous Solution:**
+
+Keep 493’s pre-merge cursor. Build delta instead of copying nums; skip right values while a[i]>a[j]+diff and add r-j rather than j-m.
+
+**Java Solution:**
+
+```java
+class Solution {
+    private int diff;
+    public long numberOfPairs(int[] nums1,int[] nums2,int diff) {
+        this.diff=diff;
+        long[] a=new long[nums1.length];
+        for(int i=0;i<a.length;i++) a[i]=(long)nums1[i]-nums2[i];
+        return sort(a,new long[a.length],0,a.length);
+    }
+    private long sort(long[] a,long[] t,int l,int r) {
+        if(r-l<=1) return 0;
+        int m=(l+r)/2;
+        long ans=sort(a,t,l,m)+sort(a,t,m,r);
+        int j=m;
+        for(int i=l;i<m;i++) {
+            while(j<r && a[i]>a[j]+diff) j++;
+            ans+=r-j;
+        }
+        merge(a,t,l,m,r); return ans;
+    }
+    private void merge(long[] a,long[] t,int l,int m,int r) {
+        int i=l,j=m;
+        for(int w=l;w<r;w++)
+            t[w]=j==r || (i<m && a[i]<=a[j]) ? a[i++] : a[j++];
+        System.arraycopy(t,l,a,l,r-l);
+    }
+}
+```
+
+**Key Logic:**
+
+The first non-skipped right value and all later values satisfy the inequality. Equality is included. A long count accommodates up to n(n-1)/2 pairs.
+
+**Time Complexity:**
+
+O(n log n): linear cross counting and merging per level.
+
+**Space Complexity:**
+
+O(n) auxiliary arrays plus O(log n) stack.
+
+---
+
+### LeetCode 327
+
+**Question:**
+
+Given nums and integers lower and upper, return the number of nonempty contiguous subarrays whose sums lie in the inclusive interval [lower,upper]. A range sum includes both endpoint elements.
+
+**Examples:**
+
+nums=[-2,5,-1], lower=-2, upper=2 → 3; nums=[0], lower=0, upper=0 → 1; nums=[0,0], lower=0, upper=0 → 3.
+
+**Constraints:**
+
+1 ≤ n ≤ 100000; -2^31 ≤ nums[i] ≤ 2^31-1; -100000 ≤ lower ≤ upper ≤ 100000; answer fits signed 32-bit integer.
+
+**Why This Subpattern Applies:**
+
+Each range sum is a difference of two prefix sums at ordered indices; sorted halves support two monotone bounds.
+
+**Connection to Previous Solution:**
+
+Replace 2426’s delta with n+1 prefix sums. Replace one cursor with two: first difference ≥ lower and first difference > upper; add their distance.
+
+**Java Solution:**
+
+```java
+class Solution {
+    private int lower,upper;
+    public int countRangeSum(int[] nums,int lower,int upper) {
+        this.lower=lower; this.upper=upper;
+        long[] a=new long[nums.length+1];
+        for(int i=0;i<nums.length;i++) a[i+1]=a[i]+nums[i];
+        return (int)sort(a,new long[a.length],0,a.length);
+    }
+    private long sort(long[] a,long[] t,int l,int r) {
+        if(r-l<=1) return 0;
+        int m=(l+r)/2;
+        long ans=sort(a,t,l,m)+sort(a,t,m,r);
+        int low=m,high=m;
+        for(int i=l;i<m;i++) {
+            while(low<r && a[low]-a[i]<lower) low++;
+            while(high<r && a[high]-a[i]<=upper) high++;
+            ans+=high-low;
+        }
+        merge(a,t,l,m,r); return ans;
+    }
+    private void merge(long[] a,long[] t,int l,int m,int r) {
+        int i=l,j=m;
+        for(int w=l;w<r;w++)
+            t[w]=j==r || (i<m && a[i]<=a[j]) ? a[i++] : a[j++];
+        System.arraycopy(t,l,a,l,r-l);
+    }
+}
+```
+
+**Key Logic:**
+
+Prefix zero includes ranges beginning at index zero. Both cursors advance monotonically as left prefix increases. The half-open cursor interval includes both numeric bounds; long prefix sums avoid overflow.
+
+**Time Complexity:**
+
+O(n log n): two linear scans and merge per level.
+
+**Space Complexity:**
+
+O(n) auxiliary arrays plus O(log n) stack.
+
+---
+
+<a id="dc2"></a>
+
+## Subpattern DC2: Split on globally invalid character
+
+**When to Apply:**
+
+Use when a character cannot belong to any valid substring of the current interval. Every valid answer must avoid its position; recurse on independent remaining intervals.
+
+**Basic Java Code Snippet:**
+
+```java
+
+static int solve(String s,int l,int r,int k) {
+    if(r-l<k) return 0;
+    int[] f=new int[26];
+    for(int i=l;i<r;i++) f[s.charAt(i)-'a']++;
+    for(int i=l;i<r;i++) if(f[s.charAt(i)-'a']<k)
+        return Math.max(solve(s,l,i,k),solve(s,i+1,r,k));
+    return r-l;
+}
+
+```
+
+**Core Logic:**
+
+Count interval frequencies, split around a forbidden character, or return the whole valid interval.
+
+**Questions Covered:** 1763, 395
+
+### LeetCode 1763
+
+**Question:**
+
+A string is nice if every alphabetic letter present occurs in both uppercase and lowercase. Given s, return its longest nice contiguous substring. If several have maximum length, return the earliest; if none exists, return the empty string.
+
+**Examples:**
+
+"YazaAay" → "aAa"; "Bb" → "Bb"; "c" → "".
+
+**Constraints:**
+
+1 ≤ s.length ≤ 100; uppercase and lowercase English letters only.
+
+**Why This Subpattern Applies:**
+
+A letter missing its opposite case in the entire interval cannot appear in any nice substring of that interval.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public String longestNiceSubstring(String s) {
+        int[] best=solve(s,0,s.length());
+        return s.substring(best[0],best[1]);
+    }
+    private int[] solve(String s,int l,int r) {
+        if(r-l<2) return new int[]{l,l};
+        int lower=0,upper=0;
+        for(int i=l;i<r;i++) {
+            char c=s.charAt(i);
+            if(c>='a') lower|=1<<(c-'a');
+            else upper|=1<<(c-'A');
+        }
+        int bad=lower^upper;
+        if(bad==0) return new int[]{l,r};
+        int[] best={l,l}; int start=l;
+        for(int i=l;i<=r;i++) {
+            if(i==r || (bad & (1<<(Character.toLowerCase(s.charAt(i))-'a')))!=0) {
+                if(i-start>=2) {
+                    int[] v=solve(s,start,i);
+                    if(v[1]-v[0]>best[1]-best[0]) best=v;
+                }
+                start=i+1;
+            }
+        }
+        return best;
+    }
+}
+```
+
+**Key Logic:**
+
+XOR identifies letters present in exactly one case. Split at every occurrence of those letters, not just the first. Process intervals left to right and replace best only for strictly longer answers to preserve earliest ties.
+
+**Time Complexity:**
+
+O(26n)=O(n) for fixed alphabet: each recursive level eliminates at least one letter class; disjoint spans total at most n per level.
+
+**Space Complexity:**
+
+O(26) stack depth and constant live state per frame; O(n) output substring; temporary range arrays allocated across calls.
+
+---
+
+### LeetCode 395
+
+**Question:**
+
+Given a lowercase string s and integer k, return the length of the longest contiguous substring in which every distinct character appears at least k times within that substring. Return zero if no such substring exists.
+
+**Examples:**
+
+s="aaabb", k=3 → 3; s="ababbc", k=2 → 5; s="abc", k=2 → 0.
+
+**Constraints:**
+
+1 ≤ s.length ≤ 10000; 1 ≤ k ≤ 100000; lowercase English letters.
+
+**Why This Subpattern Applies:**
+
+A character occurring fewer than k times in a span cannot be included in any valid substring of that span.
+
+**Connection to Previous Solution:**
+
+Keep 1763’s split-all-invalid-positions recursion. Replace case masks with frequency counts and return maximum length instead of index ranges; prune spans shorter than k.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int longestSubstring(String s,int k) {
+        return solve(s,0,s.length(),k);
+    }
+    private int solve(String s,int l,int r,int k) {
+        if(r-l<k) return 0;
+        int[] f=new int[26];
+        for(int i=l;i<r;i++) f[s.charAt(i)-'a']++;
+        int bad=0;
+        for(int i=0;i<26;i++) if(f[i]>0 && f[i]<k) bad|=1<<i;
+        if(bad==0) return r-l;
+        int best=0,start=l;
+        for(int i=l;i<=r;i++) {
+            if(i==r || (bad & (1<<(s.charAt(i)-'a')))!=0) {
+                if(i-start>=k) best=Math.max(best,solve(s,start,i,k));
+                start=i+1;
+            }
+        }
+        return best;
+    }
+}
+```
+
+**Key Logic:**
+
+Build a mask of all positive frequencies below k. Exclude every occurrence and solve maximal remaining spans. All-valid spans return immediately; k=1 returns the full length.
+
+**Time Complexity:**
+
+O(26n)=O(n) for fixed alphabet: each level removes at least one distinct letter.
+
+**Space Complexity:**
+
+O(26²) auxiliary space for frequency arrays over at most 26 nested calls, constant for fixed alphabet; scalar output.
+
+---
+
+<a id="dc3"></a>
+
+## Subpattern DC3: Split at operators, combine all recursive outcomes
+
+**When to Apply:**
+
+Use when every possible root operator creates independent left and right expressions. Preserve every combination, including duplicate results.
+
+**Basic Java Code Snippet:**
+
+```java
+
+static java.util.List<Integer> eval(String s,int l,int r) {
+    var out=new java.util.ArrayList<Integer>();
+    for(int i=l;i<r;i++) if(s.charAt(i)=='+')
+        for(int a:eval(s,l,i)) for(int b:eval(s,i+1,r)) out.add(a+b);
+    if(out.isEmpty()) out.add(Integer.parseInt(s.substring(l,r)));
+    return out;
+}
+
+```
+
+**Core Logic:**
+
+This addition-only template enumerates root splits and Cartesian products; memoization and other operators extend it.
+
+**Questions Covered:** 241
+
+### LeetCode 241
+
+**Question:**
+
+Given a string expression containing nonnegative integers and operators +, - and *, return all possible results obtained by inserting parentheses in every possible way. Return results in any order, retaining duplicates when distinct parenthesizations produce the same value.
+
+**Examples:**
+
+"2-1-1" → [0,2]; "2*3-4*5" → [-34,-14,-10,-10,10]; "11" → [11].
+
+**Constraints:**
+
+1 ≤ expression.length ≤ 20; operands are integers 0–99; expression contains digits and +,-,*; results fit signed 32-bit integers; number of results ≤ 10000.
+
+**Why This Subpattern Applies:**
+
+Each root operator partitions the expression into independent intervals; every pair of left and right results yields one parenthesization.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public List<Integer> diffWaysToCompute(String expression) {
+        Map<Integer,List<Integer>> memo=new HashMap<>();
+        return eval(expression,0,expression.length(),memo);
+    }
+    private List<Integer> eval(String s,int l,int r,Map<Integer,List<Integer>> memo) {
+        int key=l* (s.length()+1)+r;
+        if(memo.containsKey(key)) return memo.get(key);
+        List<Integer> out=new ArrayList<>();
+        for(int i=l;i<r;i++) {
+            char op=s.charAt(i);
+            if(op!='+' && op!='-' && op!='*') continue;
+            for(int a:eval(s,l,i,memo))
+                for(int b:eval(s,i+1,r,memo))
+                    out.add(switch(op) {case '+' -> a+b; case '-' -> a-b; default -> a*b;});
+        }
+        if(out.isEmpty()) out.add(Integer.parseInt(s.substring(l,r)));
+        memo.put(key,out); return out;
+    }
+}
+```
+
+**Key Logic:**
+
+Enumerate every operator as the root, recursively evaluate both intervals, and append the Cartesian product. A span without operators is a single number. Memo keys uniquely encode endpoints; duplicates remain intentional.
+
+**Time Complexity:**
+
+O(L² + C_m) for L expression length and m operators (bounded operand length); Catalan C_m results dominate total combinations across memoized intervals.
+
+**Space Complexity:**
+
+O(L² + C_m) including memoized results and O(m) stack; output O(C_m), proper-span cached results also O(C_m) as a conservative bound.
+
+---
+
+<a id="dc4"></a>
+
+## Subpattern DC4: Parity-class divide, transform and combine
+
+**When to Apply:**
+
+Use when affine transformations preserve a smaller construction and parity rules exclude cross-class violations.
+
+**Basic Java Code Snippet:**
+
+```java
+
+static int[] build(int n) {
+    if(n==1) return new int[]{1};
+    int[] out=new int[n]; int w=0;
+    for(int x:build((n+1)/2)) out[w++]=2*x-1;
+    for(int x:build(n/2)) out[w++]=2*x;
+    return out;
+}
+
+```
+
+**Core Logic:**
+
+Construct odd and even classes independently and concatenate; affine maps preserve the nonaverage invariant.
+
+**Questions Covered:** 932
+
+### LeetCode 932
+
+**Question:**
+
+Given n, return any permutation of integers 1 through n such that for every i<j there is no k with i<k<j and 2*nums[k]=nums[i]+nums[j]. A valid permutation is guaranteed to exist.
+
+**Examples:**
+
+n=4 → [2,1,4,3]; n=5 → [3,1,2,5,4]; n=1 → [1].
+
+**Constraints:**
+
+1 ≤ n ≤ 1000.
+
+**Why This Subpattern Applies:**
+
+Affine transformations preserve the nonaverage condition within parity classes; opposite-parity endpoints cannot have an integer average.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int[] beautifulArray(int n) {
+        return build(n);
+    }
+    private int[] build(int n) {
+        if(n==1) return new int[]{1};
+        int[] odd=build((n+1)/2);
+        int[] even=n%2==0 ? odd : build(n/2);
+        int[] out=new int[n]; int w=0;
+        for(int x:odd) out[w++]=2*x-1;
+        for(int x:even) out[w++]=2*x;
+        return out;
+    }
+}
+```
+
+**Key Logic:**
+
+Odd and even values form contiguous blocks, so same-parity endpoints have only same-block middle indices. Opposite-parity endpoints sum to an odd number. Affine maps preserve the forbidden equality. Even n reuses the identical child array safely.
+
+**Time Complexity:**
+
+O(n log n) upper bound for recursive construction; reuse reduces work for equal child sizes.
+
+**Space Complexity:**
+
+O(n) peak auxiliary arrays and O(log n) stack; O(n) output.
+
+---
+
+<a id="dc5"></a>
+
+## Subpattern DC5: Balanced primitive decomposition and recursive canonical ordering
+
+**When to Apply:**
+
+Use when balanced components have independently optimizable interiors and whole components can be reordered. Balance-zero boundaries identify primitives.
+
+**Basic Java Code Snippet:**
+
+```java
+
+static String normalize(String s) {
+    var parts=new java.util.ArrayList<String>();
+    int b=0,l=0;
+    for(int i=0;i<s.length();i++) {
+        b+=s.charAt(i)=='1'?1:-1;
+        if(b==0) { parts.add("1"+normalize(s.substring(l+1,i))+"0"); l=i+1; }
+    }
+    parts.sort(java.util.Comparator.reverseOrder());
+    return String.join("",parts);
+}
+
+```
+
+**Core Logic:**
+
+Normalize each interior, restore its enclosing pair, then sort primitives descending.
+
+**Questions Covered:** 761
+
+### LeetCode 761
+
+**Question:**
+
+A special binary string has equal numbers of 1s and 0s, and every prefix contains at least as many 1s as 0s. Given a special string s, you may repeatedly swap two consecutive nonempty special substrings. Return the lexicographically largest string obtainable.
+
+**Examples:**
+
+"11011000" → "11100100"; "10" → "10"; "1010" → "1010".
+
+**Constraints:**
+
+1 ≤ s.length ≤ 50; only 0 and 1; s is special.
+
+**Why This Subpattern Applies:**
+
+Balance-zero boundaries identify independent special primitives whose interiors can be recursively maximized and whose order can be optimized by swaps.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    public String makeLargestSpecial(String s) {
+        return solve(s,0,s.length());
+    }
+    private String solve(String s,int l,int r) {
+        List<String> parts=new ArrayList<>();
+        int balance=0,start=l;
+        for(int i=l;i<r;i++) {
+            balance+=s.charAt(i)=='1'?1:-1;
+            if(balance==0) {
+                parts.add("1"+solve(s,start+1,i)+"0");
+                start=i+1;
+            }
+        }
+        parts.sort(Comparator.reverseOrder());
+        return String.join("",parts);
+    }
+}
+```
+
+**Key Logic:**
+
+Each primitive starts with 1 and ends with its matching 0. Recursively optimize the interior, then sort sibling primitives descending. Distinct primitives cannot be proper prefixes of each other because a primitive has no internal zero balance; descending lexicographic order therefore maximizes concatenation. Empty interiors return empty strings.
+
+**Time Complexity:**
+
+O(n² log n) conservative upper bound: repeated scans, string construction and comparisons across at most n/2 levels.
+
+**Space Complexity:**
+
+O(n²) conservative auxiliary bound for recursive strings/lists and O(n) stack; O(n) output.
+
+---
+
+## Final question registry
+
+315, 1395, 493, 2426, 327, 1763, 395, 241, 932, 761
+
+All 10 locked IDs appear once as question sections, in exact curriculum order. Five starter templates are included. Practice progress is unchanged.

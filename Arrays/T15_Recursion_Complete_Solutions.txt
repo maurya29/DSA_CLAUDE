@@ -1,0 +1,873 @@
+# T15 — Recursion: Complete Solutions
+
+**Java 21 | 12 questions | 9 algorithm families | Locked curriculum C15**
+
+Reference workbook, not a practice-completion record. The sequence and family boundaries are taken from `MASTER_DSA_CURRICULUM.md`, section C15. Problem descriptions are independently paraphrased; examples and implementations are supplied for study. All indexing is explicitly identified where relevant.
+
+## Table of contents
+
+| Subpattern | Questions (in order) |
+|---|---|
+| [RC1 — Exponentiation by squaring](#rc1) | [50](#leetcode-50) |
+| [RC2 — Implicit binary-sequence indexing](#rc2) | [779](#leetcode-779), [1545](#leetcode-1545) |
+| [RC3 — Implicit concatenation with operation labels](#rc3) | [3304](#leetcode-3304), [3307](#leetcode-3307) |
+| [RC4 — Circular survivor index recurrence](#rc4) | [1823](#leetcode-1823) |
+| [RC5 — Alternating elimination and transformed survivor coordinates](#rc5) | [390](#leetcode-390) |
+| [RC6 — Recursive descent of nested structural values](#rc6) | [385](#leetcode-385), [726](#leetcode-726) |
+| [RC7 — Recursive boolean-expression grammar](#rc7) | [1106](#leetcode-1106) |
+| [RC8 — Recursive evaluation with lexical scopes](#rc8) | [736](#leetcode-736) |
+| [RC9 — Recursive set-valued expression grammar](#rc9) | [1096](#leetcode-1096) |
+
+## Recursion fundamentals
+
+Every recursive method needs a base case, a strictly decreasing progress measure and a rule combining the smaller result into the current result. A stack frame retains local variables and the return address until its child returns. Depth is the maximum number of simultaneously active calls, not the total number of calls. For example, a single call on half the input gives logarithmic depth; two calls on half the input may still generate linear total work. Java does not guarantee tail-call elimination. Deep recursion can overflow the JVM stack; explicit stacks or loops are alternatives in production. This workbook preserves the curriculum's recursive strategies even when a specialized iterative or bitwise solution could use less stack space.
+
+<a id="rc1"></a>
+## Subpattern RC1: Exponentiation by squaring
+
+**When to Apply:** A repeated associative operation has an identity and the exponent is large. Look for a result that can be built by squaring a single result for half the exponent. The invariant is `power(base,e) = base^e` for nonnegative `e`.
+
+**Basic Java Code Snippet:**
+```java
+static double powerPositive(double base, long exp) {
+    if (exp == 0) return 1.0;
+    double half = powerPositive(base, exp / 2);
+    return exp % 2 == 0 ? half * half : half * half * base;
+}
+```
+**Core Logic:** Halve the exponent until zero. Reuse the returned half-result twice; multiply by the original base only for odd exponents. Normalize negative exponents before calling the template.
+
+**Questions Covered:** 50.
+
+### LeetCode 50
+
+**Question:** Given a floating-point number `x` and an integer `n`, implement a function returning `x` raised to the power `n`. A zero exponent returns one. Negative exponents represent reciprocals of the corresponding positive power. The implementation must handle the entire signed 32-bit exponent range without overflow during sign conversion.
+
+**Examples:**
+- `x = 2.0, n = 10` → `1024.0`.
+- `x = 2.1, n = 3` → `9.261` (subject to floating-point precision).
+- `x = 2.0, n = -2` → `0.25`.
+
+**Constraints:** `-100 < x < 100`; `-2^31 <= n <= 2^31 - 1`; `n` is an integer; either `x != 0` or `n > 0`; the mathematical result is within `[-10^4, 10^4]`.
+
+**Why This Subpattern Applies:** Even powers are squares of half powers; odd powers need one extra multiplication. Only one smaller recursive result is necessary.
+
+**Connection to Previous Solution:** Foundation of this subpattern.
+
+**Java Solution:**
+```java
+class Solution {
+    public double myPow(double x, int n) {
+        long exp = n;
+        if (exp < 0) {
+            x = 1.0 / x;
+            exp = -exp;
+        }
+        return pow(x, exp);
+    }
+
+    private double pow(double x, long exp) {
+        if (exp == 0) return 1.0;
+        double half = pow(x, exp / 2);
+        double square = half * half;
+        return (exp & 1L) == 0 ? square : square * x;
+    }
+}
+```
+**Key Logic:** Widen `n` before negation: `-Integer.MIN_VALUE` overflows an `int`, but fits in `long`. Inverting the base before exponentiation avoids computing a huge positive power only to invert it. The zero exponent is the identity. For `e=2q+r`, `x^e=(x^q)^2*x^r`; `r` is zero or one. Negative bases retain their sign for odd powers.
+
+**Time Complexity:** O(log(|n|+1)) for nonzero n; O(1) for zero, one call per halving.
+
+**Space Complexity:** O(log(|n|+1)) auxiliary recursion stack (O(1) for zero).
+
+---
+<a id="rc2"></a>
+## Subpattern RC2: Implicit binary-sequence indexing
+
+**When to Apply:** A binary sequence grows exponentially through a recursive definition, but only one indexed symbol is requested. Identify how the current position maps into the previous generation and whether the bit must be inverted. The invariant is that a call returns the exact bit at its given level and position.
+
+**Basic Java Code Snippet:**
+```java
+static int getBit(int level, long position) {
+    if (level == 1) return 0;
+    long mid = 1L << (level - 1);
+    if (position == mid) return 1;
+    if (position < mid) return getBit(level - 1, position);
+    return getBit(level - 1, 2 * mid - position) ^ 1;
+}
+```
+**Core Logic:** This illustrates a mirrored/inverted right half, for levels whose shifts and doubled midpoint fit in `long`. Other recursive grammars use different index mappings. XOR with one flips a binary bit.
+
+**Questions Covered:** 779, 1545.
+
+### LeetCode 779
+
+**Question:** Construct a sequence of rows beginning with the single symbol `0`. Obtain each subsequent row by replacing every `0` in the preceding row with `01` and every `1` with `10`. Given row number `n` and one-based position `k`, return the bit at that position without needing to generate the complete row.
+
+**Examples:**
+- `n = 1, k = 1` → `0`.
+- `n = 2, k = 2` → `1` (row `01`).
+- `n = 4, k = 5` → `1` (row `01101001`).
+
+**Constraints:** `1 <= n <= 30`; `1 <= k <= 2^(n-1)`.
+
+**Why This Subpattern Applies:** Two consecutive children originate from one parent. The first child equals the parent and the second is its complement.
+
+**Connection to Previous Solution:** Foundation of this subpattern.
+
+**Java Solution:**
+```java
+class Solution {
+    public int kthGrammar(int n, int k) {
+        if (n == 1) return 0;
+        int parent = kthGrammar(n - 1, (k + 1) / 2);
+        return (k & 1) == 0 ? parent ^ 1 : parent;
+    }
+}
+```
+**Key Logic:** Positions `2p-1` and `2p` share parent position `p`; integer division `(k+1)/2` recovers that parent. Odd positions inherit the parent bit; even positions flip it. Recursion terminates at the only bit of row one. The largest legal `k+1` fits in `int`.
+
+**Time Complexity:** O(n), one constant-work call per row.
+
+**Space Complexity:** O(n) auxiliary stack. A popcount-based closed form is possible but is intentionally not used in this recursive curriculum.
+
+### LeetCode 1545
+
+**Question:** Define `S1 = "0"`. For each `i > 1`, form `Si` by concatenating `S(i-1)`, the character `1`, and the reversed version of `S(i-1)` after flipping every bit. Given `n` and a valid one-based index `k`, return the character at that index in `Sn`.
+
+**Examples:**
+- `n = 3, k = 1` → `'0'` (S3 is `0111001`).
+- `n = 4, k = 11` → `'1'`.
+- `n = 2, k = 3` → `'1'`.
+
+**Constraints:** `1 <= n <= 20`; `1 <= k <= 2^n - 1`.
+
+**Why This Subpattern Applies:** The left half is unchanged and the right half is a reflected, inverted copy. An indexed query can move to a smaller generation without constructing any string.
+
+**Connection to Previous Solution:** Preserve the recursive bit-return invariant and base bit zero. Replace LC 779's `(k+1)/2` and even-child flip with a midpoint test: left positions retain `k`, midpoint returns `1`, and right positions recurse at `2*mid-k` and flip. The public method now returns a character.
+
+**Java Solution:**
+```java
+class Solution {
+    public char findKthBit(int n, int k) {
+        return (char) ('0' + bit(n, k));
+    }
+
+    private int bit(int n, int k) {
+        if (n == 1) return 0;
+        int mid = 1 << (n - 1);
+        if (k == mid) return 1;
+        if (k < mid) return bit(n - 1, k);
+        return bit(n - 1, 2 * mid - k) ^ 1;
+    }
+}
+```
+**Key Logic:** `Sn` has length `2^n-1`. Its center is at `2^(n-1)`. A right-half position at distance `d` from the center corresponds to left position `mid-d`; this gives `2*mid-k`. Reversal determines the position; inversion determines the XOR. The center and row-one cases terminate the recursion.
+
+**Time Complexity:** O(n) worst case.
+
+**Space Complexity:** O(n) auxiliary stack; no generated sequence.
+
+---
+<a id="rc3"></a>
+## Subpattern RC3: Implicit concatenation with operation labels
+
+**When to Apply:** A string doubles by appending a transformed copy of itself, and the question requests one character. Look for a position that lies either in the original half or in the appended half. Each appended-half traversal contributes an operation-specific offset; the sum modulo alphabet size determines the character.
+
+**Basic Java Code Snippet:**
+```java
+static int offset(long k, int level, int[] operations) {
+    if (level == 0) return 0;
+    long half = 1L << (level - 1);
+    if (k <= half) return offset(k, level - 1, operations);
+    return (offset(k - half, level - 1, operations)
+            + operations[level - 1]) % 26;
+}
+```
+**Core Logic:** Each recursive step removes the most recent doubling. A right-half position maps to `k-half` and adds its operation label. Use only levels with safe shifts; later operations beyond the first block containing `k` cannot affect that position.
+
+**Questions Covered:** 3304, 3307.
+
+### LeetCode 3304
+
+**Question:** Alice starts with the lowercase word `"a"`. On each operation, transform every character of the current word into the next lowercase letter (wrapping `z` to `a`), and append the transformed string to the original word. Repeat until the word contains at least `k` characters. Given a positive one-based index `k`, return the character at that position.
+
+**Examples:**
+- `k = 1` → `'a'`.
+- `k = 5` → `'b'` (the word grows through `a`, `ab`, `abbc`, `abbcbccd`).
+- `k = 10` → `'c'`.
+
+**Constraints:** `1 <= k <= 500`.
+
+**Why This Subpattern Applies:** Every appended half contains the same positions as the original half with a uniform shift of one. Only the path to position `k` is needed.
+
+**Connection to Previous Solution:** Foundation of this subpattern.
+
+**Java Solution:**
+```java
+class Solution {
+    public char kthCharacter(int k) {
+        int length = 1;
+        while (length < k) length <<= 1;
+        return (char) ('a' + offset(k, length));
+    }
+
+    private int offset(int k, int length) {
+        if (length == 1) return 0;
+        int half = length / 2;
+        if (k <= half) return offset(k, half);
+        return (offset(k - half, half) + 1) % 26;
+    }
+}
+```
+**Key Logic:** Find the smallest power of two covering `k`. At each level, retain the index if it is in the first half; otherwise subtract the half-length and add one shift. The base word is `a`, offset zero. No intermediate words are allocated.
+
+**Time Complexity:** O(log(k+1)), for the sizing loop and recursion.
+
+**Space Complexity:** O(log(k+1)) auxiliary stack.
+
+### LeetCode 3307
+
+**Question:** Begin with the word `"a"` and execute the supplied integer array `operations` in order. For operation `0`, append an exact copy of the current word. For operation `1`, append a copy in which each character has advanced one lowercase letter, with `z` wrapping to `a`. Return the character at the one-based position `k` in the final word. The final word is guaranteed to be long enough; it can be far too large to materialize.
+
+**Examples:**
+- `k = 5, operations = [0,0,0]` → `'a'`.
+- `k = 10, operations = [0,1,0,1]` → `'b'`.
+- `k = 4, operations = [1,1]` → `'c'` (final word `abbc`).
+
+**Constraints:** `1 <= k <= 10^14`; `1 <= operations.length <= 100`; each operation is `0` or `1`; final length is at least `k`.
+
+**Why This Subpattern Applies:** Each operation still doubles the word, and the right half contributes a known uniform shift, now selected by the operation array.
+
+**Connection to Previous Solution:** Keep LC 3304's half-selection and `k-half` mapping. Replace the fixed `+1` by `+operations[level-1]`, use `long` for index and length, and retain a level counter to select the correct operation. Ignore later doublings after reaching a length containing `k`, preventing overflow from computing `2^100`.
+
+**Java Solution:**
+```java
+class Solution {
+    public char kthCharacter(long k, int[] operations) {
+        long length = 1;
+        int level = 0;
+        while (length < k) {
+            length <<= 1;
+            level++;
+        }
+        return (char) ('a' + offset(k, level, operations));
+    }
+
+    private int offset(long k, int level, int[] operations) {
+        if (level == 0) return 0;
+        long half = 1L << (level - 1);
+        if (k <= half) return offset(k, level - 1, operations);
+        return (offset(k - half, level - 1, operations)
+                + operations[level - 1]) % 26;
+    }
+}
+```
+**Key Logic:** The original word is always a prefix of the next word; once its length reaches `k`, later operations cannot modify the answer. At most 47 doublings are needed for `10^14`, safely inside `long`. `level-1` is the zero-based operation that created the current block. Offset zero at level zero represents `a`.
+
+**Time Complexity:** O(log(k+1)); independent of unused trailing operations.
+
+**Space Complexity:** O(log(k+1)) auxiliary stack, excluding the input array.
+
+---
+<a id="rc4"></a>
+## Subpattern RC4: Circular survivor index recurrence
+
+**When to Apply:** Participants arranged in a circle are repeatedly removed at a fixed counting interval. Only the last survivor is requested. After one removal, rotating and relabeling the remaining circle produces a smaller instance of the same problem.
+
+**Basic Java Code Snippet:**
+```java
+static int winnerZeroBased(int n, int k) {
+    if (n == 1) return 0;
+    return (winnerZeroBased(n - 1, k) + k) % n;
+}
+```
+**Core Logic:** The sole participant has index zero. When rebuilding a circle of size `n`, offset the smaller survivor by `k` and wrap using modulo `n`.
+
+**Questions Covered:** 1823.
+
+### LeetCode 1823
+
+**Question:** There are `n` friends numbered 1 through `n` sitting clockwise in a circle. Start counting from friend 1, including the starting friend in the count. Move clockwise and remove the kth friend counted. If more than one friend remains, begin the next count at the next surviving friend clockwise from the removed friend. Continue until one friend remains. Return that friend's original number.
+
+**Examples:**
+- `n = 5, k = 2` → `3` (removal order 2, 4, 1, 5).
+- `n = 6, k = 5` → `1`.
+- `n = 1, k = 1` → `1`.
+
+**Constraints:** `1 <= k <= n <= 500`.
+
+**Why This Subpattern Applies:** Removing one friend leaves a rotated circle with exactly the same counting rule. The survivor of the smaller circle can be mapped back by a modular offset.
+
+**Connection to Previous Solution:** Foundation of this subpattern.
+
+**Java Solution:**
+```java
+class Solution {
+    public int findTheWinner(int n, int k) {
+        return winner(n, k) + 1;
+    }
+
+    private int winner(int n, int k) {
+        if (n == 1) return 0;
+        return (winner(n - 1, k) + k) % n;
+    }
+}
+```
+**Key Logic:** In zero-based coordinates the first removed index is `(k-1)%n`; the next starting index is `k%n`. Relabel that position as zero in the smaller circle. Restoring original coordinates adds `k` modulo `n`. Convert to one-based only at the public boundary. If `k=1`, the last participant wins; the recurrence produces that result.
+
+**Time Complexity:** O(n), one call for each circle size.
+
+**Space Complexity:** O(n) auxiliary stack; an iterative recurrence can reduce this to O(1), but recursion is the locked strategy.
+
+---
+<a id="rc5"></a>
+## Subpattern RC5: Alternating elimination and transformed survivor coordinates
+
+**When to Apply:** A round removes every other element from a list, and the next round reverses the elimination direction. The remaining values form an arithmetic progression, so their survivor can be expressed as a transformed index from a smaller problem. This is not the fixed-step circular recurrence of RC4.
+
+**Basic Java Code Snippet:**
+```java
+static int survivor(int n, boolean fromLeft) {
+    if (n == 1) return 1;
+    int smaller = survivor(n / 2, !fromLeft);
+    if (fromLeft || (n & 1) == 1) return 2 * smaller;
+    return 2 * smaller - 1;
+}
+```
+**Core Logic:** For left removal or odd-length right removal, even positions survive. For even-length right removal, odd positions survive. Reindex survivors from one, solve the smaller problem, and map back using the corresponding affine transform.
+
+**Questions Covered:** 390.
+
+### LeetCode 390
+
+**Question:** Start with the ascending list of integers from 1 to `n`. First, traverse left to right, deleting the first element and every second element thereafter. In the next round traverse right to left, deleting the last element and every second element in that direction. Alternate directions on successive rounds until exactly one number remains. Return that number.
+
+**Examples:**
+- `n = 9` → `6`: `[1,2,3,4,5,6,7,8,9] → [2,4,6,8] → [2,6] → [6]`.
+- `n = 1` → `1`.
+- `n = 6` → `4`: `[2,4,6] → [4]`.
+
+**Constraints:** `1 <= n <= 10^9`.
+
+**Why This Subpattern Applies:** Every round leaves `floor(n/2)` values with uniform spacing. Direction and length parity determine which original positions survive.
+
+**Connection to Previous Solution:** Foundation of this subpattern.
+
+**Java Solution:**
+```java
+class Solution {
+    public int lastRemaining(int n) {
+        return survivor(n, true);
+    }
+
+    private int survivor(int n, boolean fromLeft) {
+        if (n == 1) return 1;
+        int j = survivor(n / 2, !fromLeft);
+        if (fromLeft || (n & 1) == 1) return 2 * j;
+        return 2 * j - 1;
+    }
+}
+```
+**Key Logic:** Left-to-right removes odd positions. Right-to-left starts at position `n`: if `n` is odd it removes odd positions, otherwise it removes even positions. The surviving list is represented in ascending order, regardless of deletion direction. Its jth entry maps back to `2*j` or `2*j-1`. Each recursive call reverses direction and halves the size. All mapped results are at most `n` and fit in `int`.
+
+**Time Complexity:** O(log(n+1)), one call per elimination round.
+
+**Space Complexity:** O(log(n+1)) auxiliary stack.
+
+---
+<a id="rc6"></a>
+## Subpattern RC6: Recursive descent of nested structural values
+
+**When to Apply:** Input text encodes recursively nested values using matched delimiters. A single shared cursor must advance through the input exactly as each grammar production is consumed. The invariant is that a recursive call starts at the next unconsumed value/group and returns with the cursor at the first character after it.
+
+**Basic Java Code Snippet:**
+```java
+class CursorParser {
+    private final String text;
+    private int pos;
+    CursorParser(String text) { this.text = text; }
+
+    // Grammar: group = '(' (letter | group)* ')'
+    int parseGroup() {
+        pos++; // consume '('
+        int leaves = 0;
+        while (text.charAt(pos) != ')') {
+            if (text.charAt(pos) == '(') leaves += parseGroup();
+            else { pos++; leaves++; }
+        }
+        pos++; // consume matching ')'
+        return leaves;
+    }
+}
+```
+**Core Logic:** Each nested call owns its matching closing delimiter. The parent resumes at the next sibling when the child returns. This small template counts leaves of a valid group; actual problems return structured objects or frequency maps instead.
+
+**Questions Covered:** 385, 726.
+
+### LeetCode 385
+
+**Question:** Given a string representing either a single integer or a nested list of integers and lists, deserialize it into a `NestedInteger` object. Lists use square brackets and comma-separated elements. Integers may be negative and contain multiple digits. A list may be empty or contain other lists at arbitrary valid nesting depth. Use LeetCode's supplied `NestedInteger` API: its no-argument constructor creates an empty list, its integer constructor creates a single integer, and `add` appends a child to a list. Return the object corresponding to the entire input.
+
+**Examples:**
+- `s = "324"` → integer `324`.
+- `s = "[123,[456,[-789]]]"` → list containing `123` and a list containing `456` and a list containing `-789`.
+- `s = "[[],0,-12]"` → list containing an empty list, zero, and negative twelve.
+
+**Constraints:** `1 <= s.length <= 5 * 10^4`; characters are digits, `-`, `[`, `]`, and `,`; input represents a valid nested integer; all integer values are within `[-10^6,10^6]`.
+
+**Why This Subpattern Applies:** A value is either a signed integer or a list of recursively defined values. The shared cursor allows each call to consume its own input segment without copying substrings.
+
+**Connection to Previous Solution:** Foundation of this subpattern.
+
+**Java Solution:**
+```java
+class Solution {
+    private int pos;
+
+    public NestedInteger deserialize(String s) {
+        pos = 0;
+        return parseValue(s);
+    }
+
+    private NestedInteger parseValue(String s) {
+        if (s.charAt(pos) == '[') {
+            pos++;
+            NestedInteger list = new NestedInteger();
+            while (s.charAt(pos) != ']') {
+                list.add(parseValue(s));
+                if (s.charAt(pos) == ',') pos++;
+            }
+            pos++;
+            return list;
+        }
+        int sign = 1;
+        if (s.charAt(pos) == '-') {
+            sign = -1;
+            pos++;
+        }
+        int value = 0;
+        while (pos < s.length() && Character.isDigit(s.charAt(pos))) {
+            value = value * 10 + s.charAt(pos++) - '0';
+        }
+        return new NestedInteger(sign * value);
+    }
+}
+```
+**Key Logic:** A list consumes its opening bracket, recursively parses children, consumes separators, and finally consumes its own closing bracket. An empty list immediately encounters `]`. An integer consumes an optional minus and all following digits, leaving the delimiter for its parent. The root may be a standalone integer; the digit loop checks end-of-input. The judge supplies `NestedInteger`; do not redefine it when submitting.
+
+**Time Complexity:** O(n), each input character is consumed once, assuming amortized O(1) list append.
+
+**Space Complexity:** O(d) auxiliary call stack for nesting depth d; O(n) worst-case returned object storage. A deeply nested valid input may exceed a particular JVM stack limit; an explicit-stack parser avoids that risk but is outside this locked recursive implementation.
+
+### LeetCode 726
+
+**Question:** Given a valid chemical formula, compute the total count of every atom. Atom names begin with an uppercase letter and may be followed by lowercase letters. An optional decimal count following an atom indicates how many copies occur; a missing count means one. Parenthesized groups may contain atoms and nested groups, and an optional count after a closing parenthesis multiplies all atoms inside that group. Return a string listing atom names in lexicographic order, appending each atom's total count only when it exceeds one.
+
+**Examples:**
+- `formula = "H2O"` → `"H2O"`.
+- `formula = "Mg(OH)2"` → `"H2MgO2"`.
+- `formula = "K4(ON(SO3)2)2"` → `"K4N2O14S4"`.
+
+**Constraints:** `1 <= formula.length <= 1000`; input contains English letters, digits and parentheses; it is a valid formula; explicit counts are greater than one; all final atom counts fit in a signed 32-bit integer.
+
+**Why This Subpattern Applies:** Groups are recursively nested structural values. A group's frequency map is a composable return value that can be scaled and merged after its closing delimiter is consumed.
+
+**Connection to Previous Solution:** Retain LC 385's shared cursor and child-call delimiter ownership. Replace `NestedInteger` with `Map<String,Integer>`, replace integer leaves with atom names and optional counts, and replace `list.add(child)` with multiplication and merging of a child map. Parentheses replace brackets and no comma separators are present. Sort atom names only when formatting the final result.
+
+**Java Solution:**
+```java
+import java.util.*;
+
+class Solution {
+    private int pos;
+
+    public String countOfAtoms(String formula) {
+        pos = 0;
+        Map<String, Integer> counts = parse(formula);
+        StringBuilder ans = new StringBuilder();
+        for (String atom : new TreeSet<>(counts.keySet())) {
+            ans.append(atom);
+            int count = counts.get(atom);
+            if (count > 1) ans.append(count);
+        }
+        return ans.toString();
+    }
+
+    private Map<String, Integer> parse(String s) {
+        Map<String, Integer> counts = new HashMap<>();
+        while (pos < s.length() && s.charAt(pos) != ')') {
+            if (s.charAt(pos) == '(') {
+                pos++;
+                Map<String, Integer> child = parse(s);
+                pos++; // consume ')'
+                int multiplier = readCount(s);
+                for (var entry : child.entrySet()) {
+                    counts.merge(entry.getKey(),
+                            entry.getValue() * multiplier, Integer::sum);
+                }
+            } else {
+                int start = pos++;
+                while (pos < s.length() && Character.isLowerCase(s.charAt(pos))) {
+                    pos++;
+                }
+                String atom = s.substring(start, pos);
+                counts.merge(atom, readCount(s), Integer::sum);
+            }
+        }
+        return counts;
+    }
+
+    private int readCount(String s) {
+        int count = 0;
+        while (pos < s.length() && Character.isDigit(s.charAt(pos))) {
+            count = count * 10 + s.charAt(pos++) - '0';
+        }
+        return count == 0 ? 1 : count;
+    }
+}
+```
+**Key Logic:** Each call accumulates counts at one nesting level and stops before its closing parenthesis, or at the end for the root. Unlike LC 385, the caller consumes the closing parenthesis so that it can immediately read the group's multiplier. An atom consumes one uppercase letter and all following lowercase letters; `readCount` then consumes an optional multi-digit count. Group scaling happens before merging with siblings. Because all counts are positive and the final counts fit in `int`, intermediate scaled contributions also fit. Sorting at the end avoids ordered-map insertion at every nesting level.
+
+**Time Complexity:** O(n + M + A log A) expected under unit-cost atom-key operations, where n is input length, A distinct atoms, and M is the sum of child-map sizes merged over all groups (at most O(n*d), d nesting depth). Thus O(n²) is a conservative worst-case bound for the recursive map strategy, not O(n) merely because the cursor is linear. String comparison/hashing and output construction also cost the characters processed; a conservative bound including sorting comparisons is O(n² + A log A * L), where L is maximum atom-name length.
+
+**Space Complexity:** O(n+d) auxiliary storage including active map entries, atom strings and recursion frames, plus O(output length) output. At a merge, child and parent may temporarily coexist; completed sibling maps are no longer retained. The recursive map strategy follows the locked curriculum; a right-to-left multiplier-stack strategy can avoid repeated map merges.
+
+---
+<a id="rc7"></a>
+## Subpattern RC7: Recursive boolean-expression grammar
+
+**When to Apply:** A prefix operator is followed by nested, delimiter-separated expressions. Every subexpression yields a boolean, and a parent combines the children's values with its operator. A shared cursor and operator-specific identity permit a streaming evaluation without building a syntax tree.
+
+**Basic Java Code Snippet:**
+```java
+// Fold a sequence of already evaluated boolean operands.
+static boolean fold(char op, boolean[] operands) {
+    if (op == '!') return !operands[0];
+    boolean result = op == '&';
+    for (boolean operand : operands) {
+        result = op == '&' ? result & operand : result | operand;
+    }
+    return result;
+}
+```
+**Core Logic:** AND starts with true and OR with false; negation consumes one operand. In a recursive parser, each operand is obtained by a child call instead of from an array. All operands must be parsed even when the final boolean value is already known, because the cursor must reach the matching close.
+
+**Questions Covered:** 1106.
+
+### LeetCode 1106
+
+**Question:** Evaluate a valid boolean expression supplied as a string. The literal `t` represents true, and `f` represents false. An expression of the form `!(expr)` negates its single child. `&(expr1,expr2,...)` returns true only if all its one or more children are true. `|(expr1,expr2,...)` returns true if any of its one or more children are true. Operands can themselves be complete nested expressions. Return the boolean value of the entire input expression.
+
+**Examples:**
+- `expression = "&(|(f))"` → `false`.
+- `expression = "|(f,f,f,t)"` → `true`.
+- `expression = "!(&(f,t))"` → `true`, because the inner AND is false.
+
+**Constraints:** `1 <= expression.length <= 2 * 10^4`; only `t`, `f`, `!`, `&`, `|`, `(`, `)` and `,` occur; the expression is syntactically valid under the grammar above.
+
+**Why This Subpattern Applies:** Each literal or operator expression returns one boolean. Parent operators fold child results while the parser advances over the entire expression.
+
+**Connection to Previous Solution:** Foundation of this subpattern.
+
+**Java Solution:**
+```java
+class Solution {
+    private int pos;
+
+    public boolean parseBoolExpr(String expression) {
+        pos = 0;
+        return parse(expression);
+    }
+
+    private boolean parse(String s) {
+        char token = s.charAt(pos++);
+        if (token == 't') return true;
+        if (token == 'f') return false;
+        pos++; // consume '('
+        if (token == '!') {
+            boolean value = parse(s);
+            pos++; // consume ')'
+            return !value;
+        }
+        boolean result = token == '&';
+        while (true) {
+            boolean child = parse(s);
+            result = token == '&' ? result & child : result | child;
+            if (s.charAt(pos++) == ')') break;
+            // Otherwise the consumed character was a comma.
+        }
+        return result;
+    }
+}
+```
+**Key Logic:** A literal consumes one character and immediately returns. An operator consumes its opening parenthesis; `!` parses exactly one child. For AND and OR, each recursive child is parsed before folding its result into the accumulator. Do not write `result = result && parse(s)` or `result = result || parse(s)`: Java short-circuit evaluation could skip the child call and leave the cursor incorrectly positioned. The loop consumes each comma or the final closing parenthesis. By induction, each call consumes one complete valid expression and returns its truth value.
+
+**Time Complexity:** O(n), where n is expression length; every character is consumed once.
+
+**Space Complexity:** O(d) auxiliary recursion stack, where d is expression nesting depth (O(n) worst case). No operand list is allocated. As with other recursive parsers, very deep valid expressions can require more JVM stack than a particular runtime provides.
+
+---
+<a id="rc8"></a>
+## Subpattern RC8: Recursive evaluation with lexical scopes
+
+**When to Apply:** Nested expressions contain named variables, assignments and arithmetic. Inner scopes may shadow outer names, and a binding must disappear when its scope ends. Maintain a stack of values for each name so the visible value is always the topmost binding. Record assignments made by the current scope and undo precisely those assignments on return.
+
+**Basic Java Code Snippet:**
+```java
+import java.util.*;
+
+class ScopedEnvironment {
+    private final Map<String, Deque<Integer>> values = new HashMap<>();
+
+    void bind(String name, int value, List<String> localBindings) {
+        values.computeIfAbsent(name, k -> new ArrayDeque<>()).push(value);
+        localBindings.add(name);
+    }
+
+    int lookup(String name) {
+        return values.get(name).peek();
+    }
+
+    void restore(List<String> localBindings) {
+        for (int i = localBindings.size() - 1; i >= 0; i--) {
+            String name = localBindings.get(i);
+            Deque<Integer> stack = values.get(name);
+            stack.pop();
+            if (stack.isEmpty()) values.remove(name);
+        }
+    }
+}
+```
+**Core Logic:** A scope creates its own list of names bound during evaluation. Multiple assignments to one name push multiple values. Unwinding pops all the current scope's bindings in reverse order, exposing the previous values if they exist. This avoids copying the entire environment at every recursive call.
+
+**Questions Covered:** 736.
+
+### LeetCode 736
+
+**Question:** Evaluate a valid Lisp-like integer expression with lexical scoping. An expression is an integer literal, a variable name, or one of three parenthesized forms:
+
+- `(add e1 e2)` evaluates its two child expressions and returns their sum.
+- `(mult e1 e2)` evaluates its two child expressions and returns their product.
+- `(let v1 e1 v2 e2 ... vk ek e)` assigns one or more variables in order, evaluating each right-hand expression using the bindings visible at that point, then evaluates and returns the final expression `e`. A later assignment in the same `let` can replace a previous binding. An inner `let` can shadow an outer variable, but its bindings must not affect the outer scope after it returns.
+
+Variable references resolve to their nearest visible binding. Names begin with a lowercase letter and may contain lowercase letters and digits; the keywords `add`, `mult` and `let` are reserved. Tokens are separated by single spaces where needed. Return the evaluated integer result.
+
+**Examples:**
+- `expression = "(let x 2 (mult x (let x 3 y 4 (add x y))))"` → `14`: the inner scope sees `x=3`, while the multiplication uses the outer `x=2`.
+- `expression = "(let x 3 x 2 x)"` → `2`.
+- `expression = "(let x 1 y 2 x (add x y) (add x y))"` → `5`: the reassigned `x` is three, and `y` remains two.
+
+**Constraints:** `1 <= expression.length <= 2000`; input has lowercase English letters, digits, spaces, minus signs and parentheses; expression is valid, references are bound when evaluated, integers are in the signed 32-bit range, and evaluation results fit in a signed 32-bit integer.
+
+**Why This Subpattern Applies:** The same variable token can yield a different value in different recursive contexts. A parser must both evaluate nested syntax and preserve the correct lexical environment across child calls and scope exits.
+
+**Connection to Previous Solution:** Foundation of this subpattern.
+
+**Java Solution:**
+```java
+import java.util.*;
+
+class Solution {
+    private int pos;
+    private final Map<String, Deque<Integer>> env = new HashMap<>();
+
+    public int evaluate(String expression) {
+        pos = 0;
+        env.clear();
+        return eval(expression);
+    }
+
+    private int eval(String s) {
+        skipSpaces(s);
+        if (s.charAt(pos) != '(') return valueOf(readToken(s));
+
+        pos++; // '('
+        String op = readToken(s);
+        int result;
+        if (op.equals("add") || op.equals("mult")) {
+            int left = eval(s);
+            int right = eval(s);
+            result = op.equals("add") ? left + right : left * right;
+        } else { // let
+            List<String> local = new ArrayList<>();
+            while (true) {
+                skipSpaces(s);
+                char c = s.charAt(pos);
+                if (c == '(' || c == '-' || Character.isDigit(c)) {
+                    result = eval(s); // final non-variable expression
+                    break;
+                }
+                String name = readToken(s);
+                if (s.charAt(pos) == ')') {
+                    result = valueOf(name); // final variable expression
+                    break;
+                }
+                int value = eval(s); // RHS sees old bindings until evaluated
+                env.computeIfAbsent(name, k -> new ArrayDeque<>()).push(value);
+                local.add(name);
+            }
+            for (int i = local.size() - 1; i >= 0; i--) {
+                String name = local.get(i);
+                Deque<Integer> stack = env.get(name);
+                stack.pop();
+                if (stack.isEmpty()) env.remove(name);
+            }
+        }
+        pos++; // matching ')'
+        return result;
+    }
+
+    private void skipSpaces(String s) {
+        while (pos < s.length() && s.charAt(pos) == ' ') pos++;
+    }
+
+    private String readToken(String s) {
+        int start = pos;
+        while (pos < s.length() && s.charAt(pos) != ' '
+                && s.charAt(pos) != ')') pos++;
+        return s.substring(start, pos);
+    }
+
+    private int valueOf(String token) {
+        char c = token.charAt(0);
+        if (c == '-' || Character.isDigit(c)) return Integer.parseInt(token);
+        return env.get(token).peek();
+    }
+}
+```
+**Key Logic:** `eval` consumes a complete expression and returns its integer value. Arithmetic recursively evaluates two operands. Within `let`, a leading parenthesis or numeric token must begin the final expression, because an assignment must start with a variable name. A variable token immediately followed by the closing parenthesis is also the final expression; otherwise it is an assignment name. Evaluate its RHS before pushing the new value, so `(let x 1 x (add x 1) x)` correctly returns two. Save the final result before restoring bindings. Reverse-order cleanup handles repeated assignments and nested shadowing. The parser relies on the valid-input spacing grammar and does not need to allocate substrings for whole nested expressions.
+
+**Time Complexity:** O(n) expected with amortized hash-table operations and token hashing/copying proportional to token length. Each character belongs to a bounded number of cursor scans; each assignment is pushed and popped once. Pathological hashing can worsen this bound.
+
+**Space Complexity:** O(n) auxiliary space in the worst case for active bindings, token strings, assignment logs and recursive stack. No separate syntax tree is constructed. The result is a single integer.
+
+---
+<a id="rc9"></a>
+## Subpattern RC9: Recursive set-valued expression grammar
+
+**When to Apply:** Nested expressions describe alternatives and combinations rather than a single scalar. A comma joins alternatives by set union; adjacent factors combine by Cartesian concatenation. When there are nested braces, parse the grammar recursively, respecting the stronger binding of concatenation relative to union. Deduplication is intrinsic to set-valued results.
+
+**Basic Java Code Snippet:**
+```java
+import java.util.*;
+
+class SetOperations {
+    static Set<String> concat(Set<String> left, Set<String> right) {
+        Set<String> result = new HashSet<>();
+        for (String a : left) {
+            for (String b : right) result.add(a + b);
+        }
+        return result;
+    }
+
+    static Set<String> union(Set<String> left, Set<String> right) {
+        Set<String> result = new HashSet<>(left);
+        result.addAll(right);
+        return result;
+    }
+}
+```
+**Core Logic:** Union collects distinct alternatives. Cartesian concatenation pairs every left alternative with every right alternative. The singleton set containing the empty string is the identity for concatenation; the empty set is the identity for union. A recursive parser evaluates braced subexpressions as factors, concatenates factors into terms, then unions terms into an expression.
+
+**Questions Covered:** 1096.
+
+### LeetCode 1096
+
+**Question:** Expand a brace expression into the set of strings it represents. A lowercase letter represents the singleton set containing that letter. A brace-delimited comma-separated sequence of expressions represents the union of their expansions. Writing expressions adjacent to one another means concatenation: take every string from the left expression and append every string from the right expression to it. Braces can be nested, and concatenation can involve more than two factors. Return all distinct strings represented by the expression in lexicographically increasing order. Repeated ways of forming the same string must produce only one output entry.
+
+**Examples:**
+- `expression = "{a,b}{c,{d,e}}"` → `["ac","ad","ae","bc","bd","be"]`.
+- `expression = "{{a,z},a{b,c},{ab,z}}"` → `["a","ab","ac","z"]` (duplicates removed).
+- `expression = "a{b,c}d"` → `["abd","acd"]`.
+
+**Constraints:** `1 <= expression.length <= 60`; input contains lowercase English letters, `{`, `}` and `,`; the brace expression is valid under the specified expansion grammar.
+
+**Why This Subpattern Applies:** A recursive subexpression returns a set of strings. The grammar separates union from concatenation, allowing each parent to combine child sets with the appropriate operation instead of treating all punctuation as equivalent.
+
+**Connection to Previous Solution:** Foundation of this subpattern.
+
+**Java Solution:**
+```java
+import java.util.*;
+
+class Solution {
+    private int pos;
+
+    public List<String> braceExpansionII(String expression) {
+        pos = 0;
+        Set<String> expanded = parseExpression(expression);
+        List<String> answer = new ArrayList<>(expanded);
+        Collections.sort(answer);
+        return answer;
+    }
+
+    // expression = term (',' term)*
+    private Set<String> parseExpression(String s) {
+        Set<String> result = parseTerm(s);
+        while (pos < s.length() && s.charAt(pos) == ',') {
+            pos++;
+            result.addAll(parseTerm(s));
+        }
+        return result;
+    }
+
+    // term = factor+
+    private Set<String> parseTerm(String s) {
+        Set<String> result = new HashSet<>();
+        result.add("");
+        while (pos < s.length()) {
+            char c = s.charAt(pos);
+            if (c == '}' || c == ',') break;
+            Set<String> factor;
+            if (c == '{') {
+                pos++;
+                factor = parseExpression(s);
+                pos++; // consume matching '}'
+            } else {
+                int start = pos;
+                while (pos < s.length() && s.charAt(pos) >= 'a'
+                        && s.charAt(pos) <= 'z') pos++;
+                factor = Set.of(s.substring(start, pos));
+            }
+            result = concat(result, factor);
+        }
+        return result;
+    }
+
+    private Set<String> concat(Set<String> left, Set<String> right) {
+        Set<String> result = new HashSet<>();
+        for (String a : left) {
+            for (String b : right) result.add(a + b);
+        }
+        return result;
+    }
+}
+```
+**Key Logic:** `parseExpression` handles commas at its own nesting level by unioning complete terms. `parseTerm` handles adjacent factors until a comma or closing brace. A braced factor delegates to a nested expression and consumes the matching closing brace on return. Consecutive literal letters are grouped into one factor to avoid unnecessary intermediate Cartesian products. The initial set `{ "" }` preserves the first factor when concatenated. Hash sets eliminate duplicates after every operation; only the final distinct strings are sorted. Concatenation binds more tightly than union: `{a,bc}` means the alternatives `a` and `bc`, not `(a or b) followed by c`.
+
+**Time Complexity:** Output-sensitive and potentially exponential. Let n be input length, P be the sum of `|left| * |right|` over all concatenation operations, U be the total number of entries processed by union operations, R be the final number of distinct strings, and L be the maximum length of any generated string (L <= n). Expected time is O(n + (P+U)*L + R log(R)*L), accounting for string creation, hashing and final lexicographic comparisons. This is more precise than using final output size alone: intermediate products can generate duplicate candidates. For a coarse bound, let B be the maximum number of distinct strings in any intermediate set. There are O(n) operations, so O(n² B² + n R log(R)) is a conservative upper bound; B may be exponential in n.
+
+**Space Complexity:** Let S be the maximum total character storage and entry overhead of simultaneously live intermediate sets, including temporary Cartesian-product results. Auxiliary space is O(S+n) for those sets, recursion and temporary sort storage (or O(n² B) as a coarse upper bound). The returned list and its strings require O(R*L) output space. The answer list shares immutable strings with the final expansion set; those characters are not copied when constructing the list.
+
+---
+## Final question registry and audit
+
+| Locked position | Subpattern | LeetCode |
+|---:|---|---:|
+| 1 | RC1 | 50 |
+| 2 | RC2 | 779 |
+| 3 | RC2 | 1545 |
+| 4 | RC3 | 3304 |
+| 5 | RC3 | 3307 |
+| 6 | RC4 | 1823 |
+| 7 | RC5 | 390 |
+| 8 | RC6 | 385 |
+| 9 | RC6 | 726 |
+| 10 | RC7 | 1106 |
+| 11 | RC8 | 736 |
+| 12 | RC9 | 1096 |
+
+- Locked question count: 12; family count: 9.
+- No question is added, removed or reordered.
+- Reference generation does not advance practice progress or modify the shared master curriculum.

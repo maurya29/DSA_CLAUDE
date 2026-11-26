@@ -1,0 +1,2282 @@
+# T18 — Bit Manipulation: Complete Solutions
+
+**33 LeetCode questions · 20 algorithm families · Java 21**
+
+Source of ordering and algorithms: `MASTER_DSA_CURRICULUM.md`, version 1.18, section C18. Problem descriptions, examples and constraints are independently paraphrased study material; the master contains strategies, not full problem statements. This workbook does not record practice completion.
+
+## Table of contents
+
+- [M1: XOR cancellation and odd-occurrence isolation](#m1) — [LC 136](#lc-136), [LC 389](#lc-389), [LC 260](#lc-260)
+
+- [M2: Prefix XOR reconstruction, range queries and split counting](#m2) — [LC 1720](#lc-1720), [LC 2433](#lc-2433), [LC 1310](#lc-1310), [LC 1442](#lc-1442)
+
+- [M3: Population count and binary-digit DP](#m3) — [LC 191](#lc-191), [LC 338](#lc-338)
+
+- [M4: Bitwise Hamming differences and position contributions](#m4) — [LC 461](#lc-461), [LC 477](#lc-477)
+
+- [M5: Bit-frequency residues for repeated multiplicities](#m5) — [LC 137](#lc-137)
+
+- [M6: Power-of-two mask tests](#m6) — [LC 231](#lc-231), [LC 342](#lc-342)
+
+- [M7: Fixed-width bit reversal](#m7) — [LC 190](#lc-190)
+
+- [M8: Common-prefix range AND](#m8) — [LC 201](#lc-201)
+
+- [M9: Distinct bitwise aggregates of all ending-at-i subarrays](#m9) — [LC 898](#lc-898), [LC 1521](#lc-1521)
+
+- [M10: Maximizing XOR with bounded bit masks](#m10) — [LC 1829](#lc-1829)
+
+- [M11: Popcount-constrained XOR construction](#m11) — [LC 2429](#lc-2429)
+
+- [M12: Parity masks for substring constraints](#m12) — [LC 1371](#lc-1371), [LC 1542](#lc-1542), [LC 1915](#lc-1915)
+
+- [M13: Gray-code generation and inversion](#m13) — [LC 89](#lc-89), [LC 1238](#lc-1238), [LC 1611](#lc-1611)
+
+- [M14: Lazy complemented bitset design](#m14) — [LC 2166](#lc-2166)
+
+- [M15: Arithmetic through bitwise operations](#m15) — [LC 371](#lc-371)
+
+- [M16: Shifted-divisor binary long division](#m16) — [LC 29](#lc-29)
+
+- [M17: Per-position bitwise truth-table correction](#m17) — [LC 1318](#lc-1318)
+
+- [M18: XOR target repair by bit flips](#m18) — [LC 2997](#lc-2997)
+
+- [M19: Cycle-consistency of XOR equations](#m19) — [LC 2683](#lc-2683)
+
+- [M20: Subset-XOR contribution identity](#m20) — [LC 1863](#lc-1863)
+
+- [Final question registry and verification](#registry)
+
+## Java bitwise conventions
+
+Java `int` has 32 bits and uses signed two’s complement. `>>` sign-extends; `>>>` zero-fills. `&`, `|`, and `^` are bitwise AND, OR, and XOR. `1 << 31` is negative as an `int` but still isolates the sign bit; use `1L << bit` when a positive widened magnitude is required. Java masks shift distances for `int` to five bits and for `long` to six bits; do not shift an int by 32 expecting zero. Parenthesize bitwise expressions before comparison. Complexity notation uses W for word width (32 unless stated), n for input length, and q for query count.
+
+<a id="m1"></a>
+
+## Subpattern M1: XOR cancellation and odd-occurrence isolation
+
+**When to Apply:**
+
+Use when duplicate occurrences cancel under XOR, leaving exceptional values. XOR folds preserve exactly the bits with odd multiplicity. Equal elements cancel regardless of ordering; a distinguishing set bit separates two exceptions into independently cancellable groups.
+
+**Basic Java Code Snippet:**
+
+```java
+int xor = 0;
+for (int x : values) xor ^= x;
+// Duplicates occurring twice cancel; group by a distinguishing bit if needed.
+```
+
+**Core Logic:**
+
+XOR folds preserve exactly the bits with odd multiplicity. Equal elements cancel regardless of ordering; a distinguishing set bit separates two exceptions into independently cancellable groups.
+
+**Questions Covered:** 136, 389, 260
+
+<a id="lc-136"></a>
+
+### LeetCode 136
+
+**Question:**
+
+Given a nonempty integer array in which every value occurs twice except one occurring once, return that exceptional value. Use linear time and constant extra space.
+
+**Examples:**
+
+- [2,2,1] → 1
+- [4,1,2,1,2] → 4
+- [-7] → -7
+
+**Constraints:**
+
+1 ≤ n ≤ 30000; −30000 ≤ nums[i] ≤ 30000; the stated multiplicity guarantee holds.
+
+**Why This Subpattern Applies:**
+
+Pairwise duplicates cancel; XOR all elements to isolate one exceptional value. XOR folds preserve exactly the bits with odd multiplicity.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int singleNumber(int[] nums) {
+        int xor = 0;
+        for (int x : nums) xor ^= x;
+        return xor;
+    }
+}
+```
+
+**Key Logic:**
+
+XOR is associative and commutative; every pair cancels to zero, leaving the singleton even if negative.
+
+**Time Complexity:** O(n), one scan.
+
+**Space Complexity:** O(1), one accumulator.
+
+---
+
+<a id="lc-389"></a>
+
+### LeetCode 389
+
+**Question:**
+
+Given lowercase strings s and t, t is formed by shuffling s and inserting exactly one extra letter at any position. Return the added letter.
+
+**Examples:**
+
+- s="abcd", t="abcde" → e
+- s="", t="y" → y
+- s="a", t="aa" → a
+
+**Constraints:**
+
+0 ≤ s.length ≤ 1000; t.length = s.length + 1; lowercase English letters.
+
+**Why This Subpattern Applies:**
+
+Exactly one extra character between two character multisets; character order is irrelevant. XOR folds preserve exactly the bits with odd multiplicity.
+
+**Connection to Previous Solution:**
+
+From LC 136: Replace single-array XOR fold with folds over both strings; convert final XOR to char.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public char findTheDifference(String s, String t) {
+        int xor = 0;
+        for (int i = 0; i < s.length(); i++) xor ^= s.charAt(i);
+        for (int i = 0; i < t.length(); i++) xor ^= t.charAt(i);
+        return (char) xor;
+    }
+}
+```
+
+**Key Logic:**
+
+The same character codes cancel across both strings regardless of order; cast the residual integer to char.
+
+**Time Complexity:** O(n), both strings scanned.
+
+**Space Complexity:** O(1), no frequency table.
+
+---
+
+<a id="lc-260"></a>
+
+### LeetCode 260
+
+**Question:**
+
+In an integer array exactly two distinct values appear once; every other value appears twice. Return the two singletons in any order, using linear time and constant auxiliary space.
+
+**Examples:**
+
+- [1,2,1,3,2,5] → [3,5] (either order)
+- [-1,0] → [-1,0]
+- [0,1] → [0,1]
+
+**Constraints:**
+
+2 ≤ n ≤ 30000; signed 32-bit integers; exactly two singletons.
+
+**Why This Subpattern Applies:**
+
+Exactly two values occur once and all others twice; the combined XOR distinguishes a differing bit. XOR folds preserve exactly the bits with odd multiplicity.
+
+**Connection to Previous Solution:**
+
+From LC 389: Keep XOR cancellation, then add a distinguishing-bit mask and two independent XOR accumulators.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int[] singleNumber(int[] nums) {
+        int xor = 0;
+        for (int x : nums) xor ^= x;
+        int bit = xor & -xor, a = 0, b = 0;
+        for (int x : nums) {
+            if ((x & bit) == 0) a ^= x;
+            else b ^= x;
+        }
+        return new int[]{a, b};
+    }
+}
+```
+
+**Key Logic:**
+
+Total XOR is a^b and nonzero. xor & -xor isolates a differing bit even when it is the sign bit. Duplicates enter the same partition and cancel.
+
+**Time Complexity:** O(n), two scans.
+
+**Space Complexity:** O(1) auxiliary and two output integers.
+
+---
+
+<a id="m2"></a>
+
+## Subpattern M2: Prefix XOR reconstruction, range queries and split counting
+
+**When to Apply:**
+
+Use when XOR of a prefix or range determines an encoded value, or matching prefix XORs define valid index splits. Exclusive prefix XOR starts at zero. XOR of two prefix states removes their common prefix; the same identity also inverts adjacent encoded XORs and identifies zero-XOR spans.
+
+**Basic Java Code Snippet:**
+
+```java
+int[] px = new int[a.length + 1];
+for (int i = 0; i < a.length; i++) px[i + 1] = px[i] ^ a[i];
+// XOR of inclusive [l,r] is px[r + 1] ^ px[l].
+```
+
+**Core Logic:**
+
+Exclusive prefix XOR starts at zero. XOR of two prefix states removes their common prefix; the same identity also inverts adjacent encoded XORs and identifies zero-XOR spans.
+
+**Questions Covered:** 1720, 2433, 1310, 1442
+
+<a id="lc-1720"></a>
+
+### LeetCode 1720
+
+**Question:**
+
+An original integer array has length one greater than encoded. Each encoded[i] equals original[i] XOR original[i+1]. Given encoded and the first original value, recover and return the original array.
+
+**Examples:**
+
+- encoded=[1,2,3], first=1 → [1,0,2,1]
+- encoded=[6,2,7,3], first=4 → [4,2,0,7,4]
+
+**Constraints:**
+
+2 ≤ original length ≤ 10000; 0 ≤ encoded[i] ≤ 100000; 1 ≤ first ≤ 100000.
+
+**Why This Subpattern Applies:**
+
+Encoded adjacent XORs and first original element are given. Exclusive prefix XOR starts at zero.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int[] decode(int[] encoded, int first) {
+        int[] out = new int[encoded.length + 1];
+        out[0] = first;
+        for (int i = 0; i < encoded.length; i++) out[i+1] = out[i] ^ encoded[i];
+        return out;
+    }
+}
+```
+
+**Key Logic:**
+
+XOR both sides with the known preceding original value. Each decoded element makes the next one recoverable.
+
+**Time Complexity:** O(n), one reconstruction pass.
+
+**Space Complexity:** O(1) auxiliary; O(n) output.
+
+---
+
+<a id="lc-2433"></a>
+
+### LeetCode 2433
+
+**Question:**
+
+Given pref, where pref[i] equals the XOR of original array elements from index 0 through i, return the unique original array.
+
+**Examples:**
+
+- [5,2,0,3,1] → [5,7,2,3,2]
+- [13] → [13]
+- [0,0] → [0,0]
+
+**Constraints:**
+
+1 ≤ n ≤ 100000; 0 ≤ pref[i] ≤ 10^6.
+
+**Why This Subpattern Applies:**
+
+Each encoded entry is cumulative XOR of original prefix. Exclusive prefix XOR starts at zero.
+
+**Connection to Previous Solution:**
+
+From LC 1720: Replace rolling reconstructed state with XOR differences of two consecutive encoded prefix entries.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int[] findArray(int[] pref) {
+        int[] out = new int[pref.length];
+        out[0] = pref[0];
+        for (int i = 1; i < pref.length; i++) out[i] = pref[i-1] ^ pref[i];
+        return out;
+    }
+}
+```
+
+**Key Logic:**
+
+Adjacent cumulative XORs cancel their shared prefix. The first entry is unchanged.
+
+**Time Complexity:** O(n), one pass.
+
+**Space Complexity:** O(1) auxiliary; O(n) output.
+
+---
+
+<a id="lc-1310"></a>
+
+### LeetCode 1310
+
+**Question:**
+
+Given an array arr and queries [left,right], return an array containing the XOR of all elements in each inclusive range, in query order.
+
+**Examples:**
+
+- arr=[1,3,4,8], queries=[[0,1],[1,2],[0,3],[3,3]] → [2,7,14,8]
+- arr=[4,8,2,10], queries=[[2,3],[1,3],[0,0],[0,3]] → [8,0,4,4]
+
+**Constraints:**
+
+1 ≤ n,q ≤ 30000; 1 ≤ arr[i] ≤ 10^9; 0 ≤ left ≤ right < n.
+
+**Why This Subpattern Applies:**
+
+Many inclusive range XOR queries over a static array. Exclusive prefix XOR starts at zero.
+
+**Connection to Previous Solution:**
+
+From LC 2433: Convert inverse adjacent-prefix relation into arbitrary range-endpoint XOR using a stored prefix array.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int[] xorQueries(int[] arr, int[][] queries) {
+        int[] p = new int[arr.length + 1];
+        for (int i = 0; i < arr.length; i++) p[i+1] = p[i] ^ arr[i];
+        int[] ans = new int[queries.length];
+        for (int i = 0; i < queries.length; i++) ans[i] = p[queries[i][1]+1] ^ p[queries[i][0]];
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+Exclusive prefix P[0]=0 handles ranges starting at zero. XOR of endpoints cancels all elements before left.
+
+**Time Complexity:** O(n+q), preprocessing and constant work per query.
+
+**Space Complexity:** O(n) auxiliary prefix; O(q) output.
+
+---
+
+<a id="lc-1442"></a>
+
+### LeetCode 1442
+
+**Question:**
+
+Count triples (i,j,k) satisfying 0 ≤ i < j ≤ k < arr.length for which XOR of arr[i..j−1] equals XOR of arr[j..k]. Both parts must be nonempty.
+
+**Examples:**
+
+- [2,3,1,6,7] → 4
+- [1,1,1,1,1] → 10
+- [1,2] → 0
+
+**Constraints:**
+
+1 ≤ n ≤ 300; 1 ≤ arr[i] ≤ 10^8.
+
+**Why This Subpattern Applies:**
+
+Count triples where adjacent nonempty subarray XORs are equal. Exclusive prefix XOR starts at zero.
+
+**Connection to Previous Solution:**
+
+From LC 1310: Replace fixed query endpoints with online counts and sums of prior equal prefix states to count all split positions.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int countTriplets(int[] arr) {
+        java.util.Map<Integer,int[]> seen = new java.util.HashMap<>();
+        seen.put(0, new int[]{1,0});
+        int p = 0, ans = 0;
+        for (int t = 1; t <= arr.length; t++) {
+            p ^= arr[t-1];
+            int[] state = seen.computeIfAbsent(p, k -> new int[2]);
+            ans += state[0] * (t-1) - state[1];
+            state[0]++;
+            state[1] += t;
+        }
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+With exclusive prefix endpoint t=k+1, equality means P[i]=P[t]. Each matching earlier i contributes t−i−1 splits. Store count and sum of earlier prefix indices; seed index zero and query before inserting t.
+
+**Time Complexity:** O(n) expected, hash operations.
+
+**Space Complexity:** O(n), distinct prefix states.
+
+---
+
+<a id="m3"></a>
+
+## Subpattern M3: Population count and binary-digit DP
+
+**When to Apply:**
+
+Use when the answer depends on how many 1-bits occur, for one integer or every number up to n. Clearing the lowest set bit removes one contribution; shifting right removes the low bit and yields a smaller reusable subproblem. The low bit is extracted with & 1.
+
+**Basic Java Code Snippet:**
+
+```java
+int[] bits = new int[n + 1];
+for (int i = 1; i <= n; i++) bits[i] = bits[i >> 1] + (i & 1);
+```
+
+**Core Logic:**
+
+Clearing the lowest set bit removes one contribution; shifting right removes the low bit and yields a smaller reusable subproblem. The low bit is extracted with & 1.
+
+**Questions Covered:** 191, 338
+
+<a id="lc-191"></a>
+
+### LeetCode 191
+
+**Question:**
+
+Return the number of 1 bits in the binary representation of the supplied integer (Hamming weight). The bitwise solution also supports all 32-bit patterns.
+
+**Examples:**
+
+- 11 → 3
+- 128 → 1
+- 2147483645 → 30
+
+**Constraints:**
+
+Current positive-integer formulation: 1 ≤ n ≤ 2^31−1; older unsigned formulation uses a 32-bit bit pattern.
+
+**Why This Subpattern Applies:**
+
+Count set bits of a 32-bit integer. Clearing the lowest set bit removes one contribution; shifting right removes the low bit and yields a smaller reusable subproblem.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int hammingWeight(int n) {
+        int count = 0;
+        while (n != 0) {
+            n &= n - 1;
+            count++;
+        }
+        return count;
+    }
+}
+```
+
+**Key Logic:**
+
+Subtracting one turns the lowest set bit off and lower zeros on; AND with original clears exactly that bit. Stops at zero, including for negative bit patterns.
+
+**Time Complexity:** O(popcount(n)), at most 32 iterations.
+
+**Space Complexity:** O(1).
+
+---
+
+<a id="lc-338"></a>
+
+### LeetCode 338
+
+**Question:**
+
+Given a nonnegative integer n, return an array of length n+1 whose entry i counts the set bits in the binary representation of i. Aim for linear time without invoking a built-in popcount for each value.
+
+**Examples:**
+
+- 2 → [0,1,1]
+- 5 → [0,1,1,2,1,2]
+- 0 → [0]
+
+**Constraints:**
+
+0 ≤ n ≤ 100000.
+
+**Why This Subpattern Applies:**
+
+Produce popcount for each integer from 0 through n. Clearing the lowest set bit removes one contribution; shifting right removes the low bit and yields a smaller reusable subproblem.
+
+**Connection to Previous Solution:**
+
+From LC 191: Replace repeated popcount per number with recurrence reusing the previously computed half-index count.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int[] countBits(int n) {
+        int[] bits = new int[n+1];
+        for (int i = 1; i <= n; i++) bits[i] = bits[i >> 1] + (i & 1);
+        return bits;
+    }
+}
+```
+
+**Key Logic:**
+
+Right shift removes the least significant bit. Its contribution is i&1; the count for the smaller number i>>1 is already computed.
+
+**Time Complexity:** O(n+1), one recurrence per entry.
+
+**Space Complexity:** O(1) auxiliary; O(n+1) output.
+
+---
+
+<a id="m4"></a>
+
+## Subpattern M4: Bitwise Hamming differences and position contributions
+
+**When to Apply:**
+
+Use XOR to identify unequal bit positions; aggregate across pairs by counting zeros and ones at each bit. XOR identifies unequal positions. For a collection, count zeros and ones at each position; their cross product counts each unordered mismatching pair exactly once.
+
+**Basic Java Code Snippet:**
+
+```java
+int mismatched = Integer.bitCount(x ^ y);
+// For all pairs, sum onesAtBit * (n - onesAtBit) at each bit.
+```
+
+**Core Logic:**
+
+XOR identifies unequal positions. For a collection, count zeros and ones at each position; their cross product counts each unordered mismatching pair exactly once.
+
+**Questions Covered:** 461, 477
+
+<a id="lc-461"></a>
+
+### LeetCode 461
+
+**Question:**
+
+Given integers x and y, return the number of binary positions at which their bits differ.
+
+**Examples:**
+
+- x=1,y=4 → 2
+- x=3,y=1 → 1
+- x=0,y=0 → 0
+
+**Constraints:**
+
+0 ≤ x,y ≤ 2^31−1.
+
+**Why This Subpattern Applies:**
+
+Find the number of differing binary positions between two integers. XOR identifies unequal positions.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int hammingDistance(int x, int y) {
+        return Integer.bitCount(x ^ y);
+    }
+}
+```
+
+**Key Logic:**
+
+XOR sets a bit exactly when operands differ; Integer.bitCount counts that mask.
+
+**Time Complexity:** O(1) for 32-bit words.
+
+**Space Complexity:** O(1).
+
+---
+
+<a id="lc-477"></a>
+
+### LeetCode 477
+
+**Question:**
+
+Return the sum of Hamming distances over every unordered pair of distinct indices in nums. Equal values at different indices still form pairs, with distance zero.
+
+**Examples:**
+
+- [4,14,2] → 6
+- [4,14,4] → 4
+- [0] → 0
+
+**Constraints:**
+
+1 ≤ n ≤ 10000; 0 ≤ nums[i] ≤ 10^9; answer fits signed int.
+
+**Why This Subpattern Applies:**
+
+Sum pairwise bit differences over all unordered integer pairs. XOR identifies unequal positions.
+
+**Connection to Previous Solution:**
+
+From LC 461: Replace single-pair XOR with per-bit combinatorial aggregation across all elements; count cross-bit pairs without enumerating pairs.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int totalHammingDistance(int[] nums) {
+        long ans = 0;
+        for (int bit = 0; bit < 32; bit++) {
+            int ones = 0;
+            for (int x : nums) ones += (x >>> bit) & 1;
+            ans += (long) ones * (nums.length - ones);
+        }
+        return (int) ans;
+    }
+}
+```
+
+**Key Logic:**
+
+At each bit, every one pairs with every zero, contributing exactly ones*(n−ones) mismatches. Each unordered pair is counted once per differing bit.
+
+**Time Complexity:** O(32n)=O(n), fixed bit scan.
+
+**Space Complexity:** O(1).
+
+---
+
+<a id="m5"></a>
+
+## Subpattern M5: Bit-frequency residues for repeated multiplicities
+
+**When to Apply:**
+
+Use when each ordinary value occurs a fixed number of times, so counts modulo that multiplicity reveal an exception. Count set bits independently at every position and reduce modulo the repetition count. Reconstruct the exceptional value, including its sign bit.
+
+**Basic Java Code Snippet:**
+
+```java
+int result = 0;
+for (int bit = 0; bit < 32; bit++) {
+    int count = 0;
+    for (int x : a) count += (x >>> bit) & 1;
+    if (count % 3 != 0) result |= 1 << bit;
+}
+```
+
+**Core Logic:**
+
+Count set bits independently at every position and reduce modulo the repetition count. Reconstruct the exceptional value, including its sign bit.
+
+**Questions Covered:** 137
+
+<a id="lc-137"></a>
+
+### LeetCode 137
+
+**Question:**
+
+Every integer in nums appears exactly three times except one appearing once. Return the singleton in linear time and constant auxiliary space. Negative values are permitted.
+
+**Examples:**
+
+- [2,2,3,2] → 3
+- [0,1,0,1,0,1,99] → 99
+- [-2,-2,-2,-7] → -7
+
+**Constraints:**
+
+1 ≤ n ≤ 30000; signed 32-bit integers; stated multiplicities guaranteed.
+
+**Why This Subpattern Applies:**
+
+Every value except one occurs exactly three times. Count set bits independently at every position and reduce modulo the repetition count.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int singleNumber(int[] nums) {
+        int ans = 0;
+        for (int bit = 0; bit < 32; bit++) {
+            int count = 0;
+            for (int x : nums) count += (x >>> bit) & 1;
+            if (count % 3 != 0) ans |= 1 << bit;
+        }
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+At each position, tripled values contribute multiples of three. The remainder is the singleton bit. Including bit 31 reconstructs negative values in two’s complement.
+
+**Time Complexity:** O(32n)=O(n).
+
+**Space Complexity:** O(1).
+
+---
+
+<a id="m6"></a>
+
+## Subpattern M6: Power-of-two mask tests
+
+**When to Apply:**
+
+Use when the binary representation must contain one set bit, possibly constrained to even bit positions. For a positive integer, n & (n-1) clears the lowest set bit. Zero afterward means exactly one bit was set; a position mask narrows which powers qualify.
+
+**Basic Java Code Snippet:**
+
+```java
+boolean oneHot = n > 0 && (n & (n - 1)) == 0;
+// Further restrict the position of the set bit when required.
+```
+
+**Core Logic:**
+
+For a positive integer, n & (n-1) clears the lowest set bit. Zero afterward means exactly one bit was set; a position mask narrows which powers qualify.
+
+**Questions Covered:** 231, 342
+
+<a id="lc-231"></a>
+
+### LeetCode 231
+
+**Question:**
+
+Determine whether integer n equals 2 raised to some nonnegative integer exponent. Return false for zero or negative inputs.
+
+**Examples:**
+
+- 1 → true
+- 16 → true
+- 3 → false
+
+**Constraints:**
+
+−2^31 ≤ n ≤ 2^31−1.
+
+**Why This Subpattern Applies:**
+
+Detect a positive number with exactly one set bit. For a positive integer, n & (n-1) clears the lowest set bit.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public boolean isPowerOfTwo(int n) {
+        return n > 0 && (n & (n-1)) == 0;
+    }
+}
+```
+
+**Key Logic:**
+
+A positive power of two has exactly one set bit. Clearing that bit must produce zero; positivity rejects zero and the sign-bit-only negative value.
+
+**Time Complexity:** O(1).
+
+**Space Complexity:** O(1).
+
+---
+
+<a id="lc-342"></a>
+
+### LeetCode 342
+
+**Question:**
+
+Determine whether integer n equals 4 raised to a nonnegative integer exponent.
+
+**Examples:**
+
+- 16 → true
+- 5 → false
+- 1 → true
+- 8 → false
+
+**Constraints:**
+
+−2^31 ≤ n ≤ 2^31−1.
+
+**Why This Subpattern Applies:**
+
+Detect a positive power of four rather than any power of two. For a positive integer, n & (n-1) clears the lowest set bit.
+
+**Connection to Previous Solution:**
+
+From LC 231: Keep power-of-two test; add fixed alternating-position mask.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public boolean isPowerOfFour(int n) {
+        return n > 0 && (n & (n-1)) == 0 && (n & 0x55555555) != 0;
+    }
+}
+```
+
+**Key Logic:**
+
+4^k equals 2^(2k), so require one set bit at an even zero-based position. 0x55555555 selects exactly those positions.
+
+**Time Complexity:** O(1).
+
+**Space Complexity:** O(1).
+
+---
+
+<a id="m7"></a>
+
+## Subpattern M7: Fixed-width bit reversal
+
+**When to Apply:**
+
+Use when bit positions in a fixed 32-bit representation must be mirrored. Process every bit of the fixed-width word, append the current low bit to a left-shifting result and shift the source logically right. Leading zeros are part of the representation.
+
+**Basic Java Code Snippet:**
+
+```java
+int reversed = 0;
+for (int i = 0; i < 32; i++) {
+    reversed = (reversed << 1) | (n & 1);
+    n >>>= 1;
+}
+```
+
+**Core Logic:**
+
+Process every bit of the fixed-width word, append the current low bit to a left-shifting result and shift the source logically right. Leading zeros are part of the representation.
+
+**Questions Covered:** 190
+
+<a id="lc-190"></a>
+
+### LeetCode 190
+
+**Question:**
+
+Reverse the order of all 32 bits of an integer, including leading zero positions. Return the resulting 32-bit pattern; Java int may represent it as a negative number.
+
+**Examples:**
+
+- 43261596 → 964176192
+- 1 → 2147483648 (unsigned, Java Integer.MIN_VALUE)
+- 0 → 0
+
+**Constraints:**
+
+32-bit input representation; the algorithm handles every bit pattern, including signed Java int values.
+
+**Why This Subpattern Applies:**
+
+Reverse all 32 bit positions of an integer. Process every bit of the fixed-width word, append the current low bit to a left-shifting result and shift the source logically right.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int reverseBits(int n) {
+        int ans = 0;
+        for (int i = 0; i < 32; i++) {
+            ans = (ans << 1) | (n & 1);
+            n >>>= 1;
+        }
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+Append the current low bit to the result by shifting result left. Unsigned right shift fills with zeros. Exactly 32 iterations preserve leading zeros.
+
+**Time Complexity:** O(32)=O(1).
+
+**Space Complexity:** O(1).
+
+---
+
+<a id="m8"></a>
+
+## Subpattern M8: Common-prefix range AND
+
+**When to Apply:**
+
+Use when bitwise AND of every integer in a consecutive numeric interval is required. All consecutive values share a common high-bit prefix until the first differing position. Every bit below that boundary becomes zero under AND across the range.
+
+**Basic Java Code Snippet:**
+
+```java
+int shifts = 0;
+while (left != right) {
+    left >>>= 1; right >>>= 1; shifts++;
+}
+int common = left << shifts;
+```
+
+**Core Logic:**
+
+All consecutive values share a common high-bit prefix until the first differing position. Every bit below that boundary becomes zero under AND across the range.
+
+**Questions Covered:** 201
+
+<a id="lc-201"></a>
+
+### LeetCode 201
+
+**Question:**
+
+Given two nonnegative integers left and right, return the bitwise AND of every integer in the inclusive interval [left,right].
+
+**Examples:**
+
+- left=5,right=7 → 4
+- 0,0 → 0
+- 1,2147483647 → 0
+
+**Constraints:**
+
+0 ≤ left ≤ right ≤ 2^31−1.
+
+**Why This Subpattern Applies:**
+
+Compute AND across all integers in inclusive numeric range. All consecutive values share a common high-bit prefix until the first differing position.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int rangeBitwiseAnd(int left, int right) {
+        int shifts = 0;
+        while (left != right) {
+            left >>>= 1;
+            right >>>= 1;
+            shifts++;
+        }
+        return left << shifts;
+    }
+}
+```
+
+**Key Logic:**
+
+Any bit below the first differing high bit encounters a zero somewhere in the interval. Shift away varying suffix bits until bounds coincide; restore shared prefix with zeros.
+
+**Time Complexity:** O(log(right+1)+1) bounded by 31 shifts; O(1) fixed width.
+
+**Space Complexity:** O(1).
+
+---
+
+<a id="m9"></a>
+
+## Subpattern M9: Distinct bitwise aggregates of all ending-at-i subarrays
+
+**When to Apply:**
+
+Use when OR/AND of every contiguous subarray matters but each endpoint has only O(word-size) distinct aggregate values. At each endpoint, extend all distinct suffix aggregates and insert the singleton. OR only adds bits and AND only removes bits as a suffix grows, bounding distinct states by word size plus one.
+
+**Basic Java Code Snippet:**
+
+```java
+java.util.Set<Integer> ending = new java.util.HashSet<>();
+for (int value : a) {
+    java.util.Set<Integer> next = new java.util.HashSet<>();
+    next.add(value);
+    for (int v : ending) next.add(v | value); // change | to & for AND
+    ending = next;
+    // evaluate all distinct aggregates ending at this index
+}
+```
+
+**Core Logic:**
+
+At each endpoint, extend all distinct suffix aggregates and insert the singleton. OR only adds bits and AND only removes bits as a suffix grows, bounding distinct states by word size plus one.
+
+**Questions Covered:** 898, 1521
+
+<a id="lc-898"></a>
+
+### LeetCode 898
+
+**Question:**
+
+For every nonempty contiguous subarray of arr, compute its bitwise OR. Return the number of distinct results across all such subarrays.
+
+**Examples:**
+
+- [0] → 1
+- [1,1,2] → 3 (1,2,3)
+- [1,2,4] → 6
+
+**Constraints:**
+
+1 ≤ n ≤ 50000; 0 ≤ arr[i] ≤ 10^9.
+
+**Why This Subpattern Applies:**
+
+Count distinct bitwise OR values of nonempty subarrays. At each endpoint, extend all distinct suffix aggregates and insert the singleton.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int subarrayBitwiseORs(int[] arr) {
+        java.util.Set<Integer> all = new java.util.HashSet<>();
+        java.util.Set<Integer> ending = new java.util.HashSet<>();
+        for (int x : arr) {
+            java.util.Set<Integer> next = new java.util.HashSet<>();
+            next.add(x);
+            for (int v : ending) next.add(v | x);
+            all.addAll(next);
+            ending = next;
+        }
+        return all.size();
+    }
+}
+```
+
+**Key Logic:**
+
+For each endpoint, extend all previous suffix ORs with x and include singleton x. Extending a suffix can only set more bits; at most W+1 distinct suffix ORs exist. Global set removes duplicates across endpoints.
+
+**Time Complexity:** O(nW) expected, W=32.
+
+**Space Complexity:** O(nW) worst-case global distinct set; O(W) rolling sets.
+
+---
+
+<a id="lc-1521"></a>
+
+### LeetCode 1521
+
+**Question:**
+
+A function on a nonempty contiguous interval returns the bitwise AND of its elements. Given arr and target, return the smallest absolute difference between target and any such interval AND.
+
+**Examples:**
+
+- arr=[9,12,3,7,15], target=5 → 2
+- [1000000,1000000,1000000], target=1 → 999999
+- [1,2,4,8,16], target=0 → 0
+
+**Constraints:**
+
+1 ≤ n ≤ 100000; 1 ≤ arr[i] ≤ 10^6; 0 ≤ target ≤ 10^7.
+
+**Why This Subpattern Applies:**
+
+Find subarray AND value closest to a target. At each endpoint, extend all distinct suffix aggregates and insert the singleton.
+
+**Connection to Previous Solution:**
+
+From LC 898: Keep bounded distinct-ending-aggregate set; replace OR with AND and global distinct counting with minimum target distance.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int closestToTarget(int[] arr, int target) {
+        java.util.Set<Integer> ending = new java.util.HashSet<>();
+        int best = Integer.MAX_VALUE;
+        for (int x : arr) {
+            java.util.Set<Integer> next = new java.util.HashSet<>();
+            next.add(x);
+            for (int v : ending) next.add(v & x);
+            for (int v : next) best = Math.min(best, Math.abs(v-target));
+            if (best == 0) return 0;
+            ending = next;
+        }
+        return best;
+    }
+}
+```
+
+**Key Logic:**
+
+AND extensions only clear bits, so distinct suffix AND values are bounded by W+1. Evaluate each distinct ending value; zero difference is globally optimal and allows early return.
+
+**Time Complexity:** O(nW) expected, W=32.
+
+**Space Complexity:** O(W) rolling sets.
+
+---
+
+<a id="m10"></a>
+
+## Subpattern M10: Maximizing XOR with bounded bit masks
+
+**When to Apply:**
+
+Use when selecting bits of a complement mask optimizes a requested XOR result. Within a fixed width, the largest XOR is an all-ones mask. XOR with that mask complements exactly the permitted bits; removing an element is another XOR.
+
+**Basic Java Code Snippet:**
+
+```java
+int mask = (1 << maximumBit) - 1; // maximumBit constrained below 31
+int prefixXor = 0;
+for (int x : nums) prefixXor ^= x;
+int bestMask = prefixXor ^ mask;
+```
+
+**Core Logic:**
+
+Within a fixed width, the largest XOR is an all-ones mask. XOR with that mask complements exactly the permitted bits; removing an element is another XOR.
+
+**Questions Covered:** 1829
+
+<a id="lc-1829"></a>
+
+### LeetCode 1829
+
+**Question:**
+
+Given a sorted nonnegative array nums and maximumBit, perform n queries. On each query choose 0 ≤ k < 2^maximumBit maximizing XOR of all remaining elements XOR k, record k, then remove the last remaining element. Return recorded answers in query order.
+
+**Examples:**
+
+- nums=[0,1,1,3], maximumBit=2 → [0,3,2,3]
+- [2,3,4,7], 3 → [5,2,6,5]
+
+**Constraints:**
+
+1 ≤ n ≤ 100000; 1 ≤ maximumBit ≤ 20; 0 ≤ nums[i] < 2^maximumBit; nums sorted ascending.
+
+**Why This Subpattern Applies:**
+
+After successive suffix removals, maximize XOR by choosing k restricted low bits. Within a fixed width, the largest XOR is an all-ones mask.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int[] getMaximumXor(int[] nums, int maximumBit) {
+        int xor = 0, mask = (1 << maximumBit)-1;
+        for (int x : nums) xor ^= x;
+        int[] ans = new int[nums.length];
+        for (int i = nums.length-1; i >= 0; i--) {
+            ans[nums.length-1-i] = xor ^ mask;
+            xor ^= nums[i];
+        }
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+All permissible bits can become one by complementing current XOR within the mask. Remove suffix x by XORing it again.
+
+**Time Complexity:** O(n), total XOR plus reverse scan.
+
+**Space Complexity:** O(1) auxiliary; O(n) output.
+
+---
+
+<a id="m11"></a>
+
+## Subpattern M11: Popcount-constrained XOR construction
+
+**When to Apply:**
+
+Use when a result must have a prescribed number of 1-bits while minimizing its XOR against a target. XOR minimization prioritizes high positions because each outweighs every lower position combined. Match the high set bits of the target first, then spend any leftover budget on low zero bits.
+
+**Basic Java Code Snippet:**
+
+```java
+static int matchWithBudget(int target, int remaining) {
+    int result = 0;
+    for (int bit = 30; bit >= 0 && remaining > 0; bit--) {
+        int flag = 1 << bit;
+        if ((target & flag) != 0) { result |= flag; remaining--; }
+    }
+    for (int bit = 0; bit < 31 && remaining > 0; bit++) {
+        int flag = 1 << bit;
+        if ((result & flag) == 0) { result |= flag; remaining--; }
+    }
+    return result;
+}
+```
+
+**Core Logic:**
+
+XOR minimization prioritizes high positions because each outweighs every lower position combined. Match the high set bits of the target first, then spend any leftover budget on low zero bits.
+
+**Questions Covered:** 2429
+
+<a id="lc-2429"></a>
+
+### LeetCode 2429
+
+**Question:**
+
+Given positive integers num1 and num2, return positive integer x with exactly as many set bits as num2 and with minimum possible numerical value of x XOR num1. The minimizing x is unique.
+
+**Examples:**
+
+- num1=3,num2=5 → 3
+- num1=1,num2=12 → 3
+- num1=7,num2=1 → 4
+
+**Constraints:**
+
+1 ≤ num1,num2 ≤ 10^9.
+
+**Why This Subpattern Applies:**
+
+Choose an integer with the same popcount as a second number to minimize XOR against the first. XOR minimization prioritizes high positions because each outweighs every lower position combined.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int minimizeXor(int num1, int num2) {
+        int remaining = Integer.bitCount(num2), ans = 0;
+        for (int b = 30; b >= 0 && remaining > 0; b--) {
+            if ((num1 & (1 << b)) != 0) {
+                ans |= 1 << b;
+                remaining--;
+            }
+        }
+        for (int b = 0; remaining > 0; b++) {
+            if ((ans & (1 << b)) == 0) {
+                ans |= 1 << b;
+                remaining--;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+High differing bits outweigh all lower bits combined. Spend the bit budget matching high set bits of num1 first; if more bits are needed, set the lowest unused positions to minimize new XOR cost.
+
+**Time Complexity:** O(W)=O(1), W=31.
+
+**Space Complexity:** O(1).
+
+---
+
+<a id="m12"></a>
+
+## Subpattern M12: Parity masks for substring constraints
+
+**When to Apply:**
+
+Use when validity depends on even/odd frequency of a small alphabet, so a prefix XOR mask encodes parity. A prefix mask stores parity, not full counts. XOR of two masks gives the parity of their intervening substring; equal masks represent all even counts, while a one-bit difference permits one odd count.
+
+**Basic Java Code Snippet:**
+
+```java
+static int parityAfter(int mask, int symbolIndex) {
+    return mask ^ (1 << symbolIndex);
+}
+static boolean atMostOneOdd(int leftMask, int rightMask) {
+    int delta = leftMask ^ rightMask;
+    return (delta & (delta - 1)) == 0;
+}
+```
+
+**Core Logic:**
+
+A prefix mask stores parity, not full counts. XOR of two masks gives the parity of their intervening substring; equal masks represent all even counts, while a one-bit difference permits one odd count.
+
+**Questions Covered:** 1371, 1542, 1915
+
+<a id="lc-1371"></a>
+
+### LeetCode 1371
+
+**Question:**
+
+Given a lowercase English string, return the maximum length of a contiguous substring in which each of a,e,i,o,u occurs an even number of times (zero is even). Consonants have no restriction.
+
+**Examples:**
+
+- "eleetminicoworoep" → 13
+- "leetcodeisgreat" → 5
+- "bcbcbc" → 6
+
+**Constraints:**
+
+1 ≤ length ≤ 500000; lowercase English letters.
+
+**Why This Subpattern Applies:**
+
+Find longest substring in which all five vowels occur an even number of times. A prefix mask stores parity, not full counts.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int findTheLongestSubstring(String s) {
+        int[] first = new int[32];
+        java.util.Arrays.fill(first, -2);
+        first[0] = -1;
+        int mask = 0, best = 0;
+        for (int i = 0; i < s.length(); i++) {
+            int b = "aeiou".indexOf(s.charAt(i));
+            if (b >= 0) mask ^= 1 << b;
+            if (first[mask] == -2) first[mask] = i;
+            else best = Math.max(best, i-first[mask]);
+        }
+        return best;
+    }
+}
+```
+
+**Key Logic:**
+
+Toggle one bit for each vowel. Equal prefix masks mean every vowel count between them is even. Keep earliest index for maximum distance; seed empty prefix at −1.
+
+**Time Complexity:** O(n), constant-size mask operations.
+
+**Space Complexity:** O(32)=O(1), earliest indices.
+
+---
+
+<a id="lc-1542"></a>
+
+### LeetCode 1542
+
+**Question:**
+
+Given a string of decimal digits, return the length of its longest nonempty contiguous substring whose characters can be rearranged to form a palindrome. Rearrangement is allowed only within the selected substring.
+
+**Examples:**
+
+- "3242415" → 5
+- "12345678" → 1
+- "213123" → 6
+
+**Constraints:**
+
+1 ≤ length ≤ 100000; digits 0–9.
+
+**Why This Subpattern Applies:**
+
+Find longest digit substring permutable into a palindrome. A prefix mask stores parity, not full counts.
+
+**Connection to Previous Solution:**
+
+From LC 1371: Expand from five vowel parity bits to ten digit bits; allow zero or one odd-frequency bit by querying masks differing in at most one bit.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int longestAwesome(String s) {
+        int[] first = new int[1024];
+        java.util.Arrays.fill(first, -2);
+        first[0] = -1;
+        int mask = 0, best = 0;
+        for (int i = 0; i < s.length(); i++) {
+            mask ^= 1 << (s.charAt(i)-'0');
+            if (first[mask] != -2) best = Math.max(best,i-first[mask]);
+            for (int b = 0; b < 10; b++) {
+                int j = first[mask ^ (1 << b)];
+                if (j != -2) best = Math.max(best,i-j);
+            }
+            if (first[mask] == -2) first[mask] = i;
+        }
+        return best;
+    }
+}
+```
+
+**Key Logic:**
+
+A multiset admits a palindrome if at most one count is odd. Query equal prefix mask and all ten one-bit neighbors; retain earliest occurrence of each mask.
+
+**Time Complexity:** O(10n)=O(n).
+
+**Space Complexity:** O(2^10)=O(1).
+
+---
+
+<a id="lc-1915"></a>
+
+### LeetCode 1915
+
+**Question:**
+
+Given a string consisting of letters a through j, count all nonempty contiguous substrings in which at most one letter occurs an odd number of times. Identical substring text at different positions is counted separately.
+
+**Examples:**
+
+- "aba" → 4
+- "aabb" → 9
+- "he" → 2
+
+**Constraints:**
+
+1 ≤ length ≤ 100000; letters a–j.
+
+**Why This Subpattern Applies:**
+
+Count substrings with at most one odd occurrence across ten supported letters. A prefix mask stores parity, not full counts.
+
+**Connection to Previous Solution:**
+
+From LC 1542: Keep 10-bit same/one-flip parity queries; change earliest-index storage and max-length objective to frequency counts and total substring count.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public long wonderfulSubstrings(String word) {
+        long[] freq = new long[1024];
+        freq[0] = 1;
+        int mask = 0;
+        long ans = 0;
+        for (int i = 0; i < word.length(); i++) {
+            mask ^= 1 << (word.charAt(i)-'a');
+            ans += freq[mask];
+            for (int b = 0; b < 10; b++) ans += freq[mask ^ (1 << b)];
+            freq[mask]++;
+        }
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+For each ending index, each earlier equal mask or one-bit neighbor represents one valid start. Seed empty prefix; query before incrementing to exclude empty substring. Use long for potentially quadratic count.
+
+**Time Complexity:** O(10n)=O(n).
+
+**Space Complexity:** O(1024)=O(1).
+
+---
+
+<a id="m13"></a>
+
+## Subpattern M13: Gray-code generation and inversion
+
+**When to Apply:**
+
+Use when consecutive bit patterns must differ by exactly one bit, or a Gray-code transition rank is required. Forward Gray mapping XORs rank with its one-bit right shift. XOR translation preserves one-bit adjacency. Inversion reconstructs each binary bit from the XOR of Gray bits at that position and above.
+
+**Basic Java Code Snippet:**
+
+```java
+for (int i = 0; i < (1 << n); i++) {
+    int gray = i ^ (i >>> 1);
+    // emit gray or gray ^ start
+}
+```
+
+**Core Logic:**
+
+Forward Gray mapping XORs rank with its one-bit right shift. XOR translation preserves one-bit adjacency. Inversion reconstructs each binary bit from the XOR of Gray bits at that position and above.
+
+**Questions Covered:** 89, 1238, 1611
+
+<a id="lc-89"></a>
+
+### LeetCode 89
+
+**Question:**
+
+Return any n-bit Gray-code sequence containing exactly 2^n distinct integers in [0,2^n−1], starting with zero, with consecutive entries differing by exactly one bit, including the last and first entries.
+
+**Examples:**
+
+- n=2 → [0,1,3,2]
+- n=1 → [0,1]
+- n=3 → [0,1,3,2,6,7,5,4]
+
+**Constraints:**
+
+1 ≤ n ≤ 16.
+
+**Why This Subpattern Applies:**
+
+Generate n-bit Gray code by using g(i)=i^(i>>1). Forward Gray mapping XORs rank with its one-bit right shift.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public java.util.List<Integer> grayCode(int n) {
+        int size = 1 << n;
+        java.util.List<Integer> ans = new java.util.ArrayList<>(size);
+        for (int i = 0; i < size; i++) ans.add(i ^ (i >>> 1));
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+g(i)=i XOR (i>>1) maps binary ranks bijectively to Gray codes. Incrementing binary rank flips a trailing run, but XOR with the shifted rank cancels all except one transition bit. Last code has only the highest bit set.
+
+**Time Complexity:** O(2^n), output enumeration.
+
+**Space Complexity:** O(1) auxiliary; O(2^n) output.
+
+---
+
+<a id="lc-1238"></a>
+
+### LeetCode 1238
+
+**Question:**
+
+Given n and start, return a permutation of all integers from 0 through 2^n−1 beginning at start, such that each adjacent pair differs in exactly one binary position, including the circular last-to-first pair.
+
+**Examples:**
+
+- n=2,start=3 → [3,2,0,1]
+- n=3,start=2 → [2,3,1,0,4,5,7,6]
+
+**Constraints:**
+
+1 ≤ n ≤ 16; 0 ≤ start < 2^n.
+
+**Why This Subpattern Applies:**
+
+Generate a circular Gray-code ordering starting from a specified code. Forward Gray mapping XORs rank with its one-bit right shift.
+
+**Connection to Previous Solution:**
+
+From LC 89: Reuse binary-to-Gray generator; XOR every output with the requested starting value.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public java.util.List<Integer> circularPermutation(int n, int start) {
+        int size = 1 << n;
+        java.util.List<Integer> ans = new java.util.ArrayList<>(size);
+        for (int i = 0; i < size; i++) ans.add((i ^ (i >>> 1)) ^ start);
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+XOR each Gray code with start. XOR translation is bijective and preserves pairwise XOR differences, so cyclic adjacency and uniqueness remain intact.
+
+**Time Complexity:** O(2^n).
+
+**Space Complexity:** O(1) auxiliary; O(2^n) output.
+
+---
+
+<a id="lc-1611"></a>
+
+### LeetCode 1611
+
+**Question:**
+
+Given nonnegative integer n, reduce it to zero using the fewest operations. You may flip bit 0 at any time. For bit i>0, you may flip it only if bit i−1 is one and all bits below i−1 are zero. Return the minimum operation count.
+
+**Examples:**
+
+- 3 → 2 (3→1→0)
+- 6 → 4 (6→7→5→4→0)
+- 0 → 0
+
+**Constraints:**
+
+0 ≤ n ≤ 10^9.
+
+**Why This Subpattern Applies:**
+
+Minimum permitted one-bit operations to reduce an integer to zero under constrained transitions. Forward Gray mapping XORs rank with its one-bit right shift.
+
+**Connection to Previous Solution:**
+
+From LC 1238: Replace Gray generation with inverse Gray mapping; derive operation count by accumulating successive right-shift XORs.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int minimumOneBitOperations(int n) {
+        int ans = 0;
+        while (n != 0) {
+            ans ^= n;
+            n >>>= 1;
+        }
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+The allowed transitions trace the reflected Gray-code path: bit zero connects alternating ranks, and the only other eligible bit is immediately above the lowest set bit. Distance to zero is the inverse Gray rank, obtained by XORing all shifted prefixes.
+
+**Time Complexity:** O(log(n+1)+1), at most 30 shifts.
+
+**Space Complexity:** O(1).
+
+---
+
+<a id="m14"></a>
+
+## Subpattern M14: Lazy complemented bitset design
+
+**When to Apply:**
+
+Use when many flip-all, fix/unfix, and count operations must avoid scanning all positions. Logical value equals physical value XOR a shared flip flag. Maintain the logical population count on individual changes; global flips complement the count without touching the array.
+
+**Basic Java Code Snippet:**
+
+```java
+// Fields of a lazy-complement structure:
+boolean[] raw = new boolean[size];
+boolean flipped = false;
+int ones = 0;
+// Read logical bit i:
+boolean logical = raw[i] ^ flipped;
+// Assign logical bit to desired:
+if (logical != desired) {
+    raw[i] = desired ^ flipped;
+    ones += desired ? 1 : -1;
+}
+// Flip all bits:
+flipped = !flipped;
+ones = size - ones;
+```
+
+**Core Logic:**
+
+Logical value equals physical value XOR a shared flip flag. Maintain the logical population count on individual changes; global flips complement the count without touching the array.
+
+**Questions Covered:** 2166
+
+<a id="lc-2166"></a>
+
+### LeetCode 2166
+
+**Question:**
+
+Design a Bitset of fixed size initialized to all zero bits. fix(idx) sets bit idx to 1; unfix(idx) sets it to 0; flip() inverts all bits; all() reports whether all are 1; one() whether any is 1; count() returns number of 1s; toString() returns the logical binary string in index order. Repeated fix/unfix calls must be idempotent.
+
+**Examples:**
+
+- Bitset(5), fix(3), fix(1), flip(), all(), unfix(0), flip(), one(), count(), toString() → [null,null,null,null,false,null,null,true,3,"11010"]
+- Bitset(2), flip(), count(), fix(0), count(), unfix(1), toString() → [null,null,2,null,2,null,"10"]
+
+**Constraints:**
+
+1 ≤ size ≤ 100000; valid indices 0..size−1; at most 100000 method calls; at most 5 toString calls.
+
+**Why This Subpattern Applies:**
+
+Maintain mutable bitset with fix/unfix, flip-all, all/one/count/string operations. Logical value equals physical value XOR a shared flip flag.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Bitset {
+    private final boolean[] raw;
+    private boolean flipped;
+    private int ones;
+    public Bitset(int size) { raw = new boolean[size]; }
+    public void fix(int idx) {
+        if (!(raw[idx] ^ flipped)) {
+            raw[idx] = !flipped;
+            ones++;
+        }
+    }
+    public void unfix(int idx) {
+        if (raw[idx] ^ flipped) {
+            raw[idx] = flipped;
+            ones--;
+        }
+    }
+    public void flip() { flipped = !flipped; ones = raw.length-ones; }
+    public boolean all() { return ones == raw.length; }
+    public boolean one() { return ones > 0; }
+    public int count() { return ones; }
+    public String toString() {
+        StringBuilder out = new StringBuilder(raw.length);
+        for (boolean bit : raw) out.append((bit ^ flipped) ? '1' : '0');
+        return out.toString();
+    }
+}
+```
+
+**Key Logic:**
+
+Physical bit XOR flipped is the logical bit. Only actual logical changes update ones. Flip toggles the flag and replaces count with size−ones. LeetCode requires class Bitset, not Solution; this is a design problem.
+
+**Time Complexity:** O(1) per operation except toString O(size).
+
+**Space Complexity:** O(size) persistent storage; O(size) output for toString.
+
+---
+
+<a id="m15"></a>
+
+## Subpattern M15: Arithmetic through bitwise operations
+
+**When to Apply:**
+
+Use when arithmetic operators are disallowed and carry/quotient must be simulated with bitwise state. XOR is addition without carries. AND finds positions requiring carry; shift them left and repeat, preserving the total until no carry remains.
+
+**Basic Java Code Snippet:**
+
+```java
+int a = left, b = right;
+while (b != 0) {
+    int carry = (a & b) << 1;
+    a ^= b;
+    b = carry;
+}
+// Shifted-divisor subtraction is a different arithmetic baseline.
+```
+
+**Core Logic:**
+
+XOR is addition without carries. AND finds positions requiring carry; shift them left and repeat, preserving the total until no carry remains.
+
+**Questions Covered:** 371
+
+<a id="lc-371"></a>
+
+### LeetCode 371
+
+**Question:**
+
+Return the sum of two integers a and b without using the plus or minus operators.
+
+**Examples:**
+
+- a=1,b=2 → 3
+- 2,3 → 5
+- -4,7 → 3
+
+**Constraints:**
+
+−1000 ≤ a,b ≤ 1000.
+
+**Why This Subpattern Applies:**
+
+Add two signed 32-bit integers without plus/minus. XOR is addition without carries.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int getSum(int a, int b) {
+        while (b != 0) {
+            int carry = (a & b) << 1;
+            a ^= b;
+            b = carry;
+        }
+        return a;
+    }
+}
+```
+
+**Key Logic:**
+
+XOR gives the carry-free sum; AND identifies simultaneous ones and left shift moves carries to their destination. Each iteration preserves the sum modulo 2^32; carry eventually vanishes.
+
+**Time Complexity:** O(W)=O(1), at most 32 iterations.
+
+**Space Complexity:** O(1).
+
+---
+
+<a id="m16"></a>
+
+## Subpattern M16: Shifted-divisor binary long division
+
+**When to Apply:**
+
+Use when quotient must be constructed from powers-of-two subtraction without multiplication or division. Test shifted divisor magnitudes from highest bit downward. When one fits, subtract it and set that quotient bit. Widen signed inputs first and apply the sign at the end.
+
+**Basic Java Code Snippet:**
+
+```java
+long dividend = Math.abs((long) a);
+long divisor = Math.abs((long) b);
+long quotient = 0;
+for (int shift = 31; shift >= 0; shift--) {
+    if ((dividend >>> shift) >= divisor) {
+        dividend -= divisor << shift; quotient |= 1L << shift;
+    }
+}
+```
+
+**Core Logic:**
+
+Test shifted divisor magnitudes from highest bit downward. When one fits, subtract it and set that quotient bit. Widen signed inputs first and apply the sign at the end.
+
+**Questions Covered:** 29
+
+<a id="lc-29"></a>
+
+### LeetCode 29
+
+**Question:**
+
+Divide signed integers dividend and divisor without using multiplication, division or modulo operators. Truncate the quotient toward zero. If the mathematical result exceeds signed 32-bit range, clamp it to the appropriate endpoint. Divisor is nonzero.
+
+**Examples:**
+
+- 10,3 → 3
+- 7,-3 → -2
+- -2147483648,-1 → 2147483647
+
+**Constraints:**
+
+Both operands are signed 32-bit integers; divisor ≠ 0.
+
+**Why This Subpattern Applies:**
+
+Divide two signed integers without multiplication, division or modulo. Test shifted divisor magnitudes from highest bit downward.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int divide(int dividend, int divisor) {
+        if (dividend == Integer.MIN_VALUE && divisor == -1) return Integer.MAX_VALUE;
+        long a = Math.abs((long) dividend), b = Math.abs((long) divisor);
+        long q = 0;
+        for (int shift = 31; shift >= 0; shift--) {
+            if ((a >>> shift) >= b) {
+                a -= b << shift;
+                q |= 1L << shift;
+            }
+        }
+        return (int) (((dividend < 0) ^ (divisor < 0)) ? -q : q);
+    }
+}
+```
+
+**Key Logic:**
+
+Widen before taking absolute value to represent 2^31. At each descending bit, subtract divisor shifted by that bit if it fits, recording the quotient bit. Apply sign after magnitude calculation and clamp the sole positive overflow case.
+
+**Time Complexity:** O(32)=O(1), fixed descending bit scan.
+
+**Space Complexity:** O(1).
+
+---
+
+<a id="m17"></a>
+
+## Subpattern M17: Per-position bitwise truth-table correction
+
+**When to Apply:**
+
+Use when a target bitwise relationship must be satisfied by the minimum flips across operand positions. Each position is independent. A desired zero forces all OR operands to zero; a desired one requires at least one operand to be one. Sum the minimum local corrections.
+
+**Basic Java Code Snippet:**
+
+```java
+static int orBitCost(int x, int y, int desired) {
+    if (desired == 0) return x + y;
+    return (x | y) == 0 ? 1 : 0;
+}
+```
+
+**Core Logic:**
+
+Each position is independent. A desired zero forces all OR operands to zero; a desired one requires at least one operand to be one. Sum the minimum local corrections.
+
+**Questions Covered:** 1318
+
+<a id="lc-1318"></a>
+
+### LeetCode 1318
+
+**Question:**
+
+Given positive integers a,b,c, find the minimum number of individual bit flips in a or b needed so that their bitwise OR equals c. Each flip changes exactly one bit from zero to one or vice versa.
+
+**Examples:**
+
+- a=2,b=6,c=5 → 3
+- 4,2,7 → 1
+- 1,2,3 → 0
+
+**Constraints:**
+
+1 ≤ a,b,c ≤ 10^9.
+
+**Why This Subpattern Applies:**
+
+Minimize bit flips so OR of two numbers equals a third. Each position is independent.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int minFlips(int a, int b, int c) {
+        int ans = 0;
+        for (int i = 0; i < 32; i++) {
+            int x = (a >>> i)&1, y = (b >>> i)&1, z = (c >>> i)&1;
+            if (z == 0) ans += x+y;
+            else if ((x | y) == 0) ans++;
+        }
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+If desired bit is zero, every set operand bit must be cleared independently. If desired is one, only the case of two zero operands needs a flip. Sum independent minimum costs.
+
+**Time Complexity:** O(32)=O(1).
+
+**Space Complexity:** O(1).
+
+---
+
+<a id="m18"></a>
+
+## Subpattern M18: XOR target repair by bit flips
+
+**When to Apply:**
+
+Use when each flipped bit changes the total XOR in exactly that bit position. Each operation toggles one position of the total XOR, so precisely the set bits of the XOR mismatch need correction.
+
+**Basic Java Code Snippet:**
+
+```java
+int xor = 0;
+for (int x : nums) xor ^= x;
+int minimumFlips = Integer.bitCount(xor ^ target);
+```
+
+**Core Logic:**
+
+Each operation toggles one position of the total XOR, so precisely the set bits of the XOR mismatch need correction.
+
+**Questions Covered:** 2997
+
+<a id="lc-2997"></a>
+
+### LeetCode 2997
+
+**Question:**
+
+Given a nonnegative integer array and target k, return the minimum operations needed to make XOR of the entire array equal k. In one operation flip any single bit of any array element, including a leading zero bit.
+
+**Examples:**
+
+- nums=[2,1,3,4], k=1 → 2
+- [2,0,2,0], k=0 → 0
+- [0], k=7 → 3
+
+**Constraints:**
+
+1 ≤ n ≤ 100000; 0 ≤ nums[i],k ≤ 10^6.
+
+**Why This Subpattern Applies:**
+
+Minimize individual flips so XOR of an array equals a target. Each operation toggles one position of the total XOR, so precisely the set bits of the XOR mismatch need correction.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int minOperations(int[] nums, int k) {
+        int xor = 0;
+        for (int x : nums) xor ^= x;
+        return Integer.bitCount(xor ^ k);
+    }
+}
+```
+
+**Key Logic:**
+
+Each flip toggles exactly one bit of the total XOR. Every mismatching bit needs at least one flip and can be corrected with exactly one flip in any element.
+
+**Time Complexity:** O(n), XOR fold plus fixed-width popcount.
+
+**Space Complexity:** O(1).
+
+---
+
+<a id="m19"></a>
+
+## Subpattern M19: Cycle-consistency of XOR equations
+
+**When to Apply:**
+
+Use when adjacent XOR equations form a closed cycle and one equation is redundant iff overall XOR is zero. In a closed XOR equation cycle, each original variable occurs twice. The XOR of all derived equations must be zero; this also suffices by reconstructing from an arbitrary first bit.
+
+**Basic Java Code Snippet:**
+
+```java
+int total = 0;
+for (int x : derived) total ^= x;
+boolean consistent = total == 0;
+```
+
+**Core Logic:**
+
+In a closed XOR equation cycle, each original variable occurs twice. The XOR of all derived equations must be zero; this also suffices by reconstructing from an arbitrary first bit.
+
+**Questions Covered:** 2683
+
+<a id="lc-2683"></a>
+
+### LeetCode 2683
+
+**Question:**
+
+A circular binary original array of length n produces derived[i]=original[i] XOR original[(i+1)%n]. Given only derived, return whether at least one original binary array exists.
+
+**Examples:**
+
+- [1,1,0] → true
+- [1,1] → true
+- [1,0] → false
+- [0] → true
+
+**Constraints:**
+
+1 ≤ n ≤ 100000; derived[i] is 0 or 1.
+
+**Why This Subpattern Applies:**
+
+Decide whether a circular binary array can produce given neighbor XOR values. In a closed XOR equation cycle, each original variable occurs twice.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public boolean doesValidArrayExist(int[] derived) {
+        int xor = 0;
+        for (int x : derived) xor ^= x;
+        return xor == 0;
+    }
+}
+```
+
+**Key Logic:**
+
+XOR around the cycle cancels every original bit twice, so total must be zero. Conversely choose original[0]=0 and reconstruct successive bits; zero total guarantees the closing equation.
+
+**Time Complexity:** O(n).
+
+**Space Complexity:** O(1).
+
+---
+
+<a id="m20"></a>
+
+## Subpattern M20: Subset-XOR contribution identity
+
+**When to Apply:**
+
+Use when asked for sum of XOR over all index-selected subsets, not to enumerate each subset. For each present bit, toggling inclusion of one element with that bit pairs subsets of opposite XOR parity. Exactly half contribute the bit, and the OR of all values identifies the contributing positions.
+
+**Basic Java Code Snippet:**
+
+```java
+static long subsetContribution(int[] values) {
+    if (values.length == 0) return 0;
+    int allBits = 0;
+    for (int x : values) allBits |= x;
+    return (long) allBits << (values.length - 1);
+} // for nonnegative values and a result that fits long
+```
+
+**Core Logic:**
+
+For each present bit, toggling inclusion of one element with that bit pairs subsets of opposite XOR parity. Exactly half contribute the bit, and the OR of all values identifies the contributing positions.
+
+**Questions Covered:** 1863
+
+<a id="lc-1863"></a>
+
+### LeetCode 1863
+
+**Question:**
+
+Return the sum of XOR totals of all subsets of nums, including the empty subset whose XOR is zero. Subsets are selected by index; duplicate-valued subsets are counted separately.
+
+**Examples:**
+
+- [1,3] → 6
+- [5,1,6] → 28
+- [3] → 3
+
+**Constraints:**
+
+1 ≤ n ≤ 12; 1 ≤ nums[i] ≤ 20.
+
+**Why This Subpattern Applies:**
+
+Sum XOR totals across every subset of indexed array elements. For each present bit, toggling inclusion of one element with that bit pairs subsets of opposite XOR parity.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    public int subsetXORSum(int[] nums) {
+        int or = 0;
+        for (int x : nums) or |= x;
+        return or << (nums.length-1);
+    }
+}
+```
+
+**Key Logic:**
+
+For any bit present in at least one element, pair subsets by toggling inclusion of one element containing that bit. Exactly half of all subsets have that XOR bit set. OR identifies all contributing bits; multiply by 2^(n−1).
+
+**Time Complexity:** O(n), one OR fold.
+
+**Space Complexity:** O(1).
+
+---
+
+<a id="registry"></a>
+
+## Final question registry and verification
+
+| Family | Locked IDs in order | Count |
+|---|---|---:|
+| M1 | 136, 389, 260 | 3 |
+| M2 | 1720, 2433, 1310, 1442 | 4 |
+| M3 | 191, 338 | 2 |
+| M4 | 461, 477 | 2 |
+| M5 | 137 | 1 |
+| M6 | 231, 342 | 2 |
+| M7 | 190 | 1 |
+| M8 | 201 | 1 |
+| M9 | 898, 1521 | 2 |
+| M10 | 1829 | 1 |
+| M11 | 2429 | 1 |
+| M12 | 1371, 1542, 1915 | 3 |
+| M13 | 89, 1238, 1611 | 3 |
+| M14 | 2166 | 1 |
+| M15 | 371 | 1 |
+| M16 | 29 | 1 |
+| M17 | 1318 | 1 |
+| M18 | 2997 | 1 |
+| M19 | 2683 | 1 |
+| M20 | 1863 | 1 |
+
+**Exact sequence:** 136, 389, 260, 1720, 2433, 1310, 1442, 191, 338, 461, 477, 137, 231, 342, 190, 201, 898, 1521, 1829, 2429, 1371, 1542, 1915, 89, 1238, 1611, 2166, 371, 29, 1318, 2997, 2683, 1863
+
+**Verification:** 33 distinct IDs across 20 families; exact sequence extracted from source. 33/33 independently compiled with Java 21 and passed local representative assertions. No LeetCode judge submission or exhaustive testing was performed. All local checks passed.
+
+The design question LC 2166 uses the required `Bitset` class rather than `Solution`. The source scope line says M1–M18 but its registry explicitly includes M19 and M20; all 20 were retained, without modifying the locked order. Constraints are study references based on known formulations and were not independently checked against live LeetCode pages.

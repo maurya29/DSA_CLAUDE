@@ -1,0 +1,2447 @@
+# T19 — 2D Arrays / Matrices: Complete Solutions
+
+**43 questions · 21 algorithm families · Java 21**
+
+Source: `MASTER_DSA_CURRICULUM.md`, section C19, locked registry. This workbook preserves the exact sequence and ownership. Learning progress remains **0/43**; next question remains **1672**. Workbook creation is not a completion checkpoint.
+
+## Reading guide
+
+R and C denote row and column counts; N denotes total cells when rows are ragged. Auxiliary space excludes required output unless explicitly noted. Each solution is standalone; imports are supplied. LeetCode provides `ListNode` for 2326, and 304 uses `NumMatrix` rather than `Solution`. Several in-place and flood solutions intentionally mutate their inputs. Family templates are invariant scaffolding from the master curriculum, not standalone submissions. Numeric limits and examples are supplementary author-provided material, not extracted from the master registry or independently verified against live LeetCode statements.
+
+## Table of contents
+
+- [MX1 — Row/column aggregation and extrema](#mx1) — 1672, 1572, 1380
+- [MX2 — Coordinate remapping, reshape and cyclic shifts](#mx2) — 566, 867, 1260
+- [MX3 — Directional spiral boundaries](#mx3) — 54, 59, 2326
+- [MX4 — In-place quarter rotation and symmetry comparison](#mx4) — 48, 1886
+- [MX5 — Diagonal grouping / traversal](#mx5) — 498, 1424
+- [MX6 — Diagonal dependency, invariants and sorting](#mx6) — 766, 1329
+- [MX7 — In-place marker encoding](#mx7) — 73
+- [MX8 — Simultaneous neighbor-state transitions](#mx8) — 289
+- [MX9 — 2D prefix sums and rectangle enumeration](#mx9) — 304, 1314, 1292
+- [MX10 — 2D difference-array batch updates](#mx10) — 2536, 2132
+- [MX11 — Row-major flattened binary search](#mx11) — 74
+- [MX12 — Row-and-column monotone staircase](#mx12) — 240, 1351
+- [MX13 — Value-domain rank search in sorted matrix](#mx13) — 378
+- [MX14 — 2D constraint validation with compact presence sets](#mx14) — 36
+- [MX15 — Row/column canonical signatures](#mx15) — 2352
+- [MX16 — Grid-component DFS / flood connectivity](#mx16) — 200, 695, 1020, 1254, 1905
+- [MX17 — Grid BFS, multi-source distance layers](#mx17) — 733, 994, 542, 1765
+- [MX18 — Shortest-path BFS with explicit start/end constraints](#mx18) — 1091, 1926
+- [MX19 — Perimeter as local exposed-edge contribution](#mx19) — 463
+- [MX20 — Row-wise histogram reduction](#mx20) — 85
+- [MX21 — Square submatrix DP](#mx21) — 221, 1277
+- [Final registry](#final-registry)
+- [Validation](#validation)
+
+<a id="mx1"></a>
+## MX1 — Row/column aggregation and extrema
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Scan rows/columns when the result is a direct aggregate or a row-versus-column comparison; no global traversal structure needed.
+
+**Core logic:** sum one row at a time; compare completed row totals.
+
+**Ordered questions:** 1672 → 1572 → 1380
+
+### Reusable Java 21 invariant template
+
+```java
+int best = Integer.MIN_VALUE;
+for (int r = 0; r < grid.length; r++) {
+    int rowScore = 0;
+    for (int c = 0; c < grid[r].length; c++) rowScore += grid[r][c];
+    best = Math.max(best, rowScore);
+}
+```
+
+<a id="lc-1672"></a>
+### 01. LeetCode 1672
+
+**Problem statement**
+
+Given accounts[i][j], the money customer i holds at bank j, return the largest total balance of any customer.
+
+**Examples**
+
+- [[1,2,3],[3,2,1]] → 6
+- [[1,5],[7,3],[3,5]] → 10
+
+**Constraints:** 1 ≤ R,C ≤ 50; 1 ≤ cell ≤ 100
+
+**Why this pattern applies:** Maximum row total; independent row scans and a running maximum, O(RC).
+
+**Exact solution evolution:** Foundation problem — no previous solution in this algorithm family. sum one row at a time; compare completed row totals.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int maximumWealth(int[][] accounts) {
+        int best=0;
+        for(int[] row:accounts){ int sum=0; for(int x:row) sum+=x; best=Math.max(best,sum); }
+        return best;
+    }
+}
+```
+
+**Key logic:** Reset sum at each row; compare only completed totals.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(1)
+
+---
+
+<a id="lc-1572"></a>
+### 02. LeetCode 1572
+
+**Problem statement**
+
+Return the sum of both diagonals of a square matrix, counting a cell belonging to both only once.
+
+**Examples**
+
+- [[1,2,3],[4,5,6],[7,8,9]] → 25
+- [[5]] → 5
+
+**Constraints:** 1 ≤ n ≤ 100; 1 ≤ cell ≤ 100
+
+**Why this pattern applies:** Two diagonal sums of a square matrix; inspect coordinates where r==c or r+c==n-1, O(n²) scan or O(n) direct diagonals.
+
+**Exact solution evolution:** Replace full row sum with coordinate predicates for the two diagonals; subtract a shared center once.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int diagonalSum(int[][] mat){
+        int n=mat.length,sum=0;
+        for(int i=0;i<n;i++) sum+=mat[i][i]+mat[i][n-1-i];
+        if(n%2==1) sum-=mat[n/2][n/2];
+        return sum;
+    }
+}
+```
+
+**Key logic:** Each row supplies two diagonal positions; odd n shares its center.
+
+**Time complexity:** O(n)  
+**Auxiliary space complexity:** O(1)
+
+---
+
+<a id="lc-1380"></a>
+### 03. LeetCode 1380
+
+**Problem statement**
+
+Return all matrix values that are simultaneously the minimum of their row and maximum of their column.
+
+**Examples**
+
+- [[3,7,8],[9,11,13],[15,16,17]] → [15]
+- [[7]] → [7]
+
+**Constraints:** 1 ≤ R,C ≤ 50; distinct positive values ≤ 100000
+
+**Why this pattern applies:** Cells that are minimum in their row and maximum in their column; precompute row minima and column maxima then filter cells, O(RC).
+
+**Exact solution evolution:** Generalize row aggregate to extrema per row AND per column; second pass checks intersection rather than a global best.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<Integer> luckyNumbers(int[][] matrix){
+        int r=matrix.length,c=matrix[0].length;
+        int[] min=new int[r],max=new int[c]; Arrays.fill(min,Integer.MAX_VALUE); Arrays.fill(max,Integer.MIN_VALUE);
+        for(int i=0;i<r;i++) for(int j=0;j<c;j++){ min[i]=Math.min(min[i],matrix[i][j]); max[j]=Math.max(max[j],matrix[i][j]); }
+        List<Integer> ans=new ArrayList<>();
+        for(int i=0;i<r;i++) for(int j=0;j<c;j++) if(matrix[i][j]==min[i]&&matrix[i][j]==max[j]) ans.add(matrix[i][j]);
+        return ans;
+    }
+}
+```
+
+**Key logic:** Precompute independent extrema, then intersect their conditions.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(R+C)
+
+---
+
+<a id="mx2"></a>
+## MX2 — Coordinate remapping, reshape and cyclic shifts
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Every source cell has a deterministic destination; flatten r*C+c, transform, then unflatten.
+
+**Core logic:** map source (r,c) to linear index then to new shape; reject incompatible shape.
+
+**Ordered questions:** 566 → 867 → 1260
+
+### Reusable Java 21 invariant template
+
+```java
+for (int r = 0; r < rows; r++) {
+    for (int c = 0; c < cols; c++) {
+        int flat = r * cols + c;
+        int targetR = flat / newCols, targetC = flat % newCols;
+        // write source grid[r][c] into destination[targetR][targetC]
+    }
+}
+```
+
+<a id="lc-566"></a>
+### 04. LeetCode 566
+
+**Problem statement**
+
+Reshape mat into r rows and c columns preserving row-major order. If impossible, return mat unchanged.
+
+**Examples**
+
+- mat=[[1,2],[3,4]], r=1,c=4 → [[1,2,3,4]]
+- r=3,c=2 → original
+
+**Constraints:** 1 ≤ original dimensions ≤ 100; 1 ≤ r,c ≤ 300; |cell| ≤ 1000
+
+**Why this pattern applies:** Change matrix dimensions while preserving row-major element order; use flat-index mapping if element count matches, O(RC).
+
+**Exact solution evolution:** Foundation problem — no previous solution in this algorithm family. map source (r,c) to linear index then to new shape; reject incompatible shape.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[][] matrixReshape(int[][] mat,int r,int c){
+        int m=mat.length,n=mat[0].length; if(m*n!=r*c) return mat;
+        int[][] out=new int[r][c];
+        for(int i=0;i<m*n;i++) out[i/c][i%c]=mat[i/n][i%n];
+        return out;
+    }
+}
+```
+
+**Key logic:** A flat index identifies the same element under both shapes.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(1) excluding output
+
+---
+
+<a id="lc-867"></a>
+### 05. LeetCode 867
+
+**Problem statement**
+
+Return the transpose of a rectangular matrix: rows become columns.
+
+**Examples**
+
+- [[1,2,3],[4,5,6]] → [[1,4],[2,5],[3,6]]
+- [[1]] → [[1]]
+
+**Constraints:** 1 ≤ R,C ≤ 1000; RC ≤ 100000; |cell| ≤ 10^9
+
+**Why this pattern applies:** Transpose rows and columns; allocate C×R and set result[c][r]=grid[r][c], O(RC).
+
+**Exact solution evolution:** Replace linear row-major destination formula with direct swap of destination coordinates; rectangular output shape flips.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[][] transpose(int[][] matrix){
+        int r=matrix.length,c=matrix[0].length; int[][] out=new int[c][r];
+        for(int i=0;i<r;i++) for(int j=0;j<c;j++) out[j][i]=matrix[i][j];
+        return out;
+    }
+}
+```
+
+**Key logic:** Swap destination indices and dimensions.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(1) excluding output
+
+---
+
+<a id="lc-1260"></a>
+### 06. LeetCode 1260
+
+**Problem statement**
+
+Shift a matrix right k times in row-major order, wrapping the final element to the first position. Return nested lists.
+
+**Examples**
+
+- [[1,2],[3,4]], k=1 → [[4,1],[2,3]]
+- [[1,2]], k=2 → [[1,2]]
+
+**Constraints:** 1 ≤ R,C ≤ 50; 0 ≤ k ≤ 100; |cell| ≤ 1000
+
+**Why this pattern applies:** Shift all entries right by k in row-major cyclic order; put flat source index i at (i+k) mod (RC), O(RC).
+
+**Exact solution evolution:** Keep coordinate-mapped writes, replace transpose destination with modular flattened offset; normalize k to total cells.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<List<Integer>> shiftGrid(int[][] grid,int k){
+        int r=grid.length,c=grid[0].length,n=r*c; k%=n;
+        List<List<Integer>> out=new ArrayList<>();
+        for(int i=0;i<r;i++){ List<Integer> row=new ArrayList<>(); for(int j=0;j<c;j++){ int p=(i*c+j-k+n)%n; row.add(grid[p/c][p%c]); } out.add(row); }
+        return out;
+    }
+}
+```
+
+**Key logic:** Inverse destination mapping reads source at (destination-k+N)%N.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(1) excluding output
+
+---
+
+<a id="mx3"></a>
+## MX3 — Directional spiral boundaries
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Visit outer layers in top/right/bottom/left order; shrink bounds and guard degenerate one-row/one-column layers.
+
+**Core logic:** visit four sides of each remaining rectangle while guarding narrow layers.
+
+**Ordered questions:** 54 → 59 → 2326
+
+### Reusable Java 21 invariant template
+
+```java
+int top = 0, bottom = rows - 1, left = 0, right = cols - 1;
+while (top <= bottom && left <= right) {
+    // visit top row; top++
+    // visit right column; right--
+    // if top<=bottom visit bottom row; bottom--
+    // if left<=right visit left column; left++
+}
+```
+
+<a id="lc-54"></a>
+### 07. LeetCode 54
+
+**Problem statement**
+
+Return every matrix element in clockwise spiral order starting at the top-left.
+
+**Examples**
+
+- [[1,2,3],[4,5,6],[7,8,9]] → [1,2,3,6,9,8,7,4,5]
+- [[1,2]] → [1,2]
+
+**Constraints:** 1 ≤ R,C ≤ 10; |cell| ≤ 100
+
+**Why this pattern applies:** Read matrix in spiral order; four shrinking bounds and one output list, O(RC).
+
+**Exact solution evolution:** Foundation problem — no previous solution in this algorithm family. visit four sides of each remaining rectangle while guarding narrow layers.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<Integer> spiralOrder(int[][] matrix){
+        List<Integer> out=new ArrayList<>();
+        int top=0,bottom=matrix.length-1,left=0,right=matrix[0].length-1;
+        while(top<=bottom && left<=right){
+            for(int j=left;j<=right;j++) out.add(matrix[top][j]); top++;
+            for(int i=top;i<=bottom;i++) out.add(matrix[i][right]); right--;
+            if(top<=bottom){ for(int j=right;j>=left;j--) out.add(matrix[bottom][j]); bottom--; }
+            if(left<=right){ for(int i=bottom;i>=top;i--) out.add(matrix[i][left]); left++; }
+        }
+        return out;
+    }
+}
+```
+
+**Key logic:** Shrink boundaries after each side; guards prevent duplicate visits.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(1) excluding output
+
+---
+
+<a id="lc-59"></a>
+### 08. LeetCode 59
+
+**Problem statement**
+
+Generate an n×n matrix filled with integers 1 through n² in clockwise spiral order.
+
+**Examples**
+
+- n=3 → [[1,2,3],[8,9,4],[7,6,5]]
+- n=1 → [[1]]
+
+**Constraints:** 1 ≤ n ≤ 20
+
+**Why this pattern applies:** Construct n×n matrix containing 1..n² in spiral order; four bounds, write incrementing values, O(n²).
+
+**Exact solution evolution:** Reuse the exact four-side walk; change visit action from reading cells into list to writing successive integers.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[][] generateMatrix(int n){
+        int[][] out=new int[n][n]; int v=1;
+        int top=0,bottom=n-1,left=0,right=n-1;
+        while(top<=bottom && left<=right){
+            for(int j=left;j<=right;j++) out[top][j]=v++; top++;
+            for(int i=top;i<=bottom;i++) out[i][right]=v++; right--;
+            if(top<=bottom){ for(int j=right;j>=left;j--) out[bottom][j]=v++; bottom--; }
+            if(left<=right){ for(int i=bottom;i>=top;i--) out[i][left]=v++; left++; }
+        }
+        return out;
+    }
+}
+```
+
+**Key logic:** Same walk; the visit operation writes an incrementing counter.
+
+**Time complexity:** O(n²)  
+**Auxiliary space complexity:** O(1) excluding output
+
+---
+
+<a id="lc-2326"></a>
+### 09. LeetCode 2326
+
+**Problem statement**
+
+Fill an m×n matrix clockwise using successive linked-list values. Leave remaining cells at -1.
+
+**Examples**
+
+- m=2,n=3, head=[1,2,3,4] → [[1,2,3],[-1,-1,4]]
+- m=1,n=2, head=[8] → [[8,-1]]
+
+**Constraints:** 1 ≤ m,n ≤ 100000; mn ≤ 100000; 1 ≤ list length ≤ mn; 0 ≤ node value ≤ 1000
+
+**Why this pattern applies:** Fill m×n matrix along a spiral from a linked list; initialize -1, write list-node values until nodes end, O(RC).
+
+**Exact solution evolution:** Keep spiral destination walk; replace sequential integer source with linked-list cursor, leave unfilled cells at -1.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[][] spiralMatrix(int m,int n,ListNode head){
+        int[][] out=new int[m][n]; for(int[] row:out) Arrays.fill(row,-1);
+        int top=0,bottom=m-1,left=0,right=n-1;
+        while(top<=bottom && left<=right){
+            for(int j=left;j<=right;j++) { if(head==null) return out; out[top][j]=head.val; head=head.next; }; top++;
+            for(int i=top;i<=bottom;i++) { if(head==null) return out; out[i][right]=head.val; head=head.next; }; right--;
+            if(top<=bottom){ for(int j=right;j>=left;j--) { if(head==null) return out; out[bottom][j]=head.val; head=head.next; }; bottom--; }
+            if(left<=right){ for(int i=bottom;i>=top;i--) { if(head==null) return out; out[i][left]=head.val; head=head.next; }; left++; }
+        }
+        return out;
+    }
+}
+```
+
+**Key logic:** Stop immediately when the list ends; prefill handles unused cells.
+
+**Time complexity:** O(mn)  
+**Auxiliary space complexity:** O(1) excluding output
+
+---
+
+<a id="mx4"></a>
+## MX4 — In-place quarter rotation and symmetry comparison
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** A square-grid quarter turn is transpose+row-reversal or cyclic four-way swaps; compare rotations only at whole-grid checkpoints.
+
+**Core logic:** coordinate symmetry under transpose followed by horizontal reversal.
+
+**Ordered questions:** 48 → 1886
+
+### Reusable Java 21 invariant template
+
+```java
+for (int r = 0; r < n; r++)
+    for (int c = r + 1; c < n; c++) {
+        int tmp = a[r][c]; a[r][c] = a[c][r]; a[c][r] = tmp;
+    }
+for (int[] row : a) {
+    for (int l = 0, h = n - 1; l < h; l++, h--) {
+        int tmp = row[l]; row[l] = row[h]; row[h] = tmp;
+    }
+}
+```
+
+<a id="lc-48"></a>
+### 10. LeetCode 48
+
+**Problem statement**
+
+Rotate a square matrix clockwise by 90 degrees in place, without allocating a second matrix.
+
+**Examples**
+
+- [[1,2],[3,4]] → [[3,1],[4,2]]
+- [[9]] → [[9]]
+
+**Constraints:** 1 ≤ n ≤ 20; |cell| ≤ 1000
+
+**Why this pattern applies:** Rotate square matrix 90 degrees clockwise in place; transpose then reverse rows, O(n²)/O(1).
+
+**Exact solution evolution:** Foundation problem — no previous solution in this algorithm family. coordinate symmetry under transpose followed by horizontal reversal.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public void rotate(int[][] matrix){ turn(matrix); }
+    private void turn(int[][] a){
+        int n=a.length;
+        for(int i=0;i<n;i++) for(int j=i+1;j<n;j++){ int t=a[i][j]; a[i][j]=a[j][i]; a[j][i]=t; }
+        for(int[] row:a) for(int l=0,h=n-1;l<h;l++,h--){ int t=row[l]; row[l]=row[h]; row[h]=t; }
+    }
+}
+```
+
+**Key logic:** Transpose then reverse each row.
+
+**Time complexity:** O(n²)  
+**Auxiliary space complexity:** O(1)
+
+---
+
+<a id="lc-1886"></a>
+### 11. LeetCode 1886
+
+**Problem statement**
+
+Return whether mat can equal target after zero or more clockwise quarter turns.
+
+**Examples**
+
+- mat=[[0,1],[1,0]], target=[[1,0],[0,1]] → true
+- mat=[[0]], target=[[1]] → false
+
+**Constraints:** 1 ≤ n ≤ 10; binary cells
+
+**Why this pattern applies:** Decide whether 0/90/180/270-degree rotation matches a target; test entire grid between repeated quarter turns, O(n²).
+
+**Exact solution evolution:** Reuse quarter-rotation primitive; add up to four whole-grid equality checks and stop on match.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean findRotation(int[][] mat,int[][] target){
+        for(int t=0;t<4;t++){ if(Arrays.deepEquals(mat,target)) return true; turn(mat); } return false;
+    }
+    private void turn(int[][] a){
+        int n=a.length;
+        for(int i=0;i<n;i++) for(int j=i+1;j<n;j++){ int t=a[i][j]; a[i][j]=a[j][i]; a[j][i]=t; }
+        for(int[] row:a) for(int l=0,h=n-1;l<h;l++,h--){ int t=row[l]; row[l]=row[h]; row[h]=t; }
+    }
+}
+```
+
+**Key logic:** Check each of four orientations before rotating; input may be mutated.
+
+**Time complexity:** O(n²)  
+**Auxiliary space complexity:** O(1)
+
+---
+
+<a id="mx5"></a>
+## MX5 — Diagonal grouping / traversal
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** When cells on a common diagonal share r+c, visit them by diagonal key; direction or ragged-row handling is problem-specific.
+
+**Core logic:** group cells by equal r+c; reverse traversal direction for alternating diagonals.
+
+**Ordered questions:** 498 → 1424
+
+### Reusable Java 21 invariant template
+
+```java
+for (int r = 0; r < rows; r++)
+    for (int c = 0; c < grid[r].length; c++) {
+        int diagonal = r + c;
+        // append grid[r][c] to the diagonal bucket
+    }
+// Read buckets in increasing diagonal order.
+```
+
+<a id="lc-498"></a>
+### 12. LeetCode 498
+
+**Problem statement**
+
+Traverse a rectangular matrix by increasing r+c, alternating upward-right and downward-left directions, starting at (0,0).
+
+**Examples**
+
+- [[1,2,3],[4,5,6]] → [1,2,4,5,3,6]
+- [[1],[2]] → [1,2]
+
+**Constraints:** 1 ≤ R,C ≤ 10000; RC ≤ 10000; |cell| ≤ 100000
+
+**Why this pattern applies:** Output rectangular matrix by alternating diagonal directions; iterate diagonal index r+c and reverse orientation on alternating diagonals, O(RC).
+
+**Exact solution evolution:** Foundation problem — no previous solution in this algorithm family. group cells by equal r+c; reverse traversal direction for alternating diagonals.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[] findDiagonalOrder(int[][] mat){
+        int r=mat.length,c=mat[0].length,p=0; int[] out=new int[r*c];
+        for(int d=0;d<r+c-1;d++){
+            int lo=Math.max(0,d-c+1),hi=Math.min(r-1,d);
+            if(d%2==0) for(int i=hi;i>=lo;i--) out[p++]=mat[i][d-i];
+            else for(int i=lo;i<=hi;i++) out[p++]=mat[i][d-i];
+        } return out;
+    }
+}
+```
+
+**Key logic:** Derive valid row interval for each diagonal; parity chooses direction.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(1) excluding output
+
+---
+
+<a id="lc-1424"></a>
+### 13. LeetCode 1424
+
+**Problem statement**
+
+Traverse a ragged list of rows by increasing r+c; within each diagonal visit larger row indices first.
+
+**Examples**
+
+- [[1,2,3],[4,5,6],[7,8,9]] → [1,4,2,7,5,3,8,6,9]
+- [[1,2],[3],[4,5]] → [1,3,2,4,5]
+
+**Constraints:** 1 ≤ rows,row length ≤ 100000; total cells ≤ 100000; positive values ≤ 100000
+
+**Why this pattern applies:** Output possibly ragged list-of-lists diagonally, preserving within-diagonal bottom-to-top order; bucket by r+c then reverse each bucket, O(total cells).
+
+**Exact solution evolution:** Remove rectangular-bounds assumption; generate only existing cells from ragged rows and reverse each diagonal bucket; O(total cells) storage.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[] findDiagonalOrder(List<List<Integer>> nums){
+        List<List<Integer>> buckets=new ArrayList<>(); int size=0,r=0;
+        for(List<Integer> row:nums){ int c=0; for(int v:row){ int d=r+c++; while(buckets.size()<=d) buckets.add(new ArrayList<>()); buckets.get(d).add(v); size++; } r++; }
+        int[] out=new int[size]; int p=0;
+        for(List<Integer> b:buckets) for(int i=b.size()-1;i>=0;i--) out[p++]=b.get(i);
+        return out;
+    }
+}
+```
+
+**Key logic:** Only enumerate existing cells; reverse each bucket to obtain bottom-to-top order.
+
+**Time complexity:** O(N)  
+**Auxiliary space complexity:** O(N)
+
+---
+
+<a id="mx6"></a>
+## MX6 — Diagonal dependency, invariants and sorting
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Equal r-c identifies a top-left to bottom-right diagonal; check a predecessor or sort each such group.
+
+**Core logic:** local predecessor equality along fixed r-c diagonal.
+
+**Ordered questions:** 766 → 1329
+
+### Reusable Java 21 invariant template
+
+```java
+for (int r = 0; r < rows; r++)
+    for (int c = 0; c < cols; c++) {
+        int key = r - c;
+        // compare predecessor grid[r-1][c-1] or group by key
+    }
+```
+
+<a id="lc-766"></a>
+### 14. LeetCode 766
+
+**Problem statement**
+
+Check whether every top-left to bottom-right diagonal contains identical values.
+
+**Examples**
+
+- [[1,2,3],[4,1,2]] → true
+- [[1,2],[2,2]] → false
+
+**Constraints:** 1 ≤ R,C ≤ 20; 0 ≤ cell ≤ 99
+
+**Why this pattern applies:** Validate equality along every top-left→bottom-right diagonal by checking grid[r][c] against grid[r-1][c-1], O(RC).
+
+**Exact solution evolution:** Foundation problem — no previous solution in this algorithm family. local predecessor equality along fixed r-c diagonal.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean isToeplitzMatrix(int[][] matrix){
+        for(int i=1;i<matrix.length;i++) for(int j=1;j<matrix[0].length;j++) if(matrix[i][j]!=matrix[i-1][j-1]) return false;
+        return true;
+    }
+}
+```
+
+**Key logic:** Adjacent diagonal equality implies equality throughout that diagonal.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(1)
+
+---
+
+<a id="lc-1329"></a>
+### 15. LeetCode 1329
+
+**Problem statement**
+
+Sort each top-left to bottom-right diagonal independently in ascending order and return the matrix.
+
+**Examples**
+
+- [[3,3,1],[2,2,1]] → [[2,1,1],[2,3,3]]
+- [[5]] → [[5]]
+
+**Constraints:** 1 ≤ R,C ≤ 100; 1 ≤ cell ≤ 100
+
+**Why this pattern applies:** Sort each top-left→bottom-right diagonal ascending; collect/sort values by r-c then refill in diagonal order, O(RC log(min(R,C))).
+
+**Exact solution evolution:** Replace diagonal equality checks with per-diagonal value collection and ordering, then write back sorted values.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[][] diagonalSort(int[][] mat){
+        int r=mat.length,c=mat[0].length;
+        for(int i=0;i<r;i++) sort(mat,i,0);
+        for(int j=1;j<c;j++) sort(mat,0,j);
+        return mat;
+    }
+    private void sort(int[][] a,int r,int c){
+        int n=Math.min(a.length-r,a[0].length-c); int[] vals=new int[n];
+        for(int i=0;i<n;i++) vals[i]=a[r+i][c+i]; Arrays.sort(vals);
+        for(int i=0;i<n;i++) a[r+i][c+i]=vals[i];
+    }
+}
+```
+
+**Key logic:** Each diagonal starts on top or left edge; process one group at a time.
+
+**Time complexity:** O(RC log(min(R,C)+1))  
+**Auxiliary space complexity:** O(min(R,C))
+
+---
+
+<a id="mx7"></a>
+## MX7 — In-place marker encoding
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** When an entire row/column must be modified based on ORIGINAL cell conditions, store row/column flags in first row/column and separate their original states.
+
+**Core logic:** defer writes until all row/column trigger information has been encoded.
+
+**Ordered questions:** 73
+
+### Reusable Java 21 invariant template
+
+```java
+boolean firstRow = false, firstCol = false;
+// Inspect original first row/column for triggers.
+for (int r = 1; r < rows; r++)
+    for (int c = 1; c < cols; c++)
+        if (grid[r][c] == 0) { grid[r][0] = 0; grid[0][c] = 0; }
+// Apply interior flags; then restore first row/column from booleans.
+```
+
+<a id="lc-73"></a>
+### 16. LeetCode 73
+
+**Problem statement**
+
+If any original element is zero, set its entire row and column to zero in place.
+
+**Examples**
+
+- [[1,1,1],[1,0,1],[1,1,1]] → [[1,0,1],[0,0,0],[1,0,1]]
+- [[0,1]] → [[0,0]]
+
+**Constraints:** 1 ≤ R,C ≤ 200; signed 32-bit integers
+
+**Why this pattern applies:** Zero whole rows and columns containing an original zero; use first row/column as in-place markers, O(RC)/O(1).
+
+**Exact solution evolution:** Foundation problem — no previous solution in this algorithm family. defer writes until all row/column trigger information has been encoded.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public void setZeroes(int[][] a){
+        int r=a.length,c=a[0].length; boolean fr=false,fc=false;
+        for(int j=0;j<c;j++) if(a[0][j]==0) fr=true;
+        for(int i=0;i<r;i++) if(a[i][0]==0) fc=true;
+        for(int i=1;i<r;i++) for(int j=1;j<c;j++) if(a[i][j]==0){ a[i][0]=0; a[0][j]=0; }
+        for(int i=1;i<r;i++) for(int j=1;j<c;j++) if(a[i][0]==0||a[0][j]==0) a[i][j]=0;
+        if(fr) Arrays.fill(a[0],0); if(fc) for(int i=0;i<r;i++) a[i][0]=0;
+    }
+}
+```
+
+**Key logic:** Separate first-row/column original flags from marker writes.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(1)
+
+---
+
+<a id="mx8"></a>
+## MX8 — Simultaneous neighbor-state transitions
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** When all cells update simultaneously, encode previous and next states together before decoding, so neighbor reads use originals.
+
+**Core logic:** neighbor reads always use old-state bit; write next-state bit, then shift after full scan.
+
+**Ordered questions:** 289
+
+### Reusable Java 21 invariant template
+
+```java
+int[][] directions = {{-1,-1},{-1,0},{-1,1},{0,-1},{0,1},{1,-1},{1,0},{1,1}};
+for (int r = 0; r < rows; r++) for (int c = 0; c < cols; c++) {
+    int oldValue = grid[r][c] & 1;
+    // count (grid[nr][nc] & 1) among valid neighbors
+    // encode next state in bit 1, without erasing bit 0
+}
+for (int[] row : grid) for (int c = 0; c < row.length; c++) row[c] >>= 1;
+```
+
+<a id="lc-289"></a>
+### 17. LeetCode 289
+
+**Problem statement**
+
+Update a binary board simultaneously: live cells survive with two or three live neighbors; dead cells become live with exactly three. All other cells become dead. Eight adjacent positions count.
+
+**Examples**
+
+- [[1,1],[1,0]] → [[1,1],[1,1]]
+- [[1]] → [[0]]
+
+**Constraints:** 1 ≤ R,C ≤ 25; binary cells
+
+**Why this pattern applies:** Apply simultaneous eight-neighbor cellular rules in place; old state in bit 0 and new state in bit 1, O(RC)/O(1).
+
+**Exact solution evolution:** Foundation problem — no previous solution in this algorithm family. neighbor reads always use old-state bit; write next-state bit, then shift after full scan.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public void gameOfLife(int[][] board){
+        int r=board.length,c=board[0].length;
+        for(int i=0;i<r;i++) for(int j=0;j<c;j++){
+            int count=0;
+            for(int di=-1;di<=1;di++) for(int dj=-1;dj<=1;dj++){
+                int x=i+di,y=j+dj; if((di!=0||dj!=0)&&x>=0&&x<r&&y>=0&&y<c) count+=board[x][y]&1;
+            }
+            if(count==3 || (count==2&&(board[i][j]&1)==1)) board[i][j]|=2;
+        }
+        for(int[] row:board) for(int j=0;j<c;j++) row[j]>>=1;
+    }
+}
+```
+
+**Key logic:** Bit zero stores old state, bit one stores next state.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(1)
+
+---
+
+<a id="mx9"></a>
+## MX9 — 2D prefix sums and rectangle enumeration
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Repeated axis-aligned rectangle sums: use inclusion–exclusion on a zero-padded 2D prefix table.
+
+**Core logic:** padded 2D prefix and four-term inclusion–exclusion.
+
+**Ordered questions:** 304 → 1314 → 1292
+
+### Reusable Java 21 invariant template
+
+```java
+long[][] pref = new long[rows + 1][cols + 1];
+for (int r = 1; r <= rows; r++)
+    for (int c = 1; c <= cols; c++)
+        pref[r][c] = grid[r-1][c-1] + pref[r-1][c] + pref[r][c-1] - pref[r-1][c-1];
+// inclusive rectangle (r1,c1)..(r2,c2):
+long sum = pref[r2+1][c2+1] - pref[r1][c2+1] - pref[r2+1][c1] + pref[r1][c1];
+```
+
+<a id="lc-304"></a>
+### 18. LeetCode 304
+
+**Problem statement**
+
+Implement NumMatrix for an immutable integer matrix. sumRegion returns the sum within inclusive corners (row1,col1) and (row2,col2).
+
+**Examples**
+
+- matrix=[[1,2],[3,4]], sumRegion(0,0,1,1) → 10
+- sumRegion(1,0,1,1) → 7
+
+**Constraints:** 1 ≤ R,C ≤ 200; |cell| ≤ 10000; up to 10000 queries; valid corners
+
+**Why this pattern applies:** Many immutable rectangle-sum queries; build (R+1)×(C+1) prefix, answer each O(1), preprocess O(RC).
+
+**Exact solution evolution:** Foundation problem — no previous solution in this algorithm family. padded 2D prefix and four-term inclusion–exclusion.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class NumMatrix {
+    private final int[][] p;
+    public NumMatrix(int[][] matrix){ p=prefix(matrix); }
+    public int sumRegion(int row1,int col1,int row2,int col2){ return sum(p,row1,col1,row2,col2); }
+    private int[][] prefix(int[][] a){
+        int r=a.length,c=a[0].length; int[][] p=new int[r+1][c+1];
+        for(int i=1;i<=r;i++) for(int j=1;j<=c;j++) p[i][j]=a[i-1][j-1]+p[i-1][j]+p[i][j-1]-p[i-1][j-1];
+        return p;
+    }
+    private int sum(int[][] p,int r1,int c1,int r2,int c2){ return p[r2+1][c2+1]-p[r1][c2+1]-p[r2+1][c1]+p[r1][c1]; }
+}
+```
+
+**Key logic:** Padded prefix removes boundary special cases; subtract overlap twice then add once.
+
+**Time complexity:** O(RC) build; O(1) query  
+**Auxiliary space complexity:** O(RC)
+
+---
+
+<a id="lc-1314"></a>
+### 19. LeetCode 1314
+
+**Problem statement**
+
+For each cell return the sum of all matrix entries within k rows and k columns of it, clipped to matrix bounds.
+
+**Examples**
+
+- mat=[[1,2],[3,4]], k=1 → [[10,10],[10,10]]
+- mat=[[5]], k=1 → [[5]]
+
+**Constraints:** 1 ≤ R,C,k ≤ 100; 1 ≤ cell ≤ 100
+
+**Why this pattern applies:** Compute sum of clipped radius-k square around EVERY cell; apply the same rectangle query with clamped bounds, O(RC).
+
+**Exact solution evolution:** Reuse four-term rectangle sum; derive and clamp a different rectangle for each output cell.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[][] matrixBlockSum(int[][] mat,int k){
+        int r=mat.length,c=mat[0].length; int[][] p=prefix(mat),out=new int[r][c];
+        for(int i=0;i<r;i++) for(int j=0;j<c;j++) out[i][j]=sum(p,Math.max(0,i-k),Math.max(0,j-k),Math.min(r-1,i+k),Math.min(c-1,j+k));
+        return out;
+    }
+    private int[][] prefix(int[][] a){
+        int r=a.length,c=a[0].length; int[][] p=new int[r+1][c+1];
+        for(int i=1;i<=r;i++) for(int j=1;j<=c;j++) p[i][j]=a[i-1][j-1]+p[i-1][j]+p[i][j-1]-p[i-1][j-1];
+        return p;
+    }
+    private int sum(int[][] p,int r1,int c1,int r2,int c2){ return p[r2+1][c2+1]-p[r1][c2+1]-p[r2+1][c1]+p[r1][c1]; }
+}
+```
+
+**Key logic:** Use same inclusive rectangle formula, with clipped endpoints.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(RC)
+
+---
+
+<a id="lc-1292"></a>
+### 20. LeetCode 1292
+
+**Problem statement**
+
+Return the largest side length of a square submatrix with sum at most threshold, or zero if none exists.
+
+**Examples**
+
+- mat=[[1,1],[1,1]], threshold=4 → 2
+- mat=[[5]], threshold=4 → 0
+
+**Constraints:** 1 ≤ R,C ≤ 300; 0 ≤ cell ≤ 10000; 0 ≤ threshold ≤ 100000
+
+**Why this pattern applies:** Find largest square whose sum ≤ threshold in nonnegative matrix; for each possible size test all square rectangles and binary-search length, O(RC log(min(R,C))).
+
+**Exact solution evolution:** Reuse constant-time prefix rectangle queries; replace fixed cell-centered output with existence test for a given square side and binary search on feasible side length.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int maxSideLength(int[][] mat,int threshold){
+        int[][] p=prefix(mat); int lo=0,hi=Math.min(mat.length,mat[0].length);
+        while(lo<hi){ int mid=lo+(hi-lo+1)/2; if(ok(p,mid,threshold)) lo=mid; else hi=mid-1; }
+        return lo;
+    }
+    private boolean ok(int[][] p,int s,int t){
+        for(int i=0;i+s<p.length;i++) for(int j=0;j+s<p[0].length;j++) if(sum(p,i,j,i+s-1,j+s-1)<=t) return true;
+        return false;
+    }
+    private int[][] prefix(int[][] a){
+        int r=a.length,c=a[0].length; int[][] p=new int[r+1][c+1];
+        for(int i=1;i<=r;i++) for(int j=1;j<=c;j++) p[i][j]=a[i-1][j-1]+p[i-1][j]+p[i][j-1]-p[i-1][j-1];
+        return p;
+    }
+    private int sum(int[][] p,int r1,int c1,int r2,int c2){ return p[r2+1][c2+1]-p[r1][c2+1]-p[r2+1][c1]+p[r1][c1]; }
+}
+```
+
+**Key logic:** Nonnegative entries make feasible lengths a prefix; use upper-mid binary search.
+
+**Time complexity:** O(RC log(min(R,C)+1))  
+**Auxiliary space complexity:** O(RC)
+
+---
+
+<a id="mx10"></a>
+## MX10 — 2D difference-array batch updates
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Many rectangular increments: write four corner deltas and recover with 2D cumulative sums; for placement feasibility combine with zero-rectangle prefix checks.
+
+**Core logic:** each rectangular update changes only four corners of padded difference grid.
+
+**Ordered questions:** 2536 → 2132
+
+### Reusable Java 21 invariant template
+
+```java
+long[][] diff = new long[rows + 1][cols + 1];
+// for inclusive rectangle [r1..r2] x [c1..c2], delta:
+diff[r1][c1] += delta;
+diff[r2+1][c1] -= delta;
+diff[r1][c2+1] -= delta;
+diff[r2+1][c2+1] += delta;
+// Recover using two-dimensional prefix accumulation.
+```
+
+<a id="lc-2536"></a>
+### 21. LeetCode 2536
+
+**Problem statement**
+
+Start with an n×n zero matrix. Each query increments every cell in its inclusive rectangular bounds by one. Return the final matrix.
+
+**Examples**
+
+- n=3, queries=[[1,1,2,2],[0,0,1,1]] → [[1,1,0],[1,2,1],[0,1,1]]
+- n=1, queries=[[0,0,0,0]] → [[1]]
+
+**Constraints:** 1 ≤ n ≤ 500; 1 ≤ queries ≤ 10000; valid inclusive bounds
+
+**Why this pattern applies:** Apply many inclusive +1 rectangle increments then output final matrix; four-corner difference and prefix reconstruction, O(RC+Q).
+
+**Exact solution evolution:** Foundation problem — no previous solution in this algorithm family. each rectangular update changes only four corners of padded difference grid.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[][] rangeAddQueries(int n,int[][] queries){
+        int[][] d=new int[n+1][n+1],out=new int[n][n];
+        for(int[] q:queries) mark(d,q[0],q[1],q[2],q[3]); recover(d,n,n);
+        for(int i=0;i<n;i++) System.arraycopy(d[i],0,out[i],0,n); return out;
+    }
+    private void mark(int[][] d,int r1,int c1,int r2,int c2){
+        d[r1][c1]++; d[r2+1][c1]--; d[r1][c2+1]--; d[r2+1][c2+1]++;
+    }
+    private void recover(int[][] d,int r,int c){
+        for(int i=0;i<r;i++) for(int j=0;j<c;j++){
+            if(i>0) d[i][j]+=d[i-1][j]; if(j>0) d[i][j]+=d[i][j-1]; if(i>0&&j>0) d[i][j]-=d[i-1][j-1];
+        }
+    }
+}
+```
+
+**Key logic:** Four corner updates cancel beyond the rectangle; prefix recovery accumulates overlaps.
+
+**Time complexity:** O(n²+Q)  
+**Auxiliary space complexity:** O(n²)
+
+---
+
+<a id="lc-2132"></a>
+### 22. LeetCode 2132
+
+**Problem statement**
+
+Determine whether every zero in a binary grid can be covered by stamps of fixed height and width. Stamps may overlap, cannot rotate, cannot cover ones, and cannot extend beyond the grid.
+
+**Examples**
+
+- grid=[[0,0],[0,0]], h=2,w=1 → true
+- grid=[[0,1],[0,0]], h=2,w=2 → false
+
+**Constraints:** 1 ≤ R,C ≤ 100000; RC ≤ 200000; 1 ≤ h,w ≤ 100000; binary cells
+
+**Why this pattern applies:** Determine if every zero cell can be covered by H×W stamps avoiding one cells; 2D prefix sums test eligible placements, 2D difference marks covered cells, O(RC).
+
+**Exact solution evolution:** Reuse 2D difference coverage reconstruction; add prefix-based all-zero placement predicate, then test every required zero cell is covered.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean possibleToStamp(int[][] grid,int stampHeight,int stampWidth){
+        int r=grid.length,c=grid[0].length,h=stampHeight,w=stampWidth;
+        int[][] p=prefix(grid),d=new int[r+1][c+1];
+        for(int i=0;i+h<=r;i++) for(int j=0;j+w<=c;j++) if(sum(p,i,j,i+h-1,j+w-1)==0) mark(d,i,j,i+h-1,j+w-1);
+        recover(d,r,c);
+        for(int i=0;i<r;i++) for(int j=0;j<c;j++) if(grid[i][j]==0&&d[i][j]==0) return false;
+        return true;
+    }
+    private int[][] prefix(int[][] a){
+        int r=a.length,c=a[0].length; int[][] p=new int[r+1][c+1];
+        for(int i=1;i<=r;i++) for(int j=1;j<=c;j++) p[i][j]=a[i-1][j-1]+p[i-1][j]+p[i][j-1]-p[i-1][j-1];
+        return p;
+    }
+    private int sum(int[][] p,int r1,int c1,int r2,int c2){ return p[r2+1][c2+1]-p[r1][c2+1]-p[r2+1][c1]+p[r1][c1]; }
+    private void mark(int[][] d,int r1,int c1,int r2,int c2){
+        d[r1][c1]++; d[r2+1][c1]--; d[r1][c2+1]--; d[r2+1][c2+1]++;
+    }
+    private void recover(int[][] d,int r,int c){
+        for(int i=0;i<r;i++) for(int j=0;j<c;j++){
+            if(i>0) d[i][j]+=d[i-1][j]; if(j>0) d[i][j]+=d[i][j-1]; if(i>0&&j>0) d[i][j]-=d[i-1][j-1];
+        }
+    }
+}
+```
+
+**Key logic:** Mark every legal placement; since overlap is allowed, union coverage is sufficient.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(RC)
+
+---
+
+<a id="mx11"></a>
+## MX11 — Row-major flattened binary search
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Rows individually sorted and each preceding row entirely smaller than the next; flatten to a single increasing index domain.
+
+**Core logic:** virtual index mid maps to row mid/C and column mid%C; no flattening allocation.
+
+**Ordered questions:** 74
+
+### Reusable Java 21 invariant template
+
+```java
+int lo = 0, hi = rows * cols - 1;
+while (lo <= hi) {
+    int mid = lo + (hi - lo) / 2;
+    int value = grid[mid / cols][mid % cols];
+    // ordinary binary-search comparison, moving lo or hi
+}
+```
+
+<a id="lc-74"></a>
+### 23. LeetCode 74
+
+**Problem statement**
+
+Search for target in a rectangular matrix whose rows are sorted in nondecreasing order and whose first element in each row is greater than the previous row’s last element. Return whether target exists.
+
+**Examples**
+
+- [[1,3,5],[7,9,11]], target=9 → true
+- same matrix, target=6 → false
+
+**Constraints:** 1 ≤ R,C ≤ 100; |cell|, |target| ≤ 10000
+
+**Why this pattern applies:** Search a matrix globally sorted in row-major order; binary-search virtual 1D indices, O(log(RC)).
+
+**Exact solution evolution:** Foundation problem — no previous solution in this algorithm family. virtual index mid maps to row mid/C and column mid%C; no flattening allocation.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean searchMatrix(int[][] matrix,int target){
+        int r=matrix.length,c=matrix[0].length,lo=0,hi=r*c-1;
+        while(lo<=hi){ int mid=lo+(hi-lo)/2,v=matrix[mid/c][mid%c];
+            if(v==target) return true; if(v<target) lo=mid+1; else hi=mid-1;
+        } return false;
+    }
+}
+```
+
+**Key logic:** Global row-major ordering is necessary; use virtual indices without copying.
+
+**Time complexity:** O(log(RC))  
+**Auxiliary space complexity:** O(1)
+
+---
+
+<a id="mx12"></a>
+## MX12 — Row-and-column monotone staircase
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Each row and each column sorted; a top-right inspection discards an entire row or column per comparison.
+
+**Core logic:** matrix ordering allows eliminating one row or column every comparison.
+
+**Ordered questions:** 240 → 1351
+
+### Reusable Java 21 invariant template
+
+```java
+int r = 0, c = cols - 1;
+while (r < rows && c >= 0) {
+    int v = grid[r][c];
+    // v too large -> c--; v too small -> r++
+}
+```
+
+<a id="lc-240"></a>
+### 24. LeetCode 240
+
+**Problem statement**
+
+Search for target in a matrix where each row is sorted ascending left to right and each column ascending top to bottom. Return whether it exists.
+
+**Examples**
+
+- [[1,4],[2,5]], target=2 → true
+- same matrix, target=3 → false
+
+**Constraints:** 1 ≤ R,C ≤ 300; |cell|, |target| ≤ 10^9
+
+**Why this pattern applies:** Locate target in row-wise and column-wise sorted matrix without global row-major order; top-right staircase walk O(R+C).
+
+**Exact solution evolution:** Foundation problem — no previous solution in this algorithm family. matrix ordering allows eliminating one row or column every comparison.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean searchMatrix(int[][] matrix,int target){
+        int r=0,c=matrix[0].length-1;
+        while(r<matrix.length&&c>=0){ int v=matrix[r][c]; if(v==target) return true;
+            if(v>target) c--; else r++;
+        } return false;
+    }
+}
+```
+
+**Key logic:** Top-right is largest in its remaining row and smallest in its remaining column.
+
+**Time complexity:** O(R+C)  
+**Auxiliary space complexity:** O(1)
+
+---
+
+<a id="lc-1351"></a>
+### 25. LeetCode 1351
+
+**Problem statement**
+
+Count negative entries in a matrix sorted in nonincreasing order both across rows and down columns.
+
+**Examples**
+
+- [[4,3,-1],[2,-1,-2]] → 3
+- [[3,2],[1,0]] → 0
+
+**Constraints:** 1 ≤ R,C ≤ 100; -100 ≤ cell ≤ 100
+
+**Why this pattern applies:** Count negative numbers in nonincreasing sorted rows and columns; start bottom-left, if negative add remaining cells to right then move upward, else move right, O(R+C).
+
+**Exact solution evolution:** Replace target-equality search with bulk counting of monotone negative suffixes; reverse scan corner/directions to fit descending order.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int countNegatives(int[][] grid){
+        int r=grid.length-1,c=0,n=grid[0].length,count=0;
+        while(r>=0&&c<n){ if(grid[r][c]<0){ count+=n-c; r--; } else c++; }
+        return count;
+    }
+}
+```
+
+**Key logic:** A negative cell certifies the remaining row suffix; a nonnegative cell certifies the remaining column above it.
+
+**Time complexity:** O(R+C)  
+**Auxiliary space complexity:** O(1)
+
+---
+
+<a id="mx13"></a>
+## MX13 — Value-domain rank search in sorted matrix
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Rows and columns sorted; kth value can be found by binary-searching a candidate value and counting entries ≤ candidate.
+
+**Core logic:** combine value-domain first-true binary search with O(n) matrix monotonic counting; distinct from flatten-index search.
+
+**Ordered questions:** 378
+
+### Reusable Java 21 invariant template
+
+```java
+long lo = grid[0][0], hi = grid[rows-1][cols-1];
+while (lo < hi) {
+    long mid = lo + (hi - lo) / 2;
+    long count = 0;
+    int c = cols - 1;
+    for (int r = 0; r < rows; r++) {
+        while (c >= 0 && grid[r][c] > mid) c--;
+        count += c + 1;
+    }
+    if (count >= k) hi = mid; else lo = mid + 1;
+}
+```
+
+<a id="lc-378"></a>
+### 26. LeetCode 378
+
+**Problem statement**
+
+Given an n×n matrix whose rows and columns are sorted ascending, return its kth smallest element counting duplicates separately.
+
+**Examples**
+
+- [[1,5,9],[10,11,13],[12,13,15]], k=8 → 13
+- [[-5]], k=1 → -5
+
+**Constraints:** 1 ≤ n ≤ 300; |cell| ≤ 10^9; 1 ≤ k ≤ n²
+
+**Why this pattern applies:** Kth smallest entry in row+column sorted square matrix; binary search value with staircase count ≤mid, O(n log(valueRange)), O(1) extra.
+
+**Exact solution evolution:** Foundation problem — no previous solution in this algorithm family. combine value-domain first-true binary search with O(n) matrix monotonic counting; distinct from flatten-index search.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int kthSmallest(int[][] matrix,int k){
+        int n=matrix.length; long lo=matrix[0][0],hi=matrix[n-1][n-1];
+        while(lo<hi){ long mid=lo+(hi-lo)/2; int count=0,c=n-1;
+            for(int r=0;r<n;r++){ while(c>=0&&matrix[r][c]>mid) c--; count+=c+1; }
+            if(count>=k) hi=mid; else lo=mid+1;
+        } return (int)lo;
+    }
+}
+```
+
+**Key logic:** Search values, not positions; count values ≤ mid with a shared monotone column pointer.
+
+**Time complexity:** O(n log(V+1)), V=max−min  
+**Auxiliary space complexity:** O(1)
+
+---
+
+<a id="mx14"></a>
+## MX14 — 2D constraint validation with compact presence sets
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** A row/column/subgrid constraint is validated by independently scoped state for each structural region.
+
+**Core logic:** one cell contributes to row, column and block membership constraints; reject repeated values.
+
+**Ordered questions:** 36
+
+### Reusable Java 21 invariant template
+
+```java
+boolean[][] rowSeen = new boolean[rows][10];
+boolean[][] colSeen = new boolean[cols][10];
+// For each populated cell compute its region index;
+// reject if value is already seen in any of its constraint regions.
+```
+
+<a id="lc-36"></a>
+### 27. LeetCode 36
+
+**Problem statement**
+
+Validate a partially filled 9×9 Sudoku. Digits 1–9 must not repeat in any row, column or 3×3 block. Empty cells are dots; no need to decide whether the puzzle is solvable.
+
+**Examples**
+
+- Rows ["53.......",".........",".........",".........",".........",".........",".........",".........","........."] → true
+- replace first row with "55......." → false
+
+**Constraints:** Exactly 9×9; cells are digits 1–9 or dot
+
+**Why this pattern applies:** Validate filled Sudoku entries in each row, column and 3×3 subgrid; track separate seen sets or bitmasks, O(81).
+
+**Exact solution evolution:** Foundation problem — no previous solution in this algorithm family. one cell contributes to row, column and block membership constraints; reject repeated values.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean isValidSudoku(char[][] board){
+        int[] rows=new int[9],cols=new int[9],boxes=new int[9];
+        for(int r=0;r<9;r++) for(int c=0;c<9;c++){
+            char ch=board[r][c]; if(ch=='.') continue;
+            int bit=1<<(ch-'1'),b=(r/3)*3+c/3;
+            if(((rows[r]|cols[c]|boxes[b])&bit)!=0) return false;
+            rows[r]|=bit; cols[c]|=bit; boxes[b]|=bit;
+        } return true;
+    }
+}
+```
+
+**Key logic:** Three independent masks per digit; compute block index with integer division.
+
+**Time complexity:** O(81) = O(1)  
+**Auxiliary space complexity:** O(1)
+
+---
+
+<a id="mx15"></a>
+## MX15 — Row/column canonical signatures
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** A complete row or column is a sequence key; encode it without ambiguity to group and count equal sequences.
+
+**Core logic:** sequence equality not set equality; preserve ordering and duplicate row multiplicity.
+
+**Ordered questions:** 2352
+
+### Reusable Java 21 invariant template
+
+```java
+java.util.Map<String,Integer> freq = new java.util.HashMap<>();
+for (int[] row : grid) {
+    String key = java.util.Arrays.toString(row);
+    freq.merge(key, 1, Integer::sum);
+}
+// Encode each column in the same order; add matching row frequency.
+```
+
+<a id="lc-2352"></a>
+### 28. LeetCode 2352
+
+**Problem statement**
+
+Given an n×n grid, count ordered pairs (row i, column j) with identical elements in identical order.
+
+**Examples**
+
+- [[3,2,1],[1,7,6],[2,7,7]] → 1
+- [[1,1],[1,1]] → 4
+
+**Constraints:** 1 ≤ n ≤ 200; 1 ≤ cell ≤ 100000
+
+**Why this pattern applies:** Count identical row/column sequence pairs; hash each full row as a canonical key and check each full column, O(n²) expected.
+
+**Exact solution evolution:** Foundation problem — no previous solution in this algorithm family. sequence equality not set equality; preserve ordering and duplicate row multiplicity.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int equalPairs(int[][] grid){
+        int n=grid.length,ans=0; Map<String,Integer> freq=new HashMap<>();
+        for(int[] row:grid) freq.merge(Arrays.toString(row),1,Integer::sum);
+        int[] col=new int[n];
+        for(int j=0;j<n;j++){ for(int i=0;i<n;i++) col[i]=grid[i][j]; ans+=freq.getOrDefault(Arrays.toString(col),0); }
+        return ans;
+    }
+}
+```
+
+**Key logic:** Canonical sequence strings preserve order and separators; frequencies count duplicate rows.
+
+**Time complexity:** O(n²) expected (bounded-width integers)  
+**Auxiliary space complexity:** O(n²)
+
+---
+
+<a id="mx16"></a>
+## MX16 — Grid-component DFS / flood connectivity
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Cells are nodes of an implicit grid graph; visit an unvisited eligible cell once and expand over four valid neighbors.
+
+**Core logic:** one visited flood per component and increment count at each new seed.
+
+**Ordered questions:** 200 → 695 → 1020 → 1254 → 1905
+
+### Reusable Java 21 invariant template
+
+```java
+int[][] dirs = {{1,0},{-1,0},{0,1},{0,-1}};
+boolean[][] seen = new boolean[rows][cols];
+// For each unseen eligible cell: push encoded index r*cols+c;
+// pop, visit 4 neighbors, mark upon insertion to avoid duplicates.
+```
+
+<a id="lc-200"></a>
+### 29. LeetCode 200
+
+**Problem statement**
+
+Count islands in a binary character grid. An island is a maximal set of land cells ('1') connected horizontally or vertically, surrounded by water or the grid boundary.
+
+**Examples**
+
+- ["110","010","001"] → 2
+- ["000"] → 0
+
+**Constraints:** 1 ≤ R,C ≤ 300; cells are characters 0 or 1
+
+**Why this pattern applies:** Count four-neighbor land components; launch DFS/BFS from each previously unseen land cell, O(RC).
+
+**Exact solution evolution:** Foundation problem — no previous solution in this algorithm family. one visited flood per component and increment count at each new seed.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int numIslands(char[][] grid){
+        int count=0;
+        for(int r=0;r<grid.length;r++) for(int c=0;c<grid[0].length;c++) if(grid[r][c]=='1'){ flood(grid,r,c); count++; }
+        return count;
+    }
+    private static final int[][] DIR={{1,0},{-1,0},{0,1},{0,-1}};
+    private int flood(char[][] a,int r,int c){
+        int m=a.length,n=a[0].length,area=0; ArrayDeque<Integer> stack=new ArrayDeque<>();
+        stack.push(r*n+c); a[r][c]='0';
+        while(!stack.isEmpty()){
+            int p=stack.pop(),i=p/n,j=p%n; area++;
+            for(int[] d:DIR){ int x=i+d[0],y=j+d[1];
+                if(x>=0&&x<m&&y>=0&&y<n&&a[x][y]=='1'){ a[x][y]='0'; stack.push(x*n+y); }
+            }
+        } return area;
+    }
+}
+```
+
+**Key logic:** Each new land seed starts one DFS; mark on push to prevent duplicate visits.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(RC) worst-case stack
+
+---
+
+<a id="lc-695"></a>
+### 30. LeetCode 695
+
+**Problem statement**
+
+Return the maximum number of cells in any four-connected island in a binary integer grid. Return zero when no land exists.
+
+**Examples**
+
+- [[1,1,0],[0,1,0],[0,0,1]] → 3
+- [[0]] → 0
+
+**Constraints:** 1 ≤ R,C ≤ 50; binary cells
+
+**Why this pattern applies:** Find maximum land-component area; same DFS returns visited-cell count for each component, O(RC).
+
+**Exact solution evolution:** Reuse component flood; replace increment-per-component output with area accumulation and global maximum.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int maxAreaOfIsland(int[][] grid){
+        int best=0;
+        for(int r=0;r<grid.length;r++) for(int c=0;c<grid[0].length;c++) if(grid[r][c]==1) best=Math.max(best,flood(grid,r,c));
+        return best;
+    }
+    private static final int[][] DIR={{1,0},{-1,0},{0,1},{0,-1}};
+    private int flood(int[][] a,int r,int c){
+        int m=a.length,n=a[0].length,area=0; ArrayDeque<Integer> stack=new ArrayDeque<>();
+        stack.push(r*n+c); a[r][c]=0;
+        while(!stack.isEmpty()){
+            int p=stack.pop(),i=p/n,j=p%n; area++;
+            for(int[] d:DIR){ int x=i+d[0],y=j+d[1];
+                if(x>=0&&x<m&&y>=0&&y<n&&a[x][y]==1){ a[x][y]=0; stack.push(x*n+y); }
+            }
+        } return area;
+    }
+}
+```
+
+**Key logic:** Count cells popped from the stack; maximize the returned area.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(RC) worst-case stack
+
+---
+
+<a id="lc-1020"></a>
+### 31. LeetCode 1020
+
+**Problem statement**
+
+Count land cells in a binary grid from which no sequence of four-direction land moves can leave the grid.
+
+**Examples**
+
+- [[0,0,0],[0,1,0],[0,0,0]] → 1
+- [[1,1],[0,1]] → 0
+
+**Constraints:** 1 ≤ R,C ≤ 500; binary cells
+
+**Why this pattern applies:** Count land cells unable to reach boundary; flood and remove boundary-connected land, then count survivors, O(RC).
+
+**Exact solution evolution:** Change DFS launch seeds from every component to only boundary land; count land never visited by boundary floods.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int numEnclaves(int[][] grid){
+        int m=grid.length,n=grid[0].length,count=0;
+        for(int r=0;r<m;r++) for(int c=0;c<n;c++)
+            if((r==0||r==m-1||c==0||c==n-1)&&grid[r][c]==1) flood(grid,r,c);
+        for(int[] row:grid) for(int v:row) count+=v;
+        return count;
+    }
+    private static final int[][] DIR={{1,0},{-1,0},{0,1},{0,-1}};
+    private int flood(int[][] a,int r,int c){
+        int m=a.length,n=a[0].length,area=0; ArrayDeque<Integer> stack=new ArrayDeque<>();
+        stack.push(r*n+c); a[r][c]=0;
+        while(!stack.isEmpty()){
+            int p=stack.pop(),i=p/n,j=p%n; area++;
+            for(int[] d:DIR){ int x=i+d[0],y=j+d[1];
+                if(x>=0&&x<m&&y>=0&&y<n&&a[x][y]==1){ a[x][y]=0; stack.push(x*n+y); }
+            }
+        } return area;
+    }
+}
+```
+
+**Key logic:** Remove all boundary-reachable land before counting remaining cells.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(RC) worst-case stack
+
+---
+
+<a id="lc-1254"></a>
+### 32. LeetCode 1254
+
+**Problem statement**
+
+Here zero denotes land and one denotes water. Count four-connected land components completely enclosed by water, meaning no cell of the component touches the matrix edge.
+
+**Examples**
+
+- [[1,1,1],[1,0,1],[1,1,1]] → 1
+- [[0,1],[1,0]] → 0
+
+**Constraints:** 1 ≤ R,C ≤ 100; binary cells
+
+**Why this pattern applies:** Count land components not touching boundary (zero denotes land); for each zero-component DFS collect whether any reached cell touches edge, O(RC).
+
+**Exact solution evolution:** Reuse boundary-touch property from 1020, but accumulate it per component and count only closed components; invert land encoding.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int closedIsland(int[][] grid){
+        int count=0;
+        for(int r=0;r<grid.length;r++) for(int c=0;c<grid[0].length;c++) if(grid[r][c]==0&&flood(grid,r,c)) count++;
+        return count;
+    }
+    private static final int[][] DIR={{1,0},{-1,0},{0,1},{0,-1}};
+    private boolean flood(int[][] a,int r,int c){
+        int m=a.length,n=a[0].length; boolean valid=true; ArrayDeque<Integer> stack=new ArrayDeque<>();
+        stack.push(r*n+c); a[r][c]=1;
+        while(!stack.isEmpty()){
+            int p=stack.pop(),i=p/n,j=p%n;
+            if(i==0||i==m-1||j==0||j==n-1) valid=false;
+            for(int[] d:DIR){ int x=i+d[0],y=j+d[1];
+                if(x>=0&&x<m&&y>=0&&y<n&&a[x][y]==0){ a[x][y]=1; stack.push(x*n+y); }
+            }
+        } return valid;
+    }
+}
+```
+
+**Key logic:** Keep flooding even after finding an open boundary; otherwise one component could be counted twice.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(RC) worst-case stack
+
+---
+
+<a id="lc-1905"></a>
+### 33. LeetCode 1905
+
+**Problem statement**
+
+Given two same-sized binary grids, count islands in grid2 for which every land cell is also land in grid1 (and therefore lies inside a single grid1 island).
+
+**Examples**
+
+- grid1=[[1,1],[0,1]], grid2=[[1,0],[0,1]] → 2
+- grid1=[[1,0]], grid2=[[1,1]] → 0
+
+**Constraints:** 1 ≤ R,C ≤ 500; same dimensions; binary cells
+
+**Why this pattern applies:** Count components in second grid entirely contained in first grid land; flood each second-grid component and AND validity across all its cells, O(RC).
+
+**Exact solution evolution:** Keep per-component boolean accumulator; replace boundary-touch invalidation with invalidation whenever the corresponding first-grid cell is water.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int countSubIslands(int[][] grid1,int[][] grid2){
+        int count=0;
+        for(int r=0;r<grid2.length;r++) for(int c=0;c<grid2[0].length;c++) if(grid2[r][c]==1&&flood(grid2,grid1,r,c)) count++;
+        return count;
+    }
+    private static final int[][] DIR={{1,0},{-1,0},{0,1},{0,-1}};
+    private boolean flood(int[][] a,int[][] base,int r,int c){
+        int m=a.length,n=a[0].length; boolean valid=true; ArrayDeque<Integer> stack=new ArrayDeque<>();
+        stack.push(r*n+c); a[r][c]=0;
+        while(!stack.isEmpty()){
+            int p=stack.pop(),i=p/n,j=p%n;
+            if(base[i][j]==0) valid=false;
+            for(int[] d:DIR){ int x=i+d[0],y=j+d[1];
+                if(x>=0&&x<m&&y>=0&&y<n&&a[x][y]==1){ a[x][y]=0; stack.push(x*n+y); }
+            }
+        } return valid;
+    }
+}
+```
+
+**Key logic:** Invalidate the component if any corresponding grid1 cell is water; still finish the flood.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(RC) worst-case stack
+
+---
+
+<a id="mx17"></a>
+## MX17 — Grid BFS, multi-source distance layers
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Shortest uniform-cost spread or distance: queue cells, initialize all sources at time/distance zero, mark on enqueue.
+
+**Core logic:** queue starts at one seed and visits only same-original-color neighbors.
+
+**Ordered questions:** 733 → 994 → 542 → 1765
+
+### Reusable Java 21 invariant template
+
+```java
+java.util.ArrayDeque<Integer> q = new java.util.ArrayDeque<>();
+// seed q with all sources, mark them visited
+while (!q.isEmpty()) {
+    int pos = q.removeFirst(); int r = pos / cols, c = pos % cols;
+    for (int[] d : dirs4) {
+        int nr = r + d[0], nc = c + d[1];
+        // if inside and eligible and unseen: mark, set distance, enqueue
+    }
+}
+```
+
+<a id="lc-733"></a>
+### 34. LeetCode 733
+
+**Problem statement**
+
+Starting at (sr,sc), recolor all four-connected pixels having the original starting color to the given new color; return image.
+
+**Examples**
+
+- image=[[1,1,0],[1,0,1]], sr=0,sc=0,color=2 → [[2,2,0],[2,0,1]]
+- image=[[0]], sr=0,sc=0,color=0 → [[0]]
+
+**Constraints:** 1 ≤ R,C ≤ 50; valid start; 0 ≤ colors < 2^16
+
+**Why this pattern applies:** Recolor connected cells matching one original color; single-source four-neighbor BFS/DFS, O(RC).
+
+**Exact solution evolution:** Foundation problem — no previous solution in this algorithm family. queue starts at one seed and visits only same-original-color neighbors.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[][] floodFill(int[][] image,int sr,int sc,int color){
+        int m=image.length,n=image[0].length,old=image[sr][sc]; if(old==color) return image;
+        ArrayDeque<Integer> q=new ArrayDeque<>(); q.add(sr*n+sc); image[sr][sc]=color;
+        while(!q.isEmpty()){
+            int p=q.remove(),r=p/n,c=p%n;
+            for(int[] d:DIR){ int x=r+d[0],y=c+d[1]; if(x>=0&&x<m&&y>=0&&y<n&&image[x][y]==old){ image[x][y]=color; q.add(x*n+y); } }
+        } return image;
+    }
+    private static final int[][] DIR={{1,0},{-1,0},{0,1},{0,-1}};
+}
+```
+
+**Key logic:** Recolor on enqueue; unchanged-color guard prevents endless revisits.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(RC) worst-case queue
+
+---
+
+<a id="lc-994"></a>
+### 35. LeetCode 994
+
+**Problem statement**
+
+A grid contains empty cells (0), fresh oranges (1), and rotten oranges (2). Each minute, fresh oranges adjacent to rotten ones become rotten. Return minimum minutes until no fresh oranges remain, or -1 if impossible.
+
+**Examples**
+
+- [[2,1,1],[1,1,0],[0,1,1]] → 4
+- [[2,0,1]] → -1
+
+**Constraints:** 1 ≤ R,C ≤ 10; cells 0,1,2
+
+**Why this pattern applies:** Compute time until all reachable fresh cells become rotten; seed all initially rotten cells, process breadth levels, detect remaining unreachable fresh, O(RC).
+
+**Exact solution evolution:** Generalize one initial source to simultaneous multi-source queue; replace recolor-only traversal with level/time propagation and remaining-target count.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int orangesRotting(int[][] grid){
+        int m=grid.length,n=grid[0].length,fresh=0,time=0; ArrayDeque<Integer> q=new ArrayDeque<>();
+        for(int r=0;r<m;r++) for(int c=0;c<n;c++) { if(grid[r][c]==2) q.add(r*n+c); else if(grid[r][c]==1) fresh++; }
+        while(fresh>0&&!q.isEmpty()){
+            for(int size=q.size();size>0;size--){ int p=q.remove(),r=p/n,c=p%n;
+                for(int[] d:DIR){ int x=r+d[0],y=c+d[1]; if(x>=0&&x<m&&y>=0&&y<n&&grid[x][y]==1){ grid[x][y]=2; fresh--; q.add(x*n+y); } }
+            } time++;
+        } return fresh==0?time:-1;
+    }
+    private static final int[][] DIR={{1,0},{-1,0},{0,1},{0,-1}};
+}
+```
+
+**Key logic:** All rotten sources start at minute zero; process fixed queue layers and track remaining fresh.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(RC)
+
+---
+
+<a id="lc-542"></a>
+### 36. LeetCode 542
+
+**Problem statement**
+
+For each cell of a binary matrix, return its minimum four-direction distance to a zero. At least one zero exists.
+
+**Examples**
+
+- [[0,0,0],[0,1,0],[1,1,1]] → [[0,0,0],[0,1,0],[1,2,1]]
+- [[0,1]] → [[0,1]]
+
+**Constraints:** 1 ≤ R,C ≤ 10000; RC ≤ 10000; binary cells; at least one zero
+
+**Why this pattern applies:** Distance from each cell to nearest zero; seed all zeros then BFS relaxation into ones, O(RC).
+
+**Exact solution evolution:** Reuse multi-source BFS; replace elapsed-time/global completion with per-cell shortest distance written on first visit.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[][] updateMatrix(int[][] mat){
+        int m=mat.length,n=mat[0].length; int[][] out=new int[m][n]; ArrayDeque<Integer> q=new ArrayDeque<>();
+        for(int r=0;r<m;r++) for(int c=0;c<n;c++){
+            if(mat[r][c]==0){ out[r][c]=0; q.add(r*n+c); } else out[r][c]=-1;
+        }
+        while(!q.isEmpty()){
+            int p=q.remove(),r=p/n,c=p%n;
+            for(int[] d:DIR){ int x=r+d[0],y=c+d[1]; if(x>=0&&x<m&&y>=0&&y<n&&out[x][y]==-1){ out[x][y]=out[r][c]+1; q.add(x*n+y); } }
+        } return out;
+    }
+    private static final int[][] DIR={{1,0},{-1,0},{0,1},{0,-1}};
+}
+```
+
+**Key logic:** First visit from any zero gives the shortest distance; -1 encodes unseen.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(RC)
+
+---
+
+<a id="lc-1765"></a>
+### 37. LeetCode 1765
+
+**Problem statement**
+
+Assign nonnegative heights to a binary water/land map (water=1). Water must have height zero; adjacent cells differ by at most one. Return any assignment maximizing the largest height.
+
+**Examples**
+
+- [[0,1],[0,0]] → [[1,0],[2,1]]
+- [[1,0,0]] → [[0,1,2]]
+
+**Constraints:** 1 ≤ R,C ≤ 1000; binary cells; at least one water cell
+
+**Why this pattern applies:** Assign heights maximizing minimum-distance propagation from water; seed water at height 0 and BFS assign each land cell neighbor height +1, O(RC).
+
+**Exact solution evolution:** Retain multi-source distance initialization/expansion; reinterpret zero sources as water and distances as heights.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[][] highestPeak(int[][] isWater){
+        int m=isWater.length,n=isWater[0].length; int[][] out=new int[m][n]; ArrayDeque<Integer> q=new ArrayDeque<>();
+        for(int r=0;r<m;r++) for(int c=0;c<n;c++){
+            if(isWater[r][c]==1){ out[r][c]=0; q.add(r*n+c); } else out[r][c]=-1;
+        }
+        while(!q.isEmpty()){
+            int p=q.remove(),r=p/n,c=p%n;
+            for(int[] d:DIR){ int x=r+d[0],y=c+d[1]; if(x>=0&&x<m&&y>=0&&y<n&&out[x][y]==-1){ out[x][y]=out[r][c]+1; q.add(x*n+y); } }
+        } return out;
+    }
+    private static final int[][] DIR={{1,0},{-1,0},{0,1},{0,-1}};
+}
+```
+
+**Key logic:** Distance to nearest water is an upper bound on every height and is itself a feasible height map.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(RC)
+
+---
+
+<a id="mx18"></a>
+## MX18 — Shortest-path BFS with explicit start/end constraints
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Unweighted matrix paths: BFS state tracks distance; choose 4- or 8-neighbor edges, start/end legality, and early termination.
+
+**Core logic:** explicit source/target, passability check, 8-neighbor BFS distance and early exit.
+
+**Ordered questions:** 1091 → 1926
+
+### Reusable Java 21 invariant template
+
+```java
+java.util.ArrayDeque<int[]> q = new java.util.ArrayDeque<>();
+q.add(new int[]{startR, startC, 1});
+seen[startR][startC] = true;
+while (!q.isEmpty()) {
+    int[] cur = q.removeFirst();
+    // if target reached return cur[2]
+    // enqueue every unvisited passable neighbor with distance + 1
+}
+```
+
+<a id="lc-1091"></a>
+### 38. LeetCode 1091
+
+**Problem statement**
+
+Return the length (number of visited cells) of the shortest clear path from top-left to bottom-right of an n×n binary grid, moving in any of eight directions through zero cells. Return -1 if no path exists.
+
+**Examples**
+
+- [[0,1],[1,0]] → 2
+- [[1]] → -1
+
+**Constraints:** 1 ≤ n ≤ 100; binary cells
+
+**Why this pattern applies:** Shortest path from top-left to bottom-right through 0 cells with 8-direction moves; breadth-first traversal O(RC).
+
+**Exact solution evolution:** Foundation problem — no previous solution in this algorithm family. explicit source/target, passability check, 8-neighbor BFS distance and early exit.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int shortestPathBinaryMatrix(int[][] grid){
+        int n=grid.length; if(grid[0][0]!=0||grid[n-1][n-1]!=0) return -1;
+        ArrayDeque<Integer> q=new ArrayDeque<>(); q.add(0); grid[0][0]=1; int len=1;
+        while(!q.isEmpty()){
+            for(int size=q.size();size>0;size--){ int p=q.remove(),r=p/n,c=p%n; if(r==n-1&&c==n-1) return len;
+                for(int di=-1;di<=1;di++) for(int dj=-1;dj<=1;dj++){
+                    int x=r+di,y=c+dj; if((di!=0||dj!=0)&&x>=0&&x<n&&y>=0&&y<n&&grid[x][y]==0){ grid[x][y]=1; q.add(x*n+y); }
+                }
+            } len++;
+        } return -1;
+    }
+}
+```
+
+**Key logic:** Validate both endpoints; start length at one because cells, not edges, are counted.
+
+**Time complexity:** O(n²)  
+**Auxiliary space complexity:** O(n²)
+
+---
+
+<a id="lc-1926"></a>
+### 39. LeetCode 1926
+
+**Problem statement**
+
+In a maze with empty cells (dot) and walls (+), find minimum four-direction steps from entrance to any other empty boundary cell. Entrance itself is not an exit. Return -1 if unreachable.
+
+**Examples**
+
+- maze=["++.","...","+++"], entrance=[1,1] → 1
+- maze=[".+"], entrance=[0,0] → -1
+
+**Constraints:** 1 ≤ R,C ≤ 100; valid empty entrance; cells dot or plus
+
+**Why this pattern applies:** Shortest path from a maze entrance to any other boundary opening; four-direction BFS, starting entrance not counted as an exit, O(RC).
+
+**Exact solution evolution:** Keep uniform-cost BFS shortest-path invariant; replace eight directions with four and fixed target coordinate with boundary-exit predicate excluding start.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int nearestExit(char[][] maze,int[] entrance){
+        int m=maze.length,n=maze[0].length,steps=0; ArrayDeque<Integer> q=new ArrayDeque<>();
+        q.add(entrance[0]*n+entrance[1]); maze[entrance[0]][entrance[1]]='+';
+        while(!q.isEmpty()){
+            for(int size=q.size();size>0;size--){ int p=q.remove(),r=p/n,c=p%n;
+                if(steps>0&&(r==0||r==m-1||c==0||c==n-1)) return steps;
+                for(int[] d:DIR){ int x=r+d[0],y=c+d[1]; if(x>=0&&x<m&&y>=0&&y<n&&maze[x][y]=='.'){ maze[x][y]='+'; q.add(x*n+y); } }
+            } steps++;
+        } return -1;
+    }
+    private static final int[][] DIR={{1,0},{-1,0},{0,1},{0,-1}};
+}
+```
+
+**Key logic:** Start distance at zero (edges); boundary check excludes the entrance.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(RC)
+
+---
+
+<a id="mx19"></a>
+## MX19 — Perimeter as local exposed-edge contribution
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** For each occupied cell, each side without an occupied neighbor contributes one boundary edge; count locally.
+
+**Core logic:** local neighbor check yields additive boundary contribution independent of component traversal.
+
+**Ordered questions:** 463
+
+### Reusable Java 21 invariant template
+
+```java
+int perimeter = 0;
+for (int r = 0; r < rows; r++)
+    for (int c = 0; c < cols; c++) if (grid[r][c] == 1)
+        for (int[] d : dirs4) {
+            int nr = r + d[0], nc = c + d[1];
+            if (nr < 0 || nc < 0 || nr >= rows || nc >= cols || grid[nr][nc] == 0)
+                perimeter++;
+        }
+```
+
+<a id="lc-463"></a>
+### 40. LeetCode 463
+
+**Problem statement**
+
+Given a binary grid containing one four-connected island with no lakes, return the perimeter of the island measured in unit cell edges.
+
+**Examples**
+
+- [[1,1],[1,0]] → 8
+- [[1]] → 4
+
+**Constraints:** 1 ≤ R,C ≤ 100; binary cells; exactly one island; no enclosed lakes
+
+**Why this pattern applies:** Compute land-water outer-edge perimeter; each exposed side adds one, O(RC), no flood needed.
+
+**Exact solution evolution:** Foundation problem — no previous solution in this algorithm family. local neighbor check yields additive boundary contribution independent of component traversal.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int islandPerimeter(int[][] grid){
+        int m=grid.length,n=grid[0].length,ans=0;
+        for(int r=0;r<m;r++) for(int c=0;c<n;c++) if(grid[r][c]==1){
+            for(int[] d:DIR){ int x=r+d[0],y=c+d[1]; if(x<0||x>=m||y<0||y>=n||grid[x][y]==0) ans++; }
+        } return ans;
+    }
+    private static final int[][] DIR={{1,0},{-1,0},{0,1},{0,-1}};
+}
+```
+
+**Key logic:** Each exposed side contributes one independently; shared land edges contribute zero.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(1)
+
+---
+
+<a id="mx20"></a>
+## MX20 — Row-wise histogram reduction
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Turn successive binary rows into running column heights; solve largest histogram rectangle using monotonic stack from T12.
+
+**Core logic:** convert 2D rectangles ending at each row into 1D histogram maximums, reusing T12 primitive without reassigning its ID.
+
+**Ordered questions:** 85
+
+### Reusable Java 21 invariant template
+
+```java
+int[] heights = new int[cols];
+for (int r = 0; r < rows; r++) {
+    for (int c = 0; c < cols; c++)
+        heights[c] = grid[r][c] == '1' ? heights[c] + 1 : 0;
+    // invoke T12 histogram-maximum primitive on heights
+}
+```
+
+<a id="lc-85"></a>
+### 41. LeetCode 85
+
+**Problem statement**
+
+Return the area of the largest axis-aligned rectangle containing only ones in a binary character matrix.
+
+**Examples**
+
+- ["10100","10111","11111","10010"] → 6
+- ["0"] → 0
+
+**Constraints:** 1 ≤ R,C ≤ 200; characters 0 or 1
+
+**Why this pattern applies:** Largest all-one rectangle; build cumulative heights by row and apply monotonic-stack histogram solution each row, O(RC).
+
+**Exact solution evolution:** Foundation problem — no previous solution in this algorithm family. convert 2D rectangles ending at each row into 1D histogram maximums, reusing T12 primitive without reassigning its ID.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int maximalRectangle(char[][] matrix){
+        int n=matrix[0].length,best=0; int[] h=new int[n],stack=new int[n+1];
+        for(char[] row:matrix){
+            for(int j=0;j<n;j++) h[j]=row[j]=='1'?h[j]+1:0;
+            int top=-1;
+            for(int j=0;j<=n;j++){
+                int cur=j==n?0:h[j];
+                while(top>=0&&h[stack[top]]>cur){ int height=h[stack[top--]],left=top<0?-1:stack[top]; best=Math.max(best,height*(j-left-1)); }
+                if(j<n) stack[++top]=j;
+            }
+        } return best;
+    }
+}
+```
+
+**Key logic:** Each row forms a histogram; pop when a shorter bar determines the right boundary. Sentinel flushes remaining positive heights.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(C)
+
+---
+
+<a id="mx21"></a>
+## MX21 — Square submatrix DP
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** For square ending at (r,c), minimum of three adjacent prior square sizes determines largest valid side; aggregate best or total.
+
+**Core logic:** 1+minimum(top,left,top-left) for valid cell, maximum of all sides.
+
+**Ordered questions:** 221 → 1277
+
+### Reusable Java 21 invariant template
+
+```java
+int[][] dp = new int[rows + 1][cols + 1];
+for (int r = 1; r <= rows; r++)
+    for (int c = 1; c <= cols; c++)
+        if (grid[r-1][c-1] == 1)
+            dp[r][c] = 1 + Math.min(dp[r-1][c], Math.min(dp[r][c-1], dp[r-1][c-1]));
+```
+
+<a id="lc-221"></a>
+### 42. LeetCode 221
+
+**Problem statement**
+
+Return the area of the largest square consisting entirely of ones in a binary character matrix.
+
+**Examples**
+
+- ["10100","10111","11111","10010"] → 4
+- ["0"] → 0
+
+**Constraints:** 1 ≤ R,C ≤ 300; characters 0 or 1
+
+**Why this pattern applies:** Largest square consisting entirely of ones; DP maximum square side ending at each cell, return maxSide², O(RC).
+
+**Exact solution evolution:** Foundation problem — no previous solution in this algorithm family. 1+minimum(top,left,top-left) for valid cell, maximum of all sides.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int maximalSquare(char[][] matrix){
+        int n=matrix[0].length,best=0; int[] dp=new int[n+1];
+        for(char[] row:matrix){ int diag=0;
+            for(int j=1;j<=n;j++){ int top=dp[j]; dp[j]=row[j-1]=='1'?1+Math.min(top,Math.min(dp[j-1],diag)):0; best=Math.max(best,dp[j]); diag=top; }
+        } return best*best;
+    }
+}
+```
+
+**Key logic:** Rolling DP: top is previous row, left is current row, diag is saved previous-row previous-column value.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(C)
+
+---
+
+<a id="lc-1277"></a>
+### 43. LeetCode 1277
+
+**Problem statement**
+
+Count all square submatrices consisting entirely of ones in a binary integer matrix, including 1×1 squares.
+
+**Examples**
+
+- [[1,1],[1,1]] → 5
+- [[0,1],[1,1]] → 3
+
+**Constraints:** 1 ≤ R,C ≤ 300; binary cells
+
+**Why this pattern applies:** Count all-ones square submatrices; same DP recurrence, add each cell’s ending-square side length to answer, O(RC).
+
+**Exact solution evolution:** Reuse identical square-side recurrence; replace max-side objective with sum of side lengths over every cell.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int countSquares(int[][] matrix){
+        int n=matrix[0].length,ans=0; int[] dp=new int[n+1];
+        for(int[] row:matrix){ int diag=0;
+            for(int j=1;j<=n;j++){ int top=dp[j]; dp[j]=row[j-1]==1?1+Math.min(top,Math.min(dp[j-1],diag)):0; ans+=dp[j]; diag=top; }
+        } return ans;
+    }
+}
+```
+
+**Key logic:** A maximum ending side of s contributes exactly s squares, one of each side 1 through s.
+
+**Time complexity:** O(RC)  
+**Auxiliary space complexity:** O(C)
+
+---
+
+## Final registry
+
+| Sequence | LeetCode | Family |
+|---:|---:|---|
+| 01 | [1672](#lc-1672) | MX1 |
+| 02 | [1572](#lc-1572) | MX1 |
+| 03 | [1380](#lc-1380) | MX1 |
+| 04 | [566](#lc-566) | MX2 |
+| 05 | [867](#lc-867) | MX2 |
+| 06 | [1260](#lc-1260) | MX2 |
+| 07 | [54](#lc-54) | MX3 |
+| 08 | [59](#lc-59) | MX3 |
+| 09 | [2326](#lc-2326) | MX3 |
+| 10 | [48](#lc-48) | MX4 |
+| 11 | [1886](#lc-1886) | MX4 |
+| 12 | [498](#lc-498) | MX5 |
+| 13 | [1424](#lc-1424) | MX5 |
+| 14 | [766](#lc-766) | MX6 |
+| 15 | [1329](#lc-1329) | MX6 |
+| 16 | [73](#lc-73) | MX7 |
+| 17 | [289](#lc-289) | MX8 |
+| 18 | [304](#lc-304) | MX9 |
+| 19 | [1314](#lc-1314) | MX9 |
+| 20 | [1292](#lc-1292) | MX9 |
+| 21 | [2536](#lc-2536) | MX10 |
+| 22 | [2132](#lc-2132) | MX10 |
+| 23 | [74](#lc-74) | MX11 |
+| 24 | [240](#lc-240) | MX12 |
+| 25 | [1351](#lc-1351) | MX12 |
+| 26 | [378](#lc-378) | MX13 |
+| 27 | [36](#lc-36) | MX14 |
+| 28 | [2352](#lc-2352) | MX15 |
+| 29 | [200](#lc-200) | MX16 |
+| 30 | [695](#lc-695) | MX16 |
+| 31 | [1020](#lc-1020) | MX16 |
+| 32 | [1254](#lc-1254) | MX16 |
+| 33 | [1905](#lc-1905) | MX16 |
+| 34 | [733](#lc-733) | MX17 |
+| 35 | [994](#lc-994) | MX17 |
+| 36 | [542](#lc-542) | MX17 |
+| 37 | [1765](#lc-1765) | MX17 |
+| 38 | [1091](#lc-1091) | MX18 |
+| 39 | [1926](#lc-1926) | MX18 |
+| 40 | [463](#lc-463) | MX19 |
+| 41 | [85](#lc-85) | MX20 |
+| 42 | [221](#lc-221) | MX21 |
+| 43 | [1277](#lc-1277) | MX21 |
+
+## Validation
+
+- Registry: all 43 IDs match the master sequence, with 21 families and no repeated ID within T19.
+- Compilation: all 43 independent submissions passed `javac --release 21` (with a local `ListNode` stub for 2326).
+- Runtime validation: 86 deterministic assertions passed (two workbook examples per problem, executed with Java assertions enabled). No randomized, stress, hidden-judge or online LeetCode tests were run.
+- Strategy choices: retained the master’s binary-search approach for 1292 and comparison sorting for 1329; used inverse mapping for 1260 and rolling DP for 221/1277.
+- Constraints and examples are not independently verified against the current online statements.

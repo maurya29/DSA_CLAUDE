@@ -1,0 +1,3924 @@
+# T20 — Trees & BST: Complete Solutions Workbook
+
+**Curriculum status:** LOCKED · 58 questions · 31 algorithm families · Java 21-compatible solutions.
+
+This standalone study workbook follows the exact sequence and implementation transitions in `MASTER_DSA_CURRICULUM.md`, C20. It does not mark any question as practiced or modify the master file. Problem statements, examples, and constraints are independently written study material; numeric bounds were not live-verified against LeetCode. Examples are level-order tree arrays unless otherwise stated, with `null` for missing children. Multiple valid outputs may exist; unordered results can be returned in any order.
+
+## How to use this workbook
+
+Start each family with its reusable invariant. Then compare each solution against the immediately preceding solution within that family. A new family resets the baseline. All code blocks are independent submissions; do not combine the classes in a single source file. LeetCode supplies `TreeNode` or `Node` where needed; `java.util.*` is included explicitly. LC 297 and 449 use `Codec`, and LC 173 uses `BSTIterator`, as required by their APIs.
+
+**Notation:** `n` = node count, `h` = tree height in nodes for space analysis, `w` = maximum actual nodes at a depth, `m` = second tree size, `q` = query count, `k` = rank/distance/output count as context requires. Auxiliary space excludes returned output unless specified. Hash operations are expected constant time.
+
+## Table of contents
+
+- [T1 — Bottom-up height and subtree metrics](#t1) · [LC 104](#lc-104), [LC 111](#lc-111), [LC 110](#lc-110), [LC 543](#lc-543)
+- [T2 — Two-tree structural comparison and mirror symmetry](#t2) · [LC 100](#lc-100), [LC 101](#lc-101)
+- [T3 — In-place tree rewiring](#t3) · [LC 226](#lc-226), [LC 114](#lc-114)
+- [T4 — Breadth-first per-level aggregation](#t4) · [LC 102](#lc-102), [LC 107](#lc-107), [LC 199](#lc-199), [LC 637](#lc-637), [LC 515](#lc-515), [LC 2415](#lc-2415)
+- [T5 — Next-right link construction](#t5) · [LC 116](#lc-116), [LC 117](#lc-117)
+- [T6 — Indexed breadth-first width](#t6) · [LC 662](#lc-662)
+- [T7 — Root-to-leaf path state](#t7) · [LC 112](#lc-112), [LC 113](#lc-113), [LC 129](#lc-129)
+- [T8 — Prefix-sum frequency along DFS ancestry](#t8) · [LC 437](#lc-437)
+- [T9 — String-valued root-to-leaf paths](#t9) · [LC 257](#lc-257), [LC 988](#lc-988)
+- [T10 — Ancestor extrema along DFS paths](#t10) · [LC 1448](#lc-1448), [LC 1026](#lc-1026)
+- [T11 — General binary-tree lowest common ancestor](#t11) · [LC 236](#lc-236)
+- [T12 — Deepest-leaf postorder LCA](#t12) · [LC 1123](#lc-1123)
+- [T13 — BST ordered lookup and mutation](#t13) · [LC 700](#lc-700), [LC 701](#lc-701), [LC 450](#lc-450), [LC 669](#lc-669)
+- [T14 — BST in-order sorted stream](#t14) · [LC 98](#lc-98), [LC 530](#lc-530), [LC 501](#lc-501), [LC 230](#lc-230)
+- [T15 — Balanced/reconstructed binary trees from traversals](#t15) · [LC 108](#lc-108)
+- [T16 — Tree construction from traversal partitions](#t16) · [LC 105](#lc-105), [LC 106](#lc-106), [LC 889](#lc-889)
+- [T17 — BST preorder with value bounds](#t17) · [LC 1008](#lc-1008)
+- [T18 — Tree serialization and reconstruction](#t18) · [LC 297](#lc-297), [LC 449](#lc-449)
+- [T19 — Recover BST by inorder inversions](#t19) · [LC 99](#lc-99)
+- [T20 — Tree DP with include/exclude states](#t20) · [LC 337](#lc-337)
+- [T21 — Camera-state postorder coverage](#t21) · [LC 968](#lc-968)
+- [T22 — Postorder deletion and forest pruning](#t22) · [LC 1325](#lc-1325), [LC 1110](#lc-1110)
+- [T23 — Subtree matching and repeated signatures](#t23) · [LC 572](#lc-572), [LC 652](#lc-652)
+- [T24 — Lazy BST inorder iterator](#t24) · [LC 173](#lc-173)
+- [T25 — Coordinate ordering of tree nodes](#t25) · [LC 987](#lc-987)
+- [T26 — Layer parity and node-order constraints](#t26) · [LC 1609](#lc-1609)
+- [T27 — Complete tree positional structure](#t27) · [LC 958](#lc-958)
+- [T28 — Tree as undirected neighborhood graph](#t28) · [LC 863](#lc-863), [LC 2385](#lc-2385)
+- [T29 — Two-node route from common ancestor](#t29) · [LC 2096](#lc-2096)
+- [T30 — Euler-tour subtree exclusion queries](#t30) · [LC 2458](#lc-2458)
+- [T31 — Rerooting DP on tree edges](#t31) · [LC 834](#lc-834)
+- [Companion concepts and implementation caveats](#companion-concepts)
+- [Final locked question registry](#final-registry)
+- [Validation report](#validation-report)
+
+<a id="t1"></a>
+## T1 — Bottom-up height and subtree metrics
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** A node result depends on recursively computed child heights; O(n) postorder visits.
+
+**Core reusable logic:** return 1+max(child heights), with null height 0.
+
+**Ordered questions:** LC 104, LC 111, LC 110, LC 543
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+int height(TreeNode node) {
+    if (node == null) return 0;
+    int l = height(node.left), r = height(node.right);
+    // combine child heights; optionally update a global best/flag
+    return 1 + Math.max(l, r);
+}
+```
+
+<a id="lc-104"></a>
+### LC 104 — Question 01/58
+
+**Problem statement**
+
+Return the number of nodes on the longest path from the root to a leaf. An empty tree has depth zero.
+
+**Examples**
+
+1. root=[3,9,20,null,null,15,7] → 3
+2. root=[] → 0
+
+**Constraints**
+
+0–10,000 nodes; values −100 to 100.
+
+**Why this belongs to the family**
+
+A node result depends on recursively computed child heights; O(n) postorder visits.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. return 1+max(child heights), with null height 0.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int maxDepth(TreeNode root) {
+        if (root == null) return 0;
+        return 1 + Math.max(maxDepth(root.left), maxDepth(root.right));
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Null contributes zero. Each parent adds one to the greater child height.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(h).
+
+<a id="lc-111"></a>
+### LC 111 — Question 02/58
+
+**Problem statement**
+
+Return the number of nodes on the shortest root-to-leaf path. A leaf has no children; a missing child is not a leaf.
+
+**Examples**
+
+1. root=[3,9,20,null,null,15,7] → 2
+2. root=[1,null,2,null,3] → 3
+
+**Constraints**
+
+0–100,000 nodes; values −1000 to 1000.
+
+**Why this belongs to the family**
+
+A node result depends on recursively computed child heights; O(n) postorder visits.
+
+**Exact implementation evolution**
+
+Replace max with leaf-aware minimum; explicitly distinguish leaf from missing child.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int minDepth(TreeNode root) {
+        if (root == null) return 0;
+        int l = minDepth(root.left), r = minDepth(root.right);
+        return 1 + (l == 0 || r == 0 ? l + r : Math.min(l, r));
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+When only one child exists, use its depth. When both exist, take the minimum.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(h).
+
+<a id="lc-110"></a>
+### LC 110 — Question 03/58
+
+**Problem statement**
+
+Determine whether every node has left and right subtree heights differing by at most one.
+
+**Examples**
+
+1. root=[3,9,20,null,null,15,7] → true
+2. root=[1,2,null,3] → false
+
+**Constraints**
+
+0–5000 nodes; values −10,000 to 10,000.
+
+**Why this belongs to the family**
+
+A node result depends on recursively computed child heights; O(n) postorder visits.
+
+**Exact implementation evolution**
+
+Replace positive minimum depth with height plus abs(left-right)<=1 and propagate invalid sentinel.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean isBalanced(TreeNode root) { return height(root) != -1; }
+    private int height(TreeNode n) {
+        if (n == null) return 0;
+        int l = height(n.left);
+        if (l == -1) return -1;
+        int r = height(n.right);
+        if (r == -1 || Math.abs(l-r) > 1) return -1;
+        return 1 + Math.max(l,r);
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Propagate −1 immediately when a descendant is unbalanced or child heights differ by more than one.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(h).
+
+<a id="lc-543"></a>
+### LC 543 — Question 04/58
+
+**Problem statement**
+
+Return the maximum number of edges on a path connecting any two nodes. The path need not pass through the root.
+
+**Examples**
+
+1. root=[1,2,3,4,5] → 3
+2. root=[1] → 0
+
+**Constraints**
+
+1–10,000 nodes; values −100 to 100.
+
+**Why this belongs to the family**
+
+A node result depends on recursively computed child heights; O(n) postorder visits.
+
+**Exact implementation evolution**
+
+Reuse postorder heights; replace balance sentinel with global maximum l+r while still returning height.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    private int best;
+    public int diameterOfBinaryTree(TreeNode root) { best=0; height(root); return best; }
+    private int height(TreeNode n) {
+        if (n==null) return 0;
+        int l=height(n.left), r=height(n.right);
+        best=Math.max(best,l+r);
+        return 1+Math.max(l,r);
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+At each node, left height plus right height gives the longest path passing through it. Return height to parent and update global best.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(h).
+
+<a id="t2"></a>
+## T2 — Two-tree structural comparison and mirror symmetry
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Two root references are compared recursively, including cross-child symmetry.
+
+**Core reusable logic:** null equality, value equality and matching same-side descendants.
+
+**Ordered questions:** LC 100, LC 101
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+boolean match(TreeNode a, TreeNode b) {
+    if (a == null || b == null) return a == b;
+    return a.val == b.val && match(a.left, b.left)
+            && match(a.right, b.right);
+}
+```
+
+<a id="lc-100"></a>
+### LC 100 — Question 05/58
+
+**Problem statement**
+
+Given two roots, return true exactly when both trees have the same shape and corresponding values.
+
+**Examples**
+
+1. p=[1,2,3], q=[1,2,3] → true
+2. p=[1,2], q=[1,null,2] → false
+
+**Constraints**
+
+Each tree has 0–100 nodes; values −10,000 to 10,000.
+
+**Why this belongs to the family**
+
+Two root references are compared recursively, including cross-child symmetry.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. null equality, value equality and matching same-side descendants.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean isSameTree(TreeNode p, TreeNode q) {
+        if (p==null || q==null) return p==q;
+        return p.val==q.val && isSameTree(p.left,q.left) && isSameTree(p.right,q.right);
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Compare nullness first, then values, then corresponding children.
+
+**Complexity**
+
+- Time: O(min(n,m)+1).
+- Space: O(min(h1,h2)+1).
+
+<a id="lc-101"></a>
+### LC 101 — Question 06/58
+
+**Problem statement**
+
+Return whether a binary tree is a mirror of itself about its root.
+
+**Examples**
+
+1. root=[1,2,2,3,4,4,3] → true
+2. root=[1,2,2,null,3,null,3] → false
+
+**Constraints**
+
+1–1000 nodes; values −100 to 100.
+
+**Why this belongs to the family**
+
+Two root references are compared recursively, including cross-child symmetry.
+
+**Exact implementation evolution**
+
+Swap second recursive pairings to left-right and right-left; invoke on root children.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean isSymmetric(TreeNode root) { return root==null || mirror(root.left,root.right); }
+    private boolean mirror(TreeNode a,TreeNode b) {
+        if (a==null || b==null) return a==b;
+        return a.val==b.val && mirror(a.left,b.right) && mirror(a.right,b.left);
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Compare opposite child positions, rather than same-side positions.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(h).
+
+<a id="t3"></a>
+## T3 — In-place tree rewiring
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Modify child pointers without creating a replacement tree.
+
+**Core reusable logic:** recursive traversal plus local left/right pointer swap.
+
+**Ordered questions:** LC 226, LC 114
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+void mutate(TreeNode node) {
+    if (node == null) return;
+    // Choose traversal order required by the rewrite.
+    mutate(node.right);
+    mutate(node.left);
+    // Rewire node.left / node.right; for flattening, keep previous node.
+}
+```
+
+<a id="lc-226"></a>
+### LC 226 — Question 07/58
+
+**Problem statement**
+
+Invert the tree by swapping every node’s left and right subtrees. Return the original root after mutation.
+
+**Examples**
+
+1. root=[4,2,7,1,3,6,9] → [4,7,2,9,6,3,1]
+2. root=[] → []
+
+**Constraints**
+
+0–100 nodes; values −100 to 100.
+
+**Why this belongs to the family**
+
+Modify child pointers without creating a replacement tree.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. recursive traversal plus local left/right pointer swap.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public TreeNode invertTree(TreeNode root) {
+        if(root==null) return null;
+        TreeNode l=invertTree(root.left), r=invertTree(root.right);
+        root.left=r; root.right=l;
+        return root;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Recursively invert children, then assign each returned subtree to the opposite pointer.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(h).
+
+<a id="lc-114"></a>
+### LC 114 — Question 08/58
+
+**Problem statement**
+
+Modify the tree into a right-linked chain of the same nodes in preorder traversal order; every left pointer must be null.
+
+**Examples**
+
+1. root=[1,2,5,3,4,null,6] → [1,null,2,null,3,null,4,null,5,null,6]
+2. root=[0] → [0]
+
+**Constraints**
+
+0–2000 nodes; values −100 to 100. Must mutate in place.
+
+**Why this belongs to the family**
+
+Modify child pointers without creating a replacement tree.
+
+**Exact implementation evolution**
+
+Replace local child swap with reverse-preorder previous-node linkage (right then left DFS); maintain one evolving chain.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    private TreeNode prev;
+    public void flatten(TreeNode root) { prev=null; dfs(root); }
+    private void dfs(TreeNode n) {
+        if(n==null) return;
+        dfs(n.right); dfs(n.left);
+        n.right=prev; n.left=null; prev=n;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Process right then left then node. Link current node to the already flattened suffix stored in prev.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(h).
+
+<a id="t4"></a>
+## T4 — Breadth-first per-level aggregation
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** A question depends on level order, per-depth statistics, or level-based transformations.
+
+**Core reusable logic:** FIFO queue, size per level, append one list per level.
+
+**Ordered questions:** LC 102, LC 107, LC 199, LC 637, LC 515, LC 2415
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+Deque<TreeNode> q = new ArrayDeque<>();
+q.add(root); // guard root != null
+while (!q.isEmpty()) {
+    int size = q.size();
+    for (int i = 0; i < size; i++) {
+        TreeNode node = q.removeFirst();
+        // collect or inspect this level
+        if (node.left != null) q.addLast(node.left);
+        if (node.right != null) q.addLast(node.right);
+    }
+}
+```
+
+<a id="lc-102"></a>
+### LC 102 — Question 09/58
+
+**Problem statement**
+
+Return a list of levels from top to bottom, each containing node values from left to right.
+
+**Examples**
+
+1. root=[3,9,20,null,null,15,7] → [[3],[9,20],[15,7]]
+2. root=[] → []
+
+**Constraints**
+
+0–2000 nodes; values −1000 to 1000.
+
+**Why this belongs to the family**
+
+A question depends on level order, per-depth statistics, or level-based transformations.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. FIFO queue, size per level, append one list per level.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<List<Integer>> levelOrder(TreeNode root) {
+        List<List<Integer>> ans=new ArrayList<>();
+        if(root==null) return ans;
+        Deque<TreeNode> q=new ArrayDeque<>(); q.add(root);
+        while(!q.isEmpty()) {
+            int size=q.size(); List<Integer> level=new ArrayList<>();
+            for(int i=0;i<size;i++) {
+                TreeNode n=q.remove(); level.add(n.val);
+                if(n.left!=null) q.add(n.left);
+                if(n.right!=null) q.add(n.right);
+            }
+            ans.add(level);
+        }
+        return ans;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Snapshot the queue size before processing a layer so children remain for the next layer.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(w), excluding O(n) output.
+
+<a id="lc-107"></a>
+### LC 107 — Question 10/58
+
+**Problem statement**
+
+Return the tree levels from deepest to root while maintaining left-to-right order within each level.
+
+**Examples**
+
+1. root=[3,9,20,null,null,15,7] → [[15,7],[9,20],[3]]
+2. root=[1] → [[1]]
+
+**Constraints**
+
+0–2000 nodes; values −1000 to 1000.
+
+**Why this belongs to the family**
+
+A question depends on level order, per-depth statistics, or level-based transformations.
+
+**Exact implementation evolution**
+
+Reuse BFS collection and reverse outer level list (or prepend completed levels).
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<List<Integer>> levelOrderBottom(TreeNode root) {
+        List<List<Integer>> ans=new ArrayList<>();
+        if(root==null) return ans;
+        Deque<TreeNode> q=new ArrayDeque<>(); q.add(root);
+        while(!q.isEmpty()) {
+            int size=q.size(); List<Integer> level=new ArrayList<>();
+            for(int i=0;i<size;i++) {
+                TreeNode n=q.remove(); level.add(n.val);
+                if(n.left!=null) q.add(n.left);
+                if(n.right!=null) q.add(n.right);
+            }
+            ans.add(level);
+        }
+        Collections.reverse(ans); return ans;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Use the same layer collection as 102, then reverse only the outer list.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(w), excluding O(n) output.
+
+<a id="lc-199"></a>
+### LC 199 — Question 11/58
+
+**Problem statement**
+
+Return the values visible when viewing the tree from the right, ordered from root depth downward.
+
+**Examples**
+
+1. root=[1,2,3,null,5,null,4] → [1,3,4]
+2. root=[1,2] → [1,2]
+
+**Constraints**
+
+0–100 nodes; values −100 to 100.
+
+**Why this belongs to the family**
+
+A question depends on level order, per-depth statistics, or level-based transformations.
+
+**Exact implementation evolution**
+
+Replace whole-level output with last node visited at each BFS layer.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<Integer> rightSideView(TreeNode root) {
+        List<Integer> ans=new ArrayList<>(); if(root==null) return ans;
+        Deque<TreeNode> q=new ArrayDeque<>(); q.add(root);
+        while(!q.isEmpty()) {
+            int size=q.size();
+            for(int i=0;i<size;i++) {
+                TreeNode n=q.remove(); if(i==size-1) ans.add(n.val);
+                if(n.left!=null) q.add(n.left);
+                if(n.right!=null) q.add(n.right);
+            }
+        }
+        return ans;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+In a left-to-right BFS, only the final node of each layer is visible.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(w), excluding output.
+
+<a id="lc-637"></a>
+### LC 637 — Question 12/58
+
+**Problem statement**
+
+Return the arithmetic mean of node values at each depth from top to bottom.
+
+**Examples**
+
+1. root=[3,9,20,null,null,15,7] → [3.0,14.5,11.0]
+2. root=[1,2,3] → [1.0,2.5]
+
+**Constraints**
+
+1–10,000 nodes; values may span signed 32-bit integers.
+
+**Why this belongs to the family**
+
+A question depends on level order, per-depth statistics, or level-based transformations.
+
+**Exact implementation evolution**
+
+Replace last-value selection with long/double sum and division by level size.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<Double> averageOfLevels(TreeNode root) {
+        List<Double> ans=new ArrayList<>(); if(root==null) return ans;
+        Deque<TreeNode> q=new ArrayDeque<>(); q.add(root);
+        while(!q.isEmpty()) {
+            int size=q.size(); long sum=0;
+            for(int i=0;i<size;i++) {
+                TreeNode n=q.remove(); sum+=n.val;
+                if(n.left!=null) q.add(n.left);
+                if(n.right!=null) q.add(n.right);
+            }
+            ans.add((double)sum/size);
+        }
+        return ans;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Accumulate a long sum per layer and divide by its original size as a double.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(w), excluding output.
+
+<a id="lc-515"></a>
+### LC 515 — Question 13/58
+
+**Problem statement**
+
+Return the largest node value at each depth, ordered from root to deepest level.
+
+**Examples**
+
+1. root=[1,3,2,5,3,null,9] → [1,3,9]
+2. root=[-1,-2,-3] → [-1,-2]
+
+**Constraints**
+
+0–10,000 nodes; values span signed 32-bit integers.
+
+**Why this belongs to the family**
+
+A question depends on level order, per-depth statistics, or level-based transformations.
+
+**Exact implementation evolution**
+
+Replace numeric average with maximum tracker initialized to Integer.MIN_VALUE.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<Integer> largestValues(TreeNode root) {
+        List<Integer> ans=new ArrayList<>(); if(root==null) return ans;
+        Deque<TreeNode> q=new ArrayDeque<>(); q.add(root);
+        while(!q.isEmpty()) {
+            int size=q.size(), max=Integer.MIN_VALUE;
+            for(int i=0;i<size;i++) {
+                TreeNode n=q.remove(); max=Math.max(max,n.val);
+                if(n.left!=null) q.add(n.left);
+                if(n.right!=null) q.add(n.right);
+            }
+            ans.add(max);
+        }
+        return ans;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Reset maximum to Integer.MIN_VALUE at each level to handle negative values.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(w), excluding output.
+
+<a id="lc-2415"></a>
+### LC 2415 — Question 14/58
+
+**Problem statement**
+
+Given a perfect binary tree, reverse the values (not pointers) at every odd depth, with root at depth zero. Return root.
+
+**Examples**
+
+1. root=[2,3,5,8,13,21,34] → [2,5,3,8,13,21,34]
+2. root=[7] → [7]
+
+**Constraints**
+
+1–2^14 nodes; values 0–100,000; all internal nodes have two children and leaves share a depth.
+
+**Why this belongs to the family**
+
+A question depends on level order, per-depth statistics, or level-based transformations.
+
+**Exact implementation evolution**
+
+Keep level batches but swap symmetric node values only on odd levels; track level parity.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public TreeNode reverseOddLevels(TreeNode root) {
+        if(root==null) return null;
+        Deque<TreeNode> q=new ArrayDeque<>(); q.add(root); int depth=0;
+        while(!q.isEmpty()) {
+            int size=q.size(); List<TreeNode> level=new ArrayList<>();
+            for(int i=0;i<size;i++) {
+                TreeNode n=q.remove();
+                if((depth&1)==1) level.add(n);
+                if(n.left!=null) q.add(n.left);
+                if(n.right!=null) q.add(n.right);
+            }
+            for(int l=0,r=level.size()-1;l<r;l++,r--) {
+                int temp=level.get(l).val; level.get(l).val=level.get(r).val; level.get(r).val=temp;
+            }
+            depth++;
+        }
+        return root;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Collect references for the odd layer and swap values from both ends; even layers are unchanged.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(w).
+
+<a id="t5"></a>
+## T5 — Next-right link construction
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Populate next pointers among peers, and avoid linking across level boundaries.
+
+**Core reusable logic:** connect sibling and cross-parent children using next, then descend to next level.
+
+**Ordered questions:** LC 116, LC 117
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+Node level = root;
+while (level != null) {
+    Node dummy = new Node(0), tail = dummy;
+    for (Node cur = level; cur != null; cur = cur.next) {
+        if (cur.left != null) { tail.next = cur.left; tail = tail.next; }
+        if (cur.right != null) { tail.next = cur.right; tail = tail.next; }
+    }
+    level = dummy.next;
+}
+```
+
+<a id="lc-116"></a>
+### LC 116 — Question 15/58
+
+**Problem statement**
+
+Given a perfect tree with next pointers initially null, connect each node to the node immediately to its right on the same depth; the final node of a level points to null. Return root.
+
+**Examples**
+
+1. root=[1,2,3,4,5,6,7] → next chains 1#; 2→3#; 4→5→6→7#
+2. root=[] → []
+
+**Constraints**
+
+0–4095 nodes; values −1000 to 1000; perfect binary tree; constant extra space requested.
+
+**Why this belongs to the family**
+
+Populate next pointers among peers, and avoid linking across level boundaries.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. connect sibling and cross-parent children using next, then descend to next level.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public Node connect(Node root) {
+        for(Node level=root;level!=null && level.left!=null;level=level.left) {
+            for(Node cur=level;cur!=null;cur=cur.next) {
+                cur.left.next=cur.right;
+                cur.right.next=cur.next==null?null:cur.next.left;
+            }
+        }
+        return root;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Walk existing next links. Connect siblings and connect a right child to the following parent’s left child.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(1).
+
+<a id="lc-117"></a>
+### LC 117 — Question 16/58
+
+**Problem statement**
+
+Populate next-right pointers in an arbitrary binary tree, including missing children. End each level with null and return root.
+
+**Examples**
+
+1. root=[1,2,3,4,5,null,7] → next chains 1#; 2→3#; 4→5→7#
+2. root=[1,null,2] → next chains 1#; 2#
+
+**Constraints**
+
+0–6000 nodes; values −100 to 100; next initially null; constant extra space requested.
+
+**Why this belongs to the family**
+
+Populate next pointers among peers, and avoid linking across level boundaries.
+
+**Exact implementation evolution**
+
+Remove perfect-child assumptions; create each next-level chain via dummy head/tail while walking existing next chain.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public Node connect(Node root) {
+        Node level=root;
+        while(level!=null) {
+            Node dummy=new Node(0), tail=dummy;
+            for(Node cur=level;cur!=null;cur=cur.next) {
+                if(cur.left!=null) {tail.next=cur.left; tail=tail.next;}
+                if(cur.right!=null) {tail.next=cur.right; tail=tail.next;}
+            }
+            tail.next=null; level=dummy.next;
+        }
+        return root;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Use a dummy node and tail to append existing children in order while walking the current level through next.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(1).
+
+<a id="t6"></a>
+## T6 — Indexed breadth-first width
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Positions in a conceptual complete tree define span width even across null gaps.
+
+**Core reusable logic:** BFS queue holds node and complete-tree position, width = last-first+1.
+
+**Ordered questions:** LC 662
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+record Pos(TreeNode node, long index) {}
+Deque<Pos> q = new ArrayDeque<>();
+q.add(new Pos(root, 0));
+while (!q.isEmpty()) {
+    int size = q.size(); long base = q.peekFirst().index();
+    for (int i = 0; i < size; i++) {
+        Pos p = q.removeFirst();
+        long normalized = p.index() - base;
+        // enqueue children at 2*normalized and 2*normalized+1
+    }
+}
+```
+
+<a id="lc-662"></a>
+### LC 662 — Question 17/58
+
+**Problem statement**
+
+Return the maximum width of a binary tree. Width is the number of complete-tree positions between the leftmost and rightmost existing nodes at one depth, including missing slots between them.
+
+**Examples**
+
+1. root=[1,3,2,5,3,null,9] → 4
+2. root=[1,2,null,3] → 1
+
+**Constraints**
+
+1–3000 nodes; values −100 to 100; answer fits signed 32-bit integer.
+
+**Why this belongs to the family**
+
+Positions in a conceptual complete tree define span width even across null gaps.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. BFS queue holds node and complete-tree position, width = last-first+1.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    private record Entry(TreeNode node,long pos) {}
+    public int widthOfBinaryTree(TreeNode root) {
+        if(root==null) return 0;
+        Deque<Entry> q=new ArrayDeque<>(); q.add(new Entry(root,0)); long best=0;
+        while(!q.isEmpty()) {
+            int size=q.size(); long base=q.peek().pos(), p=0;
+            for(int i=0;i<size;i++) {
+                Entry e=q.remove(); p=e.pos()-base; TreeNode n=e.node();
+                if(n.left!=null) q.add(new Entry(n.left,2*p));
+                if(n.right!=null) q.add(new Entry(n.right,2*p+1));
+            }
+            best=Math.max(best,p+1);
+        }
+        return (int)best;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Carry long complete-tree indexes, subtract first index of each layer, and use the final normalized index plus one.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(w).
+
+<a id="t7"></a>
+## T7 — Root-to-leaf path state
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Carry additive/ordered state along a root-to-leaf path; only leaves complete candidates.
+
+**Core reusable logic:** subtract current value, accept only at a leaf when remaining becomes zero.
+
+**Ordered questions:** LC 112, LC 113, LC 129
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+void dfs(TreeNode node, long state) {
+    if (node == null) return;
+    long next = state + node.val; // replace path transition
+    if (node.left == null && node.right == null) {
+        // inspect completed root-to-leaf state
+        return;
+    }
+    dfs(node.left, next); dfs(node.right, next);
+}
+```
+
+<a id="lc-112"></a>
+### LC 112 — Question 18/58
+
+**Problem statement**
+
+Return true if some root-to-leaf path has node values summing to targetSum. A leaf has no children.
+
+**Examples**
+
+1. root=[5,4,8,11,null,13,4,7,2,null,null,null,1], targetSum=22 → true
+2. root=[1,2,3], targetSum=1 → false
+
+**Constraints**
+
+0–5000 nodes; values and targetSum −1000 to 1000.
+
+**Why this belongs to the family**
+
+Carry additive/ordered state along a root-to-leaf path; only leaves complete candidates.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. subtract current value, accept only at a leaf when remaining becomes zero.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean hasPathSum(TreeNode root,int targetSum) {
+        if(root==null) return false;
+        int remaining=targetSum-root.val;
+        if(root.left==null && root.right==null) return remaining==0;
+        return hasPathSum(root.left,remaining)||hasPathSum(root.right,remaining);
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Subtract current value, accept only at a leaf, and short-circuit when either subtree succeeds.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(h).
+
+<a id="lc-113"></a>
+### LC 113 — Question 19/58
+
+**Problem statement**
+
+Return all root-to-leaf paths whose node values add to targetSum. Each result is the sequence of values in root-to-leaf order.
+
+**Examples**
+
+1. root=[5,4,8,11,null,13,4,7,2,null,null,5,1], targetSum=22 → [[5,4,11,2],[5,8,4,5]]
+2. root=[1,2,3], targetSum=5 → []
+
+**Constraints**
+
+0–5000 nodes; values and targetSum −1000 to 1000.
+
+**Why this belongs to the family**
+
+Carry additive/ordered state along a root-to-leaf path; only leaves complete candidates.
+
+**Exact implementation evolution**
+
+Keep remaining-sum test; add mutable path list, emit snapshot at valid leaf and undo on return.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<List<Integer>> pathSum(TreeNode root,int targetSum) {
+        List<List<Integer>> ans=new ArrayList<>();
+        dfs(root,targetSum,new ArrayList<>(),ans); return ans;
+    }
+    private void dfs(TreeNode n,int remaining,List<Integer> path,List<List<Integer>> ans) {
+        if(n==null) return;
+        path.add(n.val); remaining-=n.val;
+        if(n.left==null && n.right==null && remaining==0) ans.add(new ArrayList<>(path));
+        dfs(n.left,remaining,path,ans); dfs(n.right,remaining,path,ans);
+        path.remove(path.size()-1);
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Append on entry, copy the path at qualifying leaves, and remove the last element before returning.
+
+**Complexity**
+
+- Time: O(n+L), L total emitted path length.
+- Space: O(h) auxiliary; O(L) output.
+
+<a id="lc-129"></a>
+### LC 129 — Question 20/58
+
+**Problem statement**
+
+Each node stores one digit. Interpret each root-to-leaf path as a base-10 number and return the sum of those numbers.
+
+**Examples**
+
+1. root=[1,2,3] → 25 (12+13)
+2. root=[4,9,0,5,1] → 1026 (495+491+40)
+
+**Constraints**
+
+1–1000 nodes; digits 0–9; depth at most 10; answer fits signed 32-bit integer.
+
+**Why this belongs to the family**
+
+Carry additive/ordered state along a root-to-leaf path; only leaves complete candidates.
+
+**Exact implementation evolution**
+
+Replace target-filtered path list with accumulator next=10*prefix+digit; sum all leaf results.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int sumNumbers(TreeNode root) {return dfs(root,0);}
+    private int dfs(TreeNode n,int prefix) {
+        if(n==null) return 0;
+        int next=prefix*10+n.val;
+        if(n.left==null && n.right==null) return next;
+        return dfs(n.left,next)+dfs(n.right,next);
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Extend the numeric prefix using prefix*10+digit. Return it at a leaf and sum child contributions otherwise.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(h).
+
+<a id="t8"></a>
+## T8 — Prefix-sum frequency along DFS ancestry
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Count downward paths starting anywhere, not just the root; ancestral prefixes determine answers.
+
+**Core reusable logic:** visit path prefix, query target difference, add before descendants and decrement on backtrack.
+
+**Ordered questions:** LC 437
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+Map<Long,Integer> count = new HashMap<>();
+count.put(0L, 1);
+void dfs(TreeNode node, long prefix) {
+    if (node == null) return;
+    prefix += node.val;
+    // add count[prefix-target] before incrementing this prefix
+    count.merge(prefix, 1, Integer::sum);
+    dfs(node.left, prefix); dfs(node.right, prefix);
+    count.merge(prefix, -1, Integer::sum); // undo per branch
+}
+```
+
+<a id="lc-437"></a>
+### LC 437 — Question 21/58
+
+**Problem statement**
+
+Count nonempty downward paths whose node values sum to targetSum. Paths may start and finish anywhere, but may only follow parent-to-child edges.
+
+**Examples**
+
+1. root=[10,5,-3,3,2,null,11,3,-2,null,1], targetSum=8 → 3
+2. root=[0,0,0], targetSum=0 → 5
+
+**Constraints**
+
+0–1000 nodes; values −10^9 to 10^9; targetSum −1000 to 1000.
+
+**Why this belongs to the family**
+
+Count downward paths starting anywhere, not just the root; ancestral prefixes determine answers.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. visit path prefix, query target difference, add before descendants and decrement on backtrack.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int pathSum(TreeNode root,int targetSum) {
+        Map<Long,Integer> freq=new HashMap<>(); freq.put(0L,1);
+        return dfs(root,0L,targetSum,freq);
+    }
+    private int dfs(TreeNode n,long sum,int target,Map<Long,Integer> freq) {
+        if(n==null) return 0;
+        sum+=n.val; int count=freq.getOrDefault(sum-target,0);
+        freq.merge(sum,1,Integer::sum);
+        count+=dfs(n.left,sum,target,freq)+dfs(n.right,sum,target,freq);
+        int left=freq.get(sum)-1;
+        if(left==0) freq.remove(sum); else freq.put(sum,left);
+        return count;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+For prefix P, each active ancestor prefix P−target identifies one matching start. Seed zero prefix and undo the count after visiting both children.
+
+**Complexity**
+
+- Time: O(n) expected.
+- Space: O(h) auxiliary.
+
+<a id="t9"></a>
+## T9 — String-valued root-to-leaf paths
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Need a path string, not a numeric aggregate; append on entry and undo at return.
+
+**Core reusable logic:** append arrow-delimited node values; snapshot at leaf and restore builder length.
+
+**Ordered questions:** LC 257, LC 988
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+void dfs(TreeNode node, StringBuilder path) {
+    if (node == null) return;
+    int saved = path.length();
+    path.append(node.val);
+    if (node.left == null && node.right == null) { /* record leaf */ }
+    else { dfs(node.left, path); dfs(node.right, path); }
+    path.setLength(saved);
+}
+```
+
+<a id="lc-257"></a>
+### LC 257 — Question 22/58
+
+**Problem statement**
+
+Return every root-to-leaf path as a string with adjacent node values separated by arrows (->).
+
+**Examples**
+
+1. root=[1,2,3,null,5] → ["1->2->5","1->3"]
+2. root=[1] → ["1"]
+
+**Constraints**
+
+1–100 nodes; values −100 to 100.
+
+**Why this belongs to the family**
+
+Need a path string, not a numeric aggregate; append on entry and undo at return.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. append arrow-delimited node values; snapshot at leaf and restore builder length.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<String> binaryTreePaths(TreeNode root) {
+        List<String> ans=new ArrayList<>(); dfs(root,new StringBuilder(),ans); return ans;
+    }
+    private void dfs(TreeNode n,StringBuilder path,List<String> ans) {
+        if(n==null) return;
+        int len=path.length(); if(len>0) path.append("->"); path.append(n.val);
+        if(n.left==null && n.right==null) ans.add(path.toString());
+        dfs(n.left,path,ans); dfs(n.right,path,ans); path.setLength(len);
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Reuse a StringBuilder, save its original length, append current value, and restore the length on return.
+
+**Complexity**
+
+- Time: O(n+L), L total output characters.
+- Space: O(h) auxiliary for bounded-width values; O(L) output.
+
+<a id="lc-988"></a>
+### LC 988 — Question 23/58
+
+**Problem statement**
+
+Map values 0–25 to letters a–z. Return the lexicographically smallest string formed by reading a path from a leaf toward the root.
+
+**Examples**
+
+1. root=[0,1,2,3,4,3,4] → "dba"
+2. root=[25] → "z"
+
+**Constraints**
+
+1–8500 nodes; values 0–25.
+
+**Why this belongs to the family**
+
+Need a path string, not a numeric aggregate; append on entry and undo at return.
+
+**Exact implementation evolution**
+
+Keep path backtracking; append letters, reverse interpretation only at leaves and update lexicographic minimum.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    private String best;
+    public String smallestFromLeaf(TreeNode root) {best=null; dfs(root,new StringBuilder()); return best;}
+    private void dfs(TreeNode n,StringBuilder path) {
+        if(n==null) return;
+        int len=path.length(); path.append((char)('a'+n.val));
+        if(n.left==null && n.right==null) {
+            String candidate=new StringBuilder(path).reverse().toString();
+            if(best==null || candidate.compareTo(best)<0) best=candidate;
+        }
+        dfs(n.left,path); dfs(n.right,path); path.setLength(len);
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Maintain root-to-current letters; reverse a copy at leaves, compare against the best, then backtrack.
+
+**Complexity**
+
+- Time: O(n+L), L sum of leaf path lengths; O(nh) worst.
+- Space: O(h).
+
+<a id="t10"></a>
+## T10 — Ancestor extrema along DFS paths
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Evaluate each descendant relative to previous ancestors’ min/max rather than all ancestor pairs.
+
+**Core reusable logic:** if node>=prior maximum count it; update max for children.
+
+**Ordered questions:** LC 1448, LC 1026
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+void dfs(TreeNode node, int minimum, int maximum) {
+    if (node == null) return;
+    minimum = Math.min(minimum, node.val);
+    maximum = Math.max(maximum, node.val);
+    // check path-dependent invariant
+    dfs(node.left, minimum, maximum);
+    dfs(node.right, minimum, maximum);
+}
+```
+
+<a id="lc-1448"></a>
+### LC 1448 — Question 24/58
+
+**Problem statement**
+
+Count good nodes: a node is good if no ancestor on its root-to-node path has a value greater than its own.
+
+**Examples**
+
+1. root=[3,1,4,3,null,1,5] → 4
+2. root=[-2,-3,-1] → 2
+
+**Constraints**
+
+1–100,000 nodes; values −10,000 to 10,000.
+
+**Why this belongs to the family**
+
+Evaluate each descendant relative to previous ancestors’ min/max rather than all ancestor pairs.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. if node>=prior maximum count it; update max for children.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int goodNodes(TreeNode root) {return dfs(root,Integer.MIN_VALUE);}
+    private int dfs(TreeNode n,int max) {
+        if(n==null) return 0;
+        int good=n.val>=max?1:0; max=Math.max(max,n.val);
+        return good+dfs(n.left,max)+dfs(n.right,max);
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Pass the maximum value encountered so far; count current if it reaches or exceeds that maximum.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(h).
+
+<a id="lc-1026"></a>
+### LC 1026 — Question 25/58
+
+**Problem statement**
+
+Return the largest absolute difference between the values of any ancestor and one of its descendants.
+
+**Examples**
+
+1. root=[8,3,10,1,6,null,14,null,null,4,7,13] → 7
+2. root=[1,null,2,null,0,3] → 3
+
+**Constraints**
+
+2–5000 nodes; values 0–100,000.
+
+**Why this belongs to the family**
+
+Evaluate each descendant relative to previous ancestors’ min/max rather than all ancestor pairs.
+
+**Exact implementation evolution**
+
+Extend single maximum state to both path min and max; update answer using node relative to extrema.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int maxAncestorDiff(TreeNode root) {return dfs(root,root.val,root.val);}
+    private int dfs(TreeNode n,int min,int max) {
+        if(n==null) return max-min;
+        min=Math.min(min,n.val); max=Math.max(max,n.val);
+        return Math.max(dfs(n.left,min,max),dfs(n.right,min,max));
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Track both minimum and maximum along each root path. Their difference is the maximum gap on that path.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(h).
+
+<a id="t11"></a>
+## T11 — General binary-tree lowest common ancestor
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** A subtree can report a matching target or propagated LCA; left and right signals merge.
+
+**Core reusable logic:** return target if found, merge nonnull child results at first shared ancestor.
+
+**Ordered questions:** LC 236
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+TreeNode lca(TreeNode node, TreeNode a, TreeNode b) {
+    if (node == null || node == a || node == b) return node;
+    TreeNode l = lca(node.left, a, b), r = lca(node.right, a, b);
+    return l != null && r != null ? node : l != null ? l : r;
+}
+```
+
+<a id="lc-236"></a>
+### LC 236 — Question 26/58
+
+**Problem statement**
+
+Given two distinct nodes p and q in a binary tree, return their lowest common ancestor (the deepest node that contains both in its subtree, including itself).
+
+**Examples**
+
+1. root=[3,5,1,6,2,0,8,null,null,7,4], p=5, q=1 → node 3
+2. same root, p=5, q=4 → node 5
+
+**Constraints**
+
+2–100,000 nodes; unique values; p and q both exist and are distinct.
+
+**Why this belongs to the family**
+
+A subtree can report a matching target or propagated LCA; left and right signals merge.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. return target if found, merge nonnull child results at first shared ancestor.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public TreeNode lowestCommonAncestor(TreeNode root,TreeNode p,TreeNode q) {
+        if(root==null || root==p || root==q) return root;
+        TreeNode l=lowestCommonAncestor(root.left,p,q), r=lowestCommonAncestor(root.right,p,q);
+        if(l!=null && r!=null) return root;
+        return l!=null?l:r;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Return a target itself if encountered. When both child results are nonnull, current is the LCA; otherwise propagate the nonnull result.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(h).
+
+<a id="t12"></a>
+## T12 — Deepest-leaf postorder LCA
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Find deepest descendant height and common root of all deepest leaves in one return object.
+
+**Core reusable logic:** choose deeper child candidate; if depths equal, current node is common ancestor.
+
+**Ordered questions:** LC 1123
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+record State(TreeNode root, int depth) {}
+State solve(TreeNode node) {
+    if (node == null) return new State(null, 0);
+    State l = solve(node.left), r = solve(node.right);
+    if (l.depth() == r.depth()) return new State(node, l.depth() + 1);
+    return l.depth() > r.depth() ? new State(l.root(), l.depth()+1)
+                                  : new State(r.root(), r.depth()+1);
+}
+```
+
+<a id="lc-1123"></a>
+### LC 1123 — Question 27/58
+
+**Problem statement**
+
+Return the lowest common ancestor of all leaves at the greatest depth. A single deepest leaf is its own LCA.
+
+**Examples**
+
+1. root=[3,5,1,6,2,0,8,null,null,7,4] → subtree [2,7,4]
+2. root=[1] → node 1
+
+**Constraints**
+
+1–1000 nodes; distinct values 0–1000.
+
+**Why this belongs to the family**
+
+Find deepest descendant height and common root of all deepest leaves in one return object.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. choose deeper child candidate; if depths equal, current node is common ancestor.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    private record State(int height,TreeNode lca) {}
+    public TreeNode lcaDeepestLeaves(TreeNode root) {return dfs(root).lca();}
+    private State dfs(TreeNode n) {
+        if(n==null) return new State(0,null);
+        State l=dfs(n.left),r=dfs(n.right);
+        if(l.height()==r.height()) return new State(l.height()+1,n);
+        State deep=l.height()>r.height()?l:r;
+        return new State(deep.height()+1,deep.lca());
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Return (height,candidate) from each subtree. Equal heights select the current node; otherwise propagate the deeper candidate.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(h).
+
+<a id="t13"></a>
+## T13 — BST ordered lookup and mutation
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** BST ordering eliminates entire subtrees during search or insert/delete.
+
+**Core reusable logic:** ordered comparison eliminates half of the remaining search path.
+
+**Ordered questions:** LC 700, LC 701, LC 450, LC 669
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+TreeNode find(TreeNode node, int key) {
+    while (node != null && node.val != key)
+        node = key < node.val ? node.left : node.right;
+    return node;
+}
+```
+
+<a id="lc-700"></a>
+### LC 700 — Question 28/58
+
+**Problem statement**
+
+Given a BST and val, find the node with that value and return its subtree. Return null if absent.
+
+**Examples**
+
+1. root=[4,2,7,1,3], val=2 → [2,1,3]
+2. same root, val=5 → null
+
+**Constraints**
+
+1–5000 nodes; values and val 1–10^7; valid BST.
+
+**Why this belongs to the family**
+
+BST ordering eliminates entire subtrees during search or insert/delete.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. ordered comparison eliminates half of the remaining search path.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public TreeNode searchBST(TreeNode root,int val) {
+        while(root!=null && root.val!=val) root=val<root.val?root.left:root.right;
+        return root;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Use ordering to choose one child at each step; no stack is needed.
+
+**Complexity**
+
+- Time: O(h).
+- Space: O(1).
+
+<a id="lc-701"></a>
+### LC 701 — Question 29/58
+
+**Problem statement**
+
+Insert a value not already present into a BST and return the root of any valid resulting BST.
+
+**Examples**
+
+1. root=[4,2,7,1,3], val=5 → [4,2,7,1,3,5]
+2. root=[], val=2 → [2]
+
+**Constraints**
+
+0–10,000 nodes; distinct values; val absent; values −10^8 to 10^8.
+
+**Why this belongs to the family**
+
+BST ordering eliminates entire subtrees during search or insert/delete.
+
+**Exact implementation evolution**
+
+Reuse descent comparisons; on null create new node and return rewritten subtree root.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public TreeNode insertIntoBST(TreeNode root,int val) {
+        if(root==null) return new TreeNode(val);
+        if(val<root.val) root.left=insertIntoBST(root.left,val);
+        else root.right=insertIntoBST(root.right,val);
+        return root;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Follow comparisons until a null pointer and create a node. Return subtree roots to reconnect links.
+
+**Complexity**
+
+- Time: O(h).
+- Space: O(h).
+
+<a id="lc-450"></a>
+### LC 450 — Question 30/58
+
+**Problem statement**
+
+Delete the node whose value equals key from a BST if present; return the possibly changed root and preserve BST ordering.
+
+**Examples**
+
+1. root=[5,3,6,2,4,null,7], key=3 → [5,4,6,2,null,null,7]
+2. root=[1], key=1 → []
+
+**Constraints**
+
+0–10,000 nodes; distinct values; values and key −10^5 to 10^5.
+
+**Why this belongs to the family**
+
+BST ordering eliminates entire subtrees during search or insert/delete.
+
+**Exact implementation evolution**
+
+Reuse recursive search/return links; add 0/1/2-child deletion cases and in-order successor extraction.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public TreeNode deleteNode(TreeNode root,int key) {
+        if(root==null) return null;
+        if(key<root.val) root.left=deleteNode(root.left,key);
+        else if(key>root.val) root.right=deleteNode(root.right,key);
+        else {
+            if(root.left==null) return root.right;
+            if(root.right==null) return root.left;
+            TreeNode s=root.right; while(s.left!=null) s=s.left;
+            root.val=s.val; root.right=deleteNode(root.right,s.val);
+        }
+        return root;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Return the surviving child for zero/one-child deletion. With two children, copy the inorder successor value and delete that successor.
+
+**Complexity**
+
+- Time: O(h).
+- Space: O(h).
+
+<a id="lc-669"></a>
+### LC 669 — Question 31/58
+
+**Problem statement**
+
+Remove all BST nodes outside inclusive [low,high] while preserving the relative ancestor-descendant structure of surviving nodes. Return the new root.
+
+**Examples**
+
+1. root=[1,0,2], low=1, high=2 → [1,null,2]
+2. root=[3,0,4,null,2,null,null,1], low=1, high=3 → [3,2,null,1]
+
+**Constraints**
+
+1–10,000 nodes; distinct values 0–10,000; 0 ≤ low ≤ high ≤ 10,000.
+
+**Why this belongs to the family**
+
+BST ordering eliminates entire subtrees during search or insert/delete.
+
+**Exact implementation evolution**
+
+Keep recursive return-replacement of child links; change equality search to range pruning of entire subtrees.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public TreeNode trimBST(TreeNode root,int low,int high) {
+        if(root==null) return null;
+        if(root.val<low) return trimBST(root.right,low,high);
+        if(root.val>high) return trimBST(root.left,low,high);
+        root.left=trimBST(root.left,low,high);
+        root.right=trimBST(root.right,low,high);
+        return root;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+When root is below low, discard its entire left subtree; when above high, discard its right subtree. Otherwise trim both child links.
+
+**Complexity**
+
+- Time: O(n) worst.
+- Space: O(h).
+
+<a id="t14"></a>
+## T14 — BST in-order sorted stream
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Inorder traversal of BST produces ascending values, enabling adjacent/rank/run statistics.
+
+**Core reusable logic:** inorder stream, reject current <= previous.
+
+**Ordered questions:** LC 98, LC 530, LC 501, LC 230
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+TreeNode current = root;
+Deque<TreeNode> stack = new ArrayDeque<>();
+while (current != null || !stack.isEmpty()) {
+    while (current != null) { stack.push(current); current = current.left; }
+    current = stack.pop();
+    // consume next sorted value
+    current = current.right;
+}
+```
+
+<a id="lc-98"></a>
+### LC 98 — Question 32/58
+
+**Problem statement**
+
+Determine whether the entire binary tree obeys strict BST ordering: every value in a left subtree is smaller, every value in a right subtree is greater, and both subtrees satisfy the same condition.
+
+**Examples**
+
+1. root=[2,1,3] → true
+2. root=[5,1,4,null,null,3,6] → false
+
+**Constraints**
+
+1–10,000 nodes; values span signed 32-bit integers.
+
+**Why this belongs to the family**
+
+Inorder traversal of BST produces ascending values, enabling adjacent/rank/run statistics.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. inorder stream, reject current <= previous.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean isValidBST(TreeNode root) {
+        Deque<TreeNode> stack=new ArrayDeque<>(); long prev=Long.MIN_VALUE;
+        TreeNode cur=root;
+        while(cur!=null || !stack.isEmpty()) {
+            while(cur!=null) {stack.push(cur); cur=cur.left;}
+            cur=stack.pop(); if(cur.val<=prev) return false;
+            prev=cur.val; cur=cur.right;
+        }
+        return true;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Inorder must be strictly increasing. Use a long sentinel so Integer.MIN_VALUE is not rejected.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(h).
+
+<a id="lc-530"></a>
+### LC 530 — Question 33/58
+
+**Problem statement**
+
+Return the smallest absolute difference between values of any two distinct nodes in a BST.
+
+**Examples**
+
+1. root=[4,2,6,1,3] → 1
+2. root=[1,null,8] → 7
+
+**Constraints**
+
+2–10,000 nodes; values 0–100,000; valid BST.
+
+**Why this belongs to the family**
+
+Inorder traversal of BST produces ascending values, enabling adjacent/rank/run statistics.
+
+**Exact implementation evolution**
+
+Replace reject-if-not-increasing check with minimum consecutive gap accumulation.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int getMinimumDifference(TreeNode root) {
+        Deque<TreeNode> stack=new ArrayDeque<>(); TreeNode cur=root;
+        Integer prev=null; int best=Integer.MAX_VALUE;
+        while(cur!=null || !stack.isEmpty()) {
+            while(cur!=null) {stack.push(cur); cur=cur.left;}
+            cur=stack.pop(); if(prev!=null) best=Math.min(best,cur.val-prev);
+            prev=cur.val; cur=cur.right;
+        }
+        return best;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Only neighboring sorted values can minimize the gap. Stream inorder and compare with previous value.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(h).
+
+<a id="lc-501"></a>
+### LC 501 — Question 34/58
+
+**Problem statement**
+
+Given a BST that permits duplicate values, return all values having the greatest frequency, in any order.
+
+**Examples**
+
+1. root=[1,null,2,2] → [2]
+2. root=[2,1,3] → [1,2,3]
+
+**Constraints**
+
+1–10,000 nodes; values may repeat; BST ordering is nondecreasing in inorder.
+
+**Why this belongs to the family**
+
+Inorder traversal of BST produces ascending values, enabling adjacent/rank/run statistics.
+
+**Exact implementation evolution**
+
+Replace adjacent difference minimum with current run count, maximum run length, and mode list.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[] findMode(TreeNode root) {
+        Deque<TreeNode> stack=new ArrayDeque<>(); TreeNode cur=root;
+        Integer prev=null; int run=0,best=0; List<Integer> modes=new ArrayList<>();
+        while(cur!=null || !stack.isEmpty()) {
+            while(cur!=null) {stack.push(cur); cur=cur.left;}
+            cur=stack.pop(); run=prev!=null && prev==cur.val?run+1:1;
+            if(run>best) {best=run; modes.clear();}
+            if(run==best) modes.add(cur.val);
+            prev=cur.val; cur=cur.right;
+        }
+        return modes.stream().mapToInt(Integer::intValue).toArray();
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Equal values are contiguous in inorder. Maintain current run and highest run; clear outdated modes when a new maximum appears.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(h+n) worst including temporary mode candidates; O(k) final output.
+
+<a id="lc-230"></a>
+### LC 230 — Question 35/58
+
+**Problem statement**
+
+Return the kth smallest value in a BST, where k is one-based and valid.
+
+**Examples**
+
+1. root=[3,1,4,null,2], k=1 → 1
+2. root=[5,3,6,2,4,null,null,1], k=3 → 3
+
+**Constraints**
+
+1–10,000 nodes; 1 ≤ k ≤ node count; values 0–10,000.
+
+**Why this belongs to the family**
+
+Inorder traversal of BST produces ascending values, enabling adjacent/rank/run statistics.
+
+**Exact implementation evolution**
+
+Replace run counting with visit rank and stop when rank reaches k; optionally iterative early exit.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int kthSmallest(TreeNode root,int k) {
+        Deque<TreeNode> stack=new ArrayDeque<>(); TreeNode cur=root;
+        while(cur!=null || !stack.isEmpty()) {
+            while(cur!=null) {stack.push(cur); cur=cur.left;}
+            cur=stack.pop(); if(--k==0) return cur.val;
+            cur=cur.right;
+        }
+        throw new IllegalArgumentException("Invalid k");
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Visit sorted inorder nodes and decrement k; terminate on the kth visit.
+
+**Complexity**
+
+- Time: O(h+k).
+- Space: O(h).
+
+<a id="t15"></a>
+## T15 — Balanced/reconstructed binary trees from traversals
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Build subtree root recursively from a bounded interval and a known root-selection rule.
+
+**Core reusable logic:** select middle element as root and recursively build two index halves.
+
+**Ordered questions:** LC 108
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+TreeNode build(int lo, int hi) {
+    if (lo > hi) return null;
+    int mid = lo + (hi - lo) / 2; // problem-specific root index
+    TreeNode root = new TreeNode(values[mid]);
+    root.left = build(lo, mid - 1);
+    root.right = build(mid + 1, hi);
+    return root;
+}
+```
+
+<a id="lc-108"></a>
+### LC 108 — Question 36/58
+
+**Problem statement**
+
+Convert a strictly increasing sorted integer array into a height-balanced BST. Return any valid balanced BST.
+
+**Examples**
+
+1. nums=[-10,-3,0,5,9] → [0,-10,5,null,-3,null,9]
+2. nums=[1,3] → [1,null,3]
+
+**Constraints**
+
+1–10,000 values; strictly increasing; values −10,000 to 10,000.
+
+**Why this belongs to the family**
+
+Build subtree root recursively from a bounded interval and a known root-selection rule.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. select middle element as root and recursively build two index halves.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public TreeNode sortedArrayToBST(int[] nums) {return build(nums,0,nums.length-1);}
+    private TreeNode build(int[] a,int l,int r) {
+        if(l>r) return null;
+        int m=l+(r-l)/2; TreeNode n=new TreeNode(a[m]);
+        n.left=build(a,l,m-1); n.right=build(a,m+1,r); return n;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Choose midpoint of each inclusive interval as root, then recursively construct left/right halves.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(log n) auxiliary; O(n) tree output.
+
+<a id="t16"></a>
+## T16 — Tree construction from traversal partitions
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Pre/postorder identifies root, inorder or subtree index isolates left and right ranges.
+
+**Core reusable logic:** consume preorder root, split inorder interval by root index, then build children.
+
+**Ordered questions:** LC 105, LC 106, LC 889
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+Map<Integer,Integer> inPos = new HashMap<>();
+// Build lookup from inorder value to position (values distinct).
+TreeNode build(int inL, int inR) {
+    if (inL > inR) return null;
+    int value = preorder[preIndex++];
+    int cut = inPos.get(value);
+    TreeNode node = new TreeNode(value);
+    node.left = build(inL, cut-1);
+    node.right = build(cut+1, inR);
+    return node;
+}
+```
+
+<a id="lc-105"></a>
+### LC 105 — Question 37/58
+
+**Problem statement**
+
+Given preorder and inorder traversal arrays of the same binary tree with unique values, reconstruct its root. Preorder visits root-left-right; inorder visits left-root-right.
+
+**Examples**
+
+1. preorder=[3,9,20,15,7], inorder=[9,3,15,20,7] → [3,9,20,null,null,15,7]
+2. preorder=[-1], inorder=[-1] → [-1]
+
+**Constraints**
+
+1–3000 nodes; distinct values −3000 to 3000; traversals consistent.
+
+**Why this belongs to the family**
+
+Pre/postorder identifies root, inorder or subtree index isolates left and right ranges.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. consume preorder root, split inorder interval by root index, then build children.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    private int pos; private Map<Integer,Integer> index;
+    public TreeNode buildTree(int[] preorder,int[] inorder) {
+        pos=0; index=new HashMap<>();
+        for(int i=0;i<inorder.length;i++) index.put(inorder[i],i);
+        return build(preorder,0,inorder.length-1);
+    }
+    private TreeNode build(int[] pre,int l,int r) {
+        if(l>r) return null;
+        TreeNode n=new TreeNode(pre[pos++]); int m=index.get(n.val);
+        n.left=build(pre,l,m-1); n.right=build(pre,m+1,r); return n;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Consume preorder root using a cursor, find its inorder index in O(1) expected, then build left and right partitions.
+
+**Complexity**
+
+- Time: O(n) expected.
+- Space: O(n+h) auxiliary.
+
+<a id="lc-106"></a>
+### LC 106 — Question 38/58
+
+**Problem statement**
+
+Reconstruct a binary tree with unique values from its inorder and postorder traversals. Postorder visits left-right-root.
+
+**Examples**
+
+1. inorder=[9,3,15,20,7], postorder=[9,15,7,20,3] → [3,9,20,null,null,15,7]
+2. inorder=[1,2], postorder=[1,2] → [2,1]
+
+**Constraints**
+
+1–3000 nodes; distinct values −3000 to 3000; consistent traversals.
+
+**Why this belongs to the family**
+
+Pre/postorder identifies root, inorder or subtree index isolates left and right ranges.
+
+**Exact implementation evolution**
+
+Retain inorder-index map; change root cursor to reverse postorder and build right subtree before left.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    private int pos; private Map<Integer,Integer> index;
+    public TreeNode buildTree(int[] inorder,int[] postorder) {
+        pos=postorder.length-1; index=new HashMap<>();
+        for(int i=0;i<inorder.length;i++) index.put(inorder[i],i);
+        return build(postorder,0,inorder.length-1);
+    }
+    private TreeNode build(int[] post,int l,int r) {
+        if(l>r) return null;
+        TreeNode n=new TreeNode(post[pos--]); int m=index.get(n.val);
+        n.right=build(post,m+1,r); n.left=build(post,l,m-1); return n;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Read postorder backward (root-right-left); use the same inorder split but construct right before left.
+
+**Complexity**
+
+- Time: O(n) expected.
+- Space: O(n+h) auxiliary.
+
+<a id="lc-889"></a>
+### LC 889 — Question 39/58
+
+**Problem statement**
+
+Given preorder and postorder traversals of a binary tree with distinct values, construct any tree producing both arrays. A single-child node can admit more than one solution.
+
+**Examples**
+
+1. preorder=[1,2,4,5,3,6,7], postorder=[4,5,2,6,7,3,1] → [1,2,3,4,5,6,7]
+2. preorder=[1,2], postorder=[2,1] → [1,2]
+
+**Constraints**
+
+1–30 nodes; distinct values 1–n; traversals consistent.
+
+**Why this belongs to the family**
+
+Pre/postorder identifies root, inorder or subtree index isolates left and right ranges.
+
+**Exact implementation evolution**
+
+Replace inorder cut with postorder subtree-size partition; consume preorder root, derive left size from postorder next-child root.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    private int pos; private Map<Integer,Integer> index;
+    public TreeNode constructFromPrePost(int[] preorder,int[] postorder) {
+        pos=0; index=new HashMap<>();
+        for(int i=0;i<postorder.length;i++) index.put(postorder[i],i);
+        return build(preorder,0,postorder.length-1);
+    }
+    private TreeNode build(int[] pre,int l,int r) {
+        if(l>r) return null;
+        TreeNode n=new TreeNode(pre[pos++]); if(l==r) return n;
+        int m=index.get(pre[pos]);
+        n.left=build(pre,l,m); n.right=build(pre,m+1,r-1); return n;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+The next preorder value identifies the left subtree root. Its postorder position determines the size of the left partition.
+
+**Complexity**
+
+- Time: O(n) expected.
+- Space: O(n+h) auxiliary.
+
+<a id="t17"></a>
+## T17 — BST preorder with value bounds
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Ordering permits direct construction without inorder array.
+
+**Core reusable logic:** consume preorder element only when it fits current BST value interval.
+
+**Ordered questions:** LC 1008
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+int index = 0;
+TreeNode build(long low, long high) {
+    if (index == preorder.length) return null;
+    int x = preorder[index];
+    if (x <= low || x >= high) return null;
+    index++;
+    TreeNode n = new TreeNode(x);
+    n.left = build(low, x); n.right = build(x, high);
+    return n;
+}
+```
+
+<a id="lc-1008"></a>
+### LC 1008 — Question 40/58
+
+**Problem statement**
+
+Construct the BST represented by its preorder traversal. Values are distinct and the array is guaranteed to describe a valid BST.
+
+**Examples**
+
+1. preorder=[8,5,1,7,10,12] → [8,5,10,1,7,null,12]
+2. preorder=[1,3] → [1,null,3]
+
+**Constraints**
+
+1–100 values; distinct integers 1–1000; valid BST preorder.
+
+**Why this belongs to the family**
+
+Ordering permits direct construction without inorder array.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. consume preorder element only when it fits current BST value interval.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    private int pos;
+    public TreeNode bstFromPreorder(int[] preorder) {pos=0; return build(preorder,Long.MIN_VALUE,Long.MAX_VALUE);}
+    private TreeNode build(int[] a,long low,long high) {
+        if(pos==a.length || a[pos]<=low || a[pos]>=high) return null;
+        TreeNode n=new TreeNode(a[pos++]);
+        n.left=build(a,low,n.val); n.right=build(a,n.val,high); return n;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Consume the next element only if it falls inside the open interval allowed for the current subtree.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(h) auxiliary.
+
+<a id="t18"></a>
+## T18 — Tree serialization and reconstruction
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Encode both structure and values, then decode with matching recursive order.
+
+**Core reusable logic:** each node/null consumes a token, recursively reconstruct exact shape.
+
+**Ordered questions:** LC 297, LC 449
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+void encode(TreeNode n, StringBuilder out) {
+    if (n == null) { out.append("#,"); return; }
+    out.append(n.val).append(',');
+    encode(n.left, out); encode(n.right, out);
+}
+// Decode with a shared preorder token index, including null markers.
+```
+
+<a id="lc-297"></a>
+### LC 297 — Question 41/58
+
+**Problem statement**
+
+Implement a codec that converts an arbitrary binary tree to a string and reconstructs the identical structure and values from that string. You may choose the encoding.
+
+**Examples**
+
+1. root=[1,2,3,null,null,4,5] → serialize → deserialize → [1,2,3,null,null,4,5]
+2. root=[] → serialize → deserialize → []
+
+**Constraints**
+
+0–10,000 nodes; values −1000 to 1000; codec must preserve null children and duplicate values.
+
+**Why this belongs to the family**
+
+Encode both structure and values, then decode with matching recursive order.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. each node/null consumes a token, recursively reconstruct exact shape.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Codec {
+    public String serialize(TreeNode root) {
+        StringBuilder out=new StringBuilder(); encode(root,out); return out.toString();
+    }
+    private void encode(TreeNode n,StringBuilder out) {
+        if(n==null) {out.append("#,"); return;}
+        out.append(n.val).append(','); encode(n.left,out); encode(n.right,out);
+    }
+    public TreeNode deserialize(String data) {
+        String[] tokens=data.split(","); int[] pos={0}; return decode(tokens,pos);
+    }
+    private TreeNode decode(String[] a,int[] pos) {
+        String token=a[pos[0]++]; if(token.equals("#")) return null;
+        TreeNode n=new TreeNode(Integer.parseInt(token));
+        n.left=decode(a,pos); n.right=decode(a,pos); return n;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Use preorder with # for null. Each recursive decode consumes exactly one token for root or null, then decodes children.
+
+**Complexity**
+
+- Time: O(n) for each operation (bounded integer token size).
+- Space: O(n) tokens/string; O(h) recursion.
+
+<a id="lc-449"></a>
+### LC 449 — Question 42/58
+
+**Problem statement**
+
+Implement serialization and deserialization for a BST. The output string should be as compact as practical and reconstruct the original tree.
+
+**Examples**
+
+1. root=[2,1,3] → "2,1,3," → [2,1,3]
+2. root=[] → "" → []
+
+**Constraints**
+
+0–10,000 nodes; values 0–10,000; valid BST.
+
+**Why this belongs to the family**
+
+Encode both structure and values, then decode with matching recursive order.
+
+**Exact implementation evolution**
+
+Remove null markers; reuse preorder stream but apply BST lower/upper-bound reconstruction instead of shape tokens.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Codec {
+    public String serialize(TreeNode root) {
+        StringBuilder out=new StringBuilder(); encode(root,out); return out.toString();
+    }
+    private void encode(TreeNode n,StringBuilder out) {
+        if(n==null) return;
+        out.append(n.val).append(','); encode(n.left,out); encode(n.right,out);
+    }
+    public TreeNode deserialize(String data) {
+        if(data.isEmpty()) return null;
+        String[] tokens=data.split(","); int[] pos={0};
+        return decode(tokens,pos,Long.MIN_VALUE,Long.MAX_VALUE);
+    }
+    private TreeNode decode(String[] a,int[] pos,long low,long high) {
+        if(pos[0]==a.length) return null;
+        int v=Integer.parseInt(a[pos[0]]); if(v<=low || v>=high) return null;
+        pos[0]++; TreeNode n=new TreeNode(v);
+        n.left=decode(a,pos,low,v); n.right=decode(a,pos,v,high); return n;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Store only preorder values. During decoding, strict value bounds identify subtree boundaries without null markers.
+
+**Complexity**
+
+- Time: O(n) for each operation.
+- Space: O(n) tokens/string; O(h) recursion.
+
+<a id="t19"></a>
+## T19 — Recover BST by inorder inversions
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Exactly two swapped values break ascending inorder order at one or two inversions.
+
+**Core reusable logic:** remember previous sorted item, first wrong predecessor and last wrong successor; swap values.
+
+**Ordered questions:** LC 99
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+TreeNode previous = null, first = null, second = null;
+void inorder(TreeNode node) {
+    if (node == null) return;
+    inorder(node.left);
+    if (previous != null && previous.val > node.val) {
+        if (first == null) first = previous;
+        second = node;
+    }
+    previous = node;
+    inorder(node.right);
+}
+```
+
+<a id="lc-99"></a>
+### LC 99 — Question 43/58
+
+**Problem statement**
+
+Exactly two node values in a BST were exchanged by mistake. Restore the valid BST without changing its structure.
+
+**Examples**
+
+1. root=[1,3,null,null,2] → [3,1,null,null,2]
+2. root=[3,1,4,null,null,2] → [2,1,4,null,null,3]
+
+**Constraints**
+
+2–1000 nodes; signed 32-bit values; exactly two values swapped. Constant-space follow-up exists.
+
+**Why this belongs to the family**
+
+Exactly two swapped values break ascending inorder order at one or two inversions.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. remember previous sorted item, first wrong predecessor and last wrong successor; swap values.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public void recoverTree(TreeNode root) {
+        Deque<TreeNode> stack=new ArrayDeque<>(); TreeNode cur=root,prev=null,first=null,second=null;
+        while(cur!=null || !stack.isEmpty()) {
+            while(cur!=null) {stack.push(cur); cur=cur.left;}
+            cur=stack.pop();
+            if(prev!=null && prev.val>cur.val) {if(first==null) first=prev; second=cur;}
+            prev=cur; cur=cur.right;
+        }
+        if(first!=null) {int t=first.val; first.val=second.val; second.val=t;}
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+First inversion identifies the larger misplaced predecessor; every inversion updates the smaller misplaced successor. Swap the two stored values.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(h).
+
+<a id="t20"></a>
+## T20 — Tree DP with include/exclude states
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Optimal decision at node depends on whether direct parent/child is selected.
+
+**Core reusable logic:** include node excludes both children; exclude node may choose each child best.
+
+**Ordered questions:** LC 337
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+long[] dp(TreeNode node) {
+    if (node == null) return new long[]{0, 0};
+    long[] l = dp(node.left), r = dp(node.right);
+    long take = node.val + l[0] + r[0];
+    long skip = Math.max(l[0], l[1]) + Math.max(r[0], r[1]);
+    return new long[]{skip, take};
+}
+```
+
+<a id="lc-337"></a>
+### LC 337 — Question 44/58
+
+**Problem statement**
+
+Each tree node contains money. Maximize total money selected without selecting both endpoints of any parent-child edge.
+
+**Examples**
+
+1. root=[3,2,3,null,3,null,1] → 7
+2. root=[3,4,5,1,3,null,1] → 9
+
+**Constraints**
+
+1–10,000 nodes; values 0–10,000.
+
+**Why this belongs to the family**
+
+Optimal decision at node depends on whether direct parent/child is selected.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. include node excludes both children; exclude node may choose each child best.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int rob(TreeNode root) {int[] s=dfs(root); return Math.max(s[0],s[1]);}
+    private int[] dfs(TreeNode n) {
+        if(n==null) return new int[]{0,0};
+        int[] l=dfs(n.left),r=dfs(n.right);
+        int skip=Math.max(l[0],l[1])+Math.max(r[0],r[1]);
+        int take=n.val+l[0]+r[0]; return new int[]{skip,take};
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Return skip and take states per node. Take uses child skip states; skip takes the maximum from each child.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(h).
+
+<a id="t21"></a>
+## T21 — Camera-state postorder coverage
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Local coverage status dictates whether a parent must place a camera.
+
+**Core reusable logic:** uncovered child forces current camera; cover current if child has camera; guard uncovered root.
+
+**Ordered questions:** LC 968
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+// 0 = uncovered, 1 = camera, 2 = covered
+int cover(TreeNode node) {
+    if (node == null) return 2;
+    int l = cover(node.left), r = cover(node.right);
+    if (l == 0 || r == 0) { cameras++; return 1; }
+    if (l == 1 || r == 1) return 2;
+    return 0;
+}
+```
+
+<a id="lc-968"></a>
+### LC 968 — Question 45/58
+
+**Problem statement**
+
+Place the fewest cameras so every node is monitored. A camera monitors its own node, its parent, and its immediate children.
+
+**Examples**
+
+1. root=[0,0,null,0,0] → 1
+2. root=[0] → 1
+
+**Constraints**
+
+1–1000 nodes; all values zero.
+
+**Why this belongs to the family**
+
+Local coverage status dictates whether a parent must place a camera.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. uncovered child forces current camera; cover current if child has camera; guard uncovered root.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    private static final int UNCOVERED=0,CAMERA=1,COVERED=2;
+    private int count;
+    public int minCameraCover(TreeNode root) {count=0; if(dfs(root)==UNCOVERED) count++; return count;}
+    private int dfs(TreeNode n) {
+        if(n==null) return COVERED;
+        int l=dfs(n.left),r=dfs(n.right);
+        if(l==UNCOVERED || r==UNCOVERED) {count++; return CAMERA;}
+        if(l==CAMERA || r==CAMERA) return COVERED;
+        return UNCOVERED;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Null is covered; an uncovered child forces a camera at current node; a camera child covers current node; otherwise current remains uncovered. Finally handle root.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(h).
+
+<a id="t22"></a>
+## T22 — Postorder deletion and forest pruning
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Must decide child links after processing descendants, then return null when deleting this node.
+
+**Core reusable logic:** recurse children first; if node becomes matching leaf return null.
+
+**Ordered questions:** LC 1325, LC 1110
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+TreeNode prune(TreeNode n) {
+    if (n == null) return null;
+    n.left = prune(n.left);
+    n.right = prune(n.right);
+    if (shouldRemove(n)) return null;
+    return n;
+}
+```
+
+<a id="lc-1325"></a>
+### LC 1325 — Question 46/58
+
+**Problem statement**
+
+Delete every leaf whose value equals target. If a deletion causes its parent to become a matching leaf, continue until no matching leaves remain. Return the surviving root.
+
+**Examples**
+
+1. root=[1,2,3,2,null,2,4], target=2 → [1,null,3,null,4]
+2. root=[1,1,1], target=1 → []
+
+**Constraints**
+
+1–3000 nodes; values and target 1–1000.
+
+**Why this belongs to the family**
+
+Must decide child links after processing descendants, then return null when deleting this node.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. recurse children first; if node becomes matching leaf return null.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public TreeNode removeLeafNodes(TreeNode root,int target) {
+        if(root==null) return null;
+        root.left=removeLeafNodes(root.left,target); root.right=removeLeafNodes(root.right,target);
+        return root.left==null && root.right==null && root.val==target?null:root;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Prune children first, then check whether current node is now a matching leaf. Returning null removes its incoming link.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(h).
+
+<a id="lc-1110"></a>
+### LC 1110 — Question 47/58
+
+**Problem statement**
+
+Delete every node whose value is in to_delete and return the roots of the resulting disjoint trees, in any order.
+
+**Examples**
+
+1. root=[1,2,3,4,5,6,7], to_delete=[3,5] → [[1,2,null,4],[6],[7]]
+2. root=[1,2,3], to_delete=[1] → [[2],[3]]
+
+**Constraints**
+
+1–1000 nodes; unique values 1–1000; deletion values distinct.
+
+**Why this belongs to the family**
+
+Must decide child links after processing descendants, then return null when deleting this node.
+
+**Exact implementation evolution**
+
+Reuse null-on-delete recursion; add root-is-new-tree flag and emit surviving roots of deleted parents.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<TreeNode> delNodes(TreeNode root,int[] to_delete) {
+        Set<Integer> deleted=new HashSet<>(); for(int v:to_delete) deleted.add(v);
+        List<TreeNode> forest=new ArrayList<>(); prune(root,true,deleted,forest); return forest;
+    }
+    private TreeNode prune(TreeNode n,boolean isRoot,Set<Integer> deleted,List<TreeNode> forest) {
+        if(n==null) return null;
+        boolean remove=deleted.contains(n.val);
+        if(isRoot && !remove) forest.add(n);
+        n.left=prune(n.left,remove,deleted,forest); n.right=prune(n.right,remove,deleted,forest);
+        return remove?null:n;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Propagate whether a node would be a new forest root. If a node is deleted, both children become root candidates; return null to detach it.
+
+**Complexity**
+
+- Time: O(n+d) expected.
+- Space: O(h+d) auxiliary, d deletion values; O(k) output.
+
+<a id="t23"></a>
+## T23 — Subtree matching and repeated signatures
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Recognize subtree equality via recursive structure/value signatures, then reuse a signature for every subtree.
+
+**Core reusable logic:** traverse possible roots and recursively compare candidate structure/values; O(n*m) worst.
+
+**Ordered questions:** LC 572, LC 652
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+String signature(TreeNode n, Map<String,Integer> freq) {
+    if (n == null) return "#";
+    String left = signature(n.left, freq);
+    String right = signature(n.right, freq);
+    String key = "(" + left + "," + n.val + "," + right + ")";
+    freq.merge(key, 1, Integer::sum);
+    return key;
+}
+```
+
+<a id="lc-572"></a>
+### LC 572 — Question 48/58
+
+**Problem statement**
+
+Return whether subRoot is identical in shape and values to a subtree rooted at any node of root. A subtree includes every descendant of its root.
+
+**Examples**
+
+1. root=[3,4,5,1,2], subRoot=[4,1,2] → true
+2. root=[3,4,5,1,2,null,null,null,null,0], subRoot=[4,1,2] → false
+
+**Constraints**
+
+root: 1–2000 nodes; subRoot: 1–1000 nodes; values −10,000 to 10,000.
+
+**Why this belongs to the family**
+
+Recognize subtree equality via recursive structure/value signatures, then reuse a signature for every subtree.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. traverse possible roots and recursively compare candidate structure/values; O(n*m) worst.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean isSubtree(TreeNode root,TreeNode subRoot) {
+        if(subRoot==null) return true;
+        if(root==null) return false;
+        return same(root,subRoot)||isSubtree(root.left,subRoot)||isSubtree(root.right,subRoot);
+    }
+    private boolean same(TreeNode a,TreeNode b) {
+        if(a==null || b==null) return a==b;
+        return a.val==b.val && same(a.left,b.left) && same(a.right,b.right);
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Scan possible roots; reuse exact structural matching from LC 100 at each candidate. Short-circuit on match.
+
+**Complexity**
+
+- Time: O(n*m) worst.
+- Space: O(h1+h2).
+
+<a id="lc-652"></a>
+### LC 652 — Question 49/58
+
+**Problem statement**
+
+Return one root for each distinct subtree shape/value combination occurring at least twice in the tree. Two subtrees are duplicates only if both structure and all values match.
+
+**Examples**
+
+1. root=[1,2,3,4,null,2,4,null,null,4] → [[2,4],[4]]
+2. root=[2,1,1] → [[1]]
+
+**Constraints**
+
+1–5000 nodes; values −200 to 200.
+
+**Why this belongs to the family**
+
+Recognize subtree equality via recursive structure/value signatures, then reuse a signature for every subtree.
+
+**Exact implementation evolution**
+
+Replace pairwise structural checks with memoized interned (value,leftId,rightId) subtree IDs and signature frequencies, O(n) expected.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    private record Key(int value,int left,int right) {}
+    private Map<Key,Integer> ids; private Map<Integer,Integer> counts; private List<TreeNode> ans;
+    public List<TreeNode> findDuplicateSubtrees(TreeNode root) {
+        ids=new HashMap<>(); counts=new HashMap<>(); ans=new ArrayList<>(); dfs(root); return ans;
+    }
+    private int dfs(TreeNode n) {
+        if(n==null) return 0;
+        Key k=new Key(n.val,dfs(n.left),dfs(n.right));
+        int id=ids.computeIfAbsent(k,key->ids.size()+1);
+        if(counts.merge(id,1,Integer::sum)==2) ans.add(n);
+        return id;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Assign null ID 0, intern each tuple (value,leftID,rightID) into a unique ID, and emit a root only when its count reaches 2.
+
+**Complexity**
+
+- Time: O(n) expected.
+- Space: O(n+h) auxiliary.
+
+<a id="t24"></a>
+## T24 — Lazy BST inorder iterator
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Support next() and hasNext() without flattening entire tree, using a left-spine stack.
+
+**Core reusable logic:** persist traversal stack between calls and push only unvisited left spine.
+
+**Ordered questions:** LC 173
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+Deque<TreeNode> pending = new ArrayDeque<>();
+void pushLeft(TreeNode n) {
+    while (n != null) { pending.push(n); n = n.left; }
+}
+// next: pop one, pushLeft(its right).
+```
+
+<a id="lc-173"></a>
+### LC 173 — Question 50/58
+
+**Problem statement**
+
+Implement a BST iterator initialized with root. next() returns the next smallest value; hasNext() reports whether another value exists. Avoid materializing the entire traversal.
+
+**Examples**
+
+1. root=[7,3,15,null,null,9,20]; next(),next(),hasNext(),next() → 3,7,true,9
+2. root=[1]; hasNext(),next(),hasNext() → true,1,false
+
+**Constraints**
+
+1–100,000 nodes; valid BST; next called only when a next element exists; target O(h) space and amortized O(1) next.
+
+**Why this belongs to the family**
+
+Support next() and hasNext() without flattening entire tree, using a left-spine stack.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. persist traversal stack between calls and push only unvisited left spine.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class BSTIterator {
+    private final Deque<TreeNode> stack=new ArrayDeque<>();
+    public BSTIterator(TreeNode root) {pushLeft(root);}
+    private void pushLeft(TreeNode n) {while(n!=null) {stack.push(n); n=n.left;}}
+    public int next() {TreeNode n=stack.pop(); pushLeft(n.right); return n.val;}
+    public boolean hasNext() {return !stack.isEmpty();}
+}
+```
+
+**Key logic / correctness invariant**
+
+Maintain a stack of unvisited ancestors. After popping the next node, push the left spine of its right subtree.
+
+**Complexity**
+
+- Time: Constructor O(h); next amortized O(1), worst O(h); hasNext O(1).
+- Space: O(h).
+
+<a id="t25"></a>
+## T25 — Coordinate ordering of tree nodes
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Rows/columns come from BFS/DFS coordinates; output order imposes multiple sorted keys.
+
+**Core reusable logic:** assign (column,row,value), sort multi-key records, group equal columns.
+
+**Ordered questions:** LC 987
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+record Cell(int col, int row, int value) {}
+void visit(TreeNode n, int row, int col, List<Cell> cells) {
+    if (n == null) return;
+    cells.add(new Cell(col, row, n.val));
+    visit(n.left, row+1, col-1, cells);
+    visit(n.right, row+1, col+1, cells);
+}
+// Sort by col, then row, then value.
+```
+
+<a id="lc-987"></a>
+### LC 987 — Question 51/58
+
+**Problem statement**
+
+Assign root coordinates (row=0,column=0). A left child is (row+1,column−1), a right child (row+1,column+1). Return columns from left to right, each sorted by row and then ascending value for equal coordinates.
+
+**Examples**
+
+1. root=[3,9,20,null,null,15,7] → [[9],[3,15],[20],[7]]
+2. root=[1,2,3,4,6,5,7] → [[4],[2],[1,5,6],[3],[7]]
+
+**Constraints**
+
+1–1000 nodes; values 0–1000.
+
+**Why this belongs to the family**
+
+Rows/columns come from BFS/DFS coordinates; output order imposes multiple sorted keys.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. assign (column,row,value), sort multi-key records, group equal columns.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    private record Entry(int col,int row,int val) {}
+    public List<List<Integer>> verticalTraversal(TreeNode root) {
+        List<Entry> entries=new ArrayList<>(); dfs(root,0,0,entries);
+        entries.sort(Comparator.comparingInt(Entry::col).thenComparingInt(Entry::row).thenComparingInt(Entry::val));
+        List<List<Integer>> ans=new ArrayList<>(); Integer prev=null;
+        for(Entry e:entries) {
+            if(prev==null || prev!=e.col()) {ans.add(new ArrayList<>()); prev=e.col();}
+            ans.get(ans.size()-1).add(e.val());
+        }
+        return ans;
+    }
+    private void dfs(TreeNode n,int row,int col,List<Entry> entries) {
+        if(n==null) return;
+        entries.add(new Entry(col,row,n.val)); dfs(n.left,row+1,col-1,entries); dfs(n.right,row+1,col+1,entries);
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Collect triples (column,row,value), sort lexicographically on these fields, then group equal columns.
+
+**Complexity**
+
+- Time: O(n log n).
+- Space: O(n+h) auxiliary.
+
+<a id="t26"></a>
+## T26 — Layer parity and node-order constraints
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Validate constraints applying to levels and left-to-right node order.
+
+**Core reusable logic:** level parity sets admissible value parity and strict comparison direction.
+
+**Ordered questions:** LC 1609
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+int depth = 0;
+while (!q.isEmpty()) {
+    int size = q.size(), prev = depth % 2 == 0 ? Integer.MIN_VALUE : Integer.MAX_VALUE;
+    for (int i=0; i<size; i++) {
+        TreeNode n = q.removeFirst();
+        // check parity and monotone relation against prev
+        prev = n.val;
+        // enqueue children
+    }
+    depth++;
+}
+```
+
+<a id="lc-1609"></a>
+### LC 1609 — Question 52/58
+
+**Problem statement**
+
+Determine whether each even-indexed level contains odd values strictly increasing left-to-right, and each odd-indexed level contains even values strictly decreasing left-to-right. Root level is zero.
+
+**Examples**
+
+1. root=[1,10,4,3,null,7,9,12,8,6,null,null,2] → true
+2. root=[5,4,2,3,3,7] → false
+
+**Constraints**
+
+1–100,000 nodes; positive values 1–10^6.
+
+**Why this belongs to the family**
+
+Validate constraints applying to levels and left-to-right node order.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. level parity sets admissible value parity and strict comparison direction.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean isEvenOddTree(TreeNode root) {
+        if(root==null) return true;
+        Deque<TreeNode> q=new ArrayDeque<>(); q.add(root); boolean even=true;
+        while(!q.isEmpty()) {
+            int size=q.size(),prev=even?Integer.MIN_VALUE:Integer.MAX_VALUE;
+            for(int i=0;i<size;i++) {
+                TreeNode n=q.remove(); int v=n.val;
+                if(even ? (v%2==0 || v<=prev) : (v%2!=0 || v>=prev)) return false;
+                prev=v; if(n.left!=null) q.add(n.left); if(n.right!=null) q.add(n.right);
+            }
+            even=!even;
+        }
+        return true;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Use BFS; level parity determines valid value parity and comparison direction. Reset previous value at each level.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(w).
+
+<a id="t27"></a>
+## T27 — Complete tree positional structure
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Validate no child can appear after a gap in breadth-first complete-tree order.
+
+**Core reusable logic:** BFS with explicit missing-child placeholders and sticky gap flag.
+
+**Ordered questions:** LC 958
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+Deque<TreeNode> q = new LinkedList<>(); // allows null entries
+q.add(root); boolean gap = false;
+while (!q.isEmpty()) {
+    TreeNode n = q.removeFirst();
+    if (n == null) { gap = true; continue; }
+    if (gap) { /* not complete */ }
+    q.addLast(n.left); q.addLast(n.right);
+}
+```
+
+<a id="lc-958"></a>
+### LC 958 — Question 53/58
+
+**Problem statement**
+
+Determine whether the tree is complete: every level except possibly the last is filled, and the last level is filled from left to right with no gaps.
+
+**Examples**
+
+1. root=[1,2,3,4,5,6] → true
+2. root=[1,2,3,4,5,null,7] → false
+
+**Constraints**
+
+1–100 nodes; values 1–1000.
+
+**Why this belongs to the family**
+
+Validate no child can appear after a gap in breadth-first complete-tree order.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. BFS with explicit missing-child placeholders and sticky gap flag.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean isCompleteTree(TreeNode root) {
+        Queue<TreeNode> q=new LinkedList<>(); q.add(root); boolean gap=false;
+        while(!q.isEmpty()) {
+            TreeNode n=q.remove();
+            if(n==null) {gap=true; continue;}
+            if(gap) return false;
+            q.add(n.left); q.add(n.right);
+        }
+        return true;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Enqueue null child placeholders with LinkedList (ArrayDeque prohibits null). Once a gap is seen, any later existing node invalidates completeness.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(w).
+
+<a id="t28"></a>
+## T28 — Tree as undirected neighborhood graph
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Allow upward movement via parent references; BFS from arbitrary starting node.
+
+**Core reusable logic:** build parent pointers and BFS over left/right/parent neighbors up to K steps.
+
+**Ordered questions:** LC 863, LC 2385
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+Map<TreeNode,TreeNode> parent = new HashMap<>();
+// Populate parent map using one DFS/BFS from root.
+Deque<TreeNode> q = new ArrayDeque<>();
+Set<TreeNode> visited = new HashSet<>();
+q.add(start); visited.add(start);
+while (!q.isEmpty()) {
+    TreeNode node = q.removeFirst();
+    // enqueue unvisited node.left, node.right, parent.get(node)
+}
+```
+
+<a id="lc-863"></a>
+### LC 863 — Question 54/58
+
+**Problem statement**
+
+Given root, an existing target node, and integer k, return the values of all nodes exactly k edges from target in any direction, in any order.
+
+**Examples**
+
+1. root=[3,5,1,6,2,0,8,null,null,7,4], target=5, k=2 → [7,4,1]
+2. root=[1], target=1, k=0 → [1]
+
+**Constraints**
+
+1–500 nodes; unique values 0–500; 0 ≤ k ≤ 1000; target exists.
+
+**Why this belongs to the family**
+
+Allow upward movement via parent references; BFS from arbitrary starting node.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. build parent pointers and BFS over left/right/parent neighbors up to K steps.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<Integer> distanceK(TreeNode root,TreeNode target,int k) {
+        Map<TreeNode,TreeNode> parent=new HashMap<>(); map(root,null,parent);
+        Set<TreeNode> seen=new HashSet<>(); Deque<TreeNode> q=new ArrayDeque<>();
+        q.add(target); seen.add(target);
+        while(k>0 && !q.isEmpty()) {
+            int size=q.size();
+            for(int i=0;i<size;i++) {
+                TreeNode n=q.remove();
+                for(TreeNode v:new TreeNode[]{n.left,n.right,parent.get(n)}) if(v!=null && seen.add(v)) q.add(v);
+            }
+            k--;
+        }
+        List<Integer> ans=new ArrayList<>(); for(TreeNode n:q) ans.add(n.val); return ans;
+    }
+    private void map(TreeNode n,TreeNode p,Map<TreeNode,TreeNode> parent) {
+        if(n==null) return; parent.put(n,p); map(n.left,n,parent); map(n.right,n,parent);
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Build parent references, then BFS from target over children and parent. Mark visited on enqueue; stop after k layers.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(n).
+
+<a id="lc-2385"></a>
+### LC 2385 — Question 55/58
+
+**Problem statement**
+
+At minute zero, the node with value start is infected. Each minute, infection spreads from infected nodes to their uninfected parents and children. Return minutes needed to infect the whole tree.
+
+**Examples**
+
+1. root=[1,5,3,null,4,10,6,9,2], start=3 → 4
+2. root=[1], start=1 → 0
+
+**Constraints**
+
+1–100,000 nodes; unique values 1–100,000; start exists.
+
+**Why this belongs to the family**
+
+Allow upward movement via parent references; BFS from arbitrary starting node.
+
+**Exact implementation evolution**
+
+Reuse parent-aware BFS; change exact-K collection to count BFS waves until all reachable nodes visited.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int amountOfTime(TreeNode root,int start) {
+        Map<TreeNode,TreeNode> parent=new HashMap<>(); Deque<TreeNode> q=new ArrayDeque<>();
+        q.add(root); TreeNode source=null;
+        while(!q.isEmpty()) {
+            TreeNode n=q.remove(); if(n.val==start) source=n;
+            if(n.left!=null) {parent.put(n.left,n); q.add(n.left);}
+            if(n.right!=null) {parent.put(n.right,n); q.add(n.right);}
+        }
+        Set<TreeNode> seen=new HashSet<>(); seen.add(source); q.add(source); int minutes=-1;
+        while(!q.isEmpty()) {
+            int size=q.size(); minutes++;
+            for(int i=0;i<size;i++) {
+                TreeNode n=q.remove();
+                for(TreeNode v:new TreeNode[]{n.left,n.right,parent.get(n)}) if(v!=null && seen.add(v)) q.add(v);
+            }
+        }
+        return minutes;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Build parent map and locate start iteratively; then run BFS over undirected neighbors, counting layers until the queue is empty.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(n).
+
+<a id="t29"></a>
+## T29 — Two-node route from common ancestor
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Find root-to-node directions, discard common prefix and encode upward moves.
+
+**Core reusable logic:** derive each root path, remove shared prefix, combine U repetitions and destination suffix.
+
+**Ordered questions:** LC 2096
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+boolean path(TreeNode n, int target, StringBuilder dirs) {
+    if (n == null) return false;
+    if (n.val == target) return true;
+    dirs.append('L');
+    if (path(n.left, target, dirs)) return true;
+    dirs.setLength(dirs.length()-1);
+    dirs.append('R');
+    if (path(n.right, target, dirs)) return true;
+    dirs.setLength(dirs.length()-1);
+    return false;
+}
+```
+
+<a id="lc-2096"></a>
+### LC 2096 — Question 56/58
+
+**Problem statement**
+
+Given two distinct node values startValue and destValue, return directions along the shortest tree path from start to destination. Use U for parent, L for left child, and R for right child.
+
+**Examples**
+
+1. root=[5,1,2,3,null,6,4], startValue=3, destValue=6 → "UURL"
+2. root=[2,1], startValue=2, destValue=1 → "L"
+
+**Constraints**
+
+2–100,000 nodes; values unique in 1–n; both values exist and differ.
+
+**Why this belongs to the family**
+
+Find root-to-node directions, discard common prefix and encode upward moves.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. derive each root path, remove shared prefix, combine U repetitions and destination suffix.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    private record Link(TreeNode parent,char dir) {}
+    public String getDirections(TreeNode root,int startValue,int destValue) {
+        Map<TreeNode,Link> parent=new HashMap<>(); Deque<TreeNode> q=new ArrayDeque<>(); q.add(root);
+        TreeNode start=null,dest=null;
+        while(!q.isEmpty()) {
+            TreeNode n=q.remove(); if(n.val==startValue) start=n; if(n.val==destValue) dest=n;
+            if(n.left!=null) {parent.put(n.left,new Link(n,'L')); q.add(n.left);}
+            if(n.right!=null) {parent.put(n.right,new Link(n,'R')); q.add(n.right);}
+        }
+        String a=path(start,parent),b=path(dest,parent); int i=0;
+        while(i<a.length() && i<b.length() && a.charAt(i)==b.charAt(i)) i++;
+        return "U".repeat(a.length()-i)+b.substring(i);
+    }
+    private String path(TreeNode n,Map<TreeNode,Link> parent) {
+        StringBuilder out=new StringBuilder();
+        while(parent.containsKey(n)) {Link link=parent.get(n); out.append(link.dir()); n=link.parent();}
+        return out.reverse().toString();
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Find root-to-start and root-to-destination direction strings, skip their shared prefix, replace remaining start steps with U, and append destination suffix. Iterative parent-map path construction avoids deep recursion.
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(n).
+
+<a id="t30"></a>
+## T30 — Euler-tour subtree exclusion queries
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Many subtree-removal height queries require reusable DFS entry/exit intervals and prefix/suffix maxima.
+
+**Core reusable logic:** subtree is contiguous DFS interval; preprocessing prefix/suffix max depths allows O(1) exclusion query.
+
+**Ordered questions:** LC 2458
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+int time = 0;
+void dfs(TreeNode n, int depth) {
+    if (n == null) return;
+    int entry = time++;
+    depthAt[entry] = depth;
+    dfs(n.left, depth+1); dfs(n.right, depth+1);
+    // subtree node positions occupy [entry, time-1]
+    exitByValue[n.val] = time-1;
+}
+```
+
+<a id="lc-2458"></a>
+### LC 2458 — Question 57/58
+
+**Problem statement**
+
+For each independent query giving a non-root node value, hypothetically remove that entire subtree and report the remaining tree height in edges. Queries do not permanently modify the original tree.
+
+**Examples**
+
+1. root=[1,3,4,2,null,6,5,null,null,null,null,null,7], queries=[4] → [2]
+2. root=[1,2,3], queries=[2,3] → [1,1]
+
+**Constraints**
+
+2–100,000 nodes; unique values 1–n; 1–10,000 queries; query never equals root.
+
+**Why this belongs to the family**
+
+Many subtree-removal height queries require reusable DFS entry/exit intervals and prefix/suffix maxima.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. subtree is contiguous DFS interval; preprocessing prefix/suffix max depths allows O(1) exclusion query.
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    private record Frame(TreeNode node,int depth,boolean exit) {}
+    public int[] treeQueries(TreeNode root,int[] queries) {
+        Map<Integer,Integer> tin=new HashMap<>(),tout=new HashMap<>(); List<Integer> depth=new ArrayList<>();
+        Deque<Frame> stack=new ArrayDeque<>(); stack.push(new Frame(root,0,false));
+        while(!stack.isEmpty()) {
+            Frame f=stack.pop(); TreeNode n=f.node();
+            if(f.exit()) {tout.put(n.val,depth.size()); continue;}
+            tin.put(n.val,depth.size()); depth.add(f.depth());
+            stack.push(new Frame(n,f.depth(),true));
+            if(n.right!=null) stack.push(new Frame(n.right,f.depth()+1,false));
+            if(n.left!=null) stack.push(new Frame(n.left,f.depth()+1,false));
+        }
+        int n=depth.size(); int[] pre=new int[n+1],suf=new int[n+1]; pre[0]=-1; suf[n]=-1;
+        for(int i=0;i<n;i++) pre[i+1]=Math.max(pre[i],depth.get(i));
+        for(int i=n-1;i>=0;i--) suf[i]=Math.max(suf[i+1],depth.get(i));
+        int[] ans=new int[queries.length];
+        for(int i=0;i<queries.length;i++) ans[i]=Math.max(pre[tin.get(queries[i])],suf[tout.get(queries[i])]);
+        return ans;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Use preorder entry indices and exclusive exit indices. A subtree occupies [tin,tout); max depth outside it equals max(prefix[tin],suffix[tout]). Iterative enter/exit events avoid stack overflow.
+
+**Complexity**
+
+- Time: O(n+q).
+- Space: O(n) auxiliary plus O(q) output.
+
+<a id="t31"></a>
+## T31 — Rerooting DP on tree edges
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Need answer for every possible root, so calculate one root then transfer across each edge.
+
+**Core reusable logic:** postorder derives sizes and root distance sum; preorder transfers result to child in O(1).
+
+**Ordered questions:** LC 834
+
+**Reusable Java 21 template (invariant sketch from master curriculum; not a standalone submission):**
+
+```java
+void sizes(TreeNode n) {
+    if (n == null) return;
+    size[n.val] = 1;
+    // process children, accumulate sizes and distance sum for root
+}
+void reroot(TreeNode parent, TreeNode child, int n) {
+    answer[child.val] = answer[parent.val] + n - 2 * size[child.val];
+}
+```
+
+<a id="lc-834"></a>
+### LC 834 — Question 58/58
+
+**Problem statement**
+
+Given an undirected connected tree with n nodes labeled 0 through n−1 and n−1 edges, return an array where ans[i] equals the sum of distances in edges from i to every node.
+
+**Examples**
+
+1. n=6, edges=[[0,1],[0,2],[2,3],[2,4],[2,5]] → [8,12,6,10,10,10]
+2. n=1, edges=[] → [0]
+
+**Constraints**
+
+1–30,000 nodes; n−1 unique undirected edges; connected acyclic graph.
+
+**Why this belongs to the family**
+
+Need answer for every possible root, so calculate one root then transfer across each edge.
+
+**Exact implementation evolution**
+
+Foundation of this subpattern. postorder derives sizes and root distance sum; preorder transfers result to child in O(1).
+
+**Complete Java solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[] sumOfDistancesInTree(int n,int[][] edges) {
+        List<List<Integer>> g=new ArrayList<>(); for(int i=0;i<n;i++) g.add(new ArrayList<>());
+        for(int[] e:edges) {g.get(e[0]).add(e[1]); g.get(e[1]).add(e[0]);}
+        int[] parent=new int[n],order=new int[n],size=new int[n],ans=new int[n];
+        Arrays.fill(parent,-1); Arrays.fill(size,1); order[0]=0; int count=1;
+        for(int i=0;i<count;i++) {
+            int u=order[i];
+            for(int v:g.get(u)) if(v!=parent[u]) {parent[v]=u; order[count++]=v;}
+        }
+        for(int i=n-1;i>0;i--) {int u=order[i]; size[parent[u]]+=size[u]; ans[0]+=size[u];}
+        for(int i=1;i<n;i++) {int u=order[i]; ans[u]=ans[parent[u]]+n-2*size[u];}
+        return ans;
+    }
+}
+```
+
+**Key logic / correctness invariant**
+
+Build a parent-first traversal order. Reverse it to aggregate subtree sizes and root-distance sum; traverse forward to apply ans[child]=ans[parent]+n−2*size[child].
+
+**Complexity**
+
+- Time: O(n).
+- Space: O(n).
+
+<a id="companion-concepts"></a>
+## Companion concepts and implementation caveats
+
+- **Full, perfect, complete:** Full means every node has zero or two children; perfect additionally requires all leaves at the same depth; complete means levels fill left-to-right with no gaps. LC 116/2415 rely on perfect trees; LC 958 tests completeness.
+- **Height conventions:** Null height = 0 in node-count height; leaf height = 1. Edge-count height = node-count height − 1 for nonempty trees. LC 543 and LC 2458 return edge measures, not node counts.
+- **Traversal orders:** Preorder processes root-left-right (construction, serialization); inorder processes left-root-right (BST stream); postorder processes left-right-root (height, pruning, tree DP). BFS processes each level before its children.
+- **Iterative DFS:** A preorder stack pushes right before left. An inorder stack repeatedly pushes the left spine, pops/visits, then moves right. For postorder, use enter/exit frames or a stack with a visited state. Explicit stacks avoid JVM call-stack limits.
+- **Morris inorder:** Temporarily link the rightmost node of the left subtree to its ancestor, descend left, and restore the link when encountered again. This yields O(n) time/O(1) auxiliary space; the tree must not be concurrently traversed or mutated. LC 99 can use this for its constant-space follow-up.
+- **Pointer identity:** LCA and parent-map traversals use node identity, not value equality. A standard LeetCode TreeNode does not override equals/hashCode.
+- **Overflow:** LC 437 uses long prefixes, LC 662 normalizes long position indices, LC 637 uses long sums, and strict BST checks use long bounds to avoid integer sentinel collisions.
+- **Recursion caveat:** The canonical recursive solutions retain the master plan's pedagogical progression. Deeply skewed trees can exhaust the JVM call stack, especially at the 100,000-node bounds of LC 111, 1448 and 236. For production or adversarial inputs use explicit-stack DFS or BFS. Sample tests do not establish maximum-depth safety. LC 2385, 2096, 2458 and 834 use iterative traversal to avoid that risk.
+- **Optimization scope:** LC 572 intentionally uses the locked pairwise DFS strategy rather than an asymptotically faster serialization matcher; LC 2415 intentionally uses BFS rather than mirror DFS; LC 114 uses reverse-preorder recursion rather than its O(1) rewiring follow-up. This preserves the intended solution evolution.
+- **Further advanced concepts:** Binary lifting, heavy-light decomposition and centroid decomposition are outside the locked 58-question practice sequence. No extra question IDs have been inserted.
+
+<a id="final-registry"></a>
+## Final locked question registry
+
+| Sequence | LC | Family |
+|---:|---:|---|
+| 01 | 104 | T1 — Bottom-up height and subtree metrics |
+| 02 | 111 | T1 — Bottom-up height and subtree metrics |
+| 03 | 110 | T1 — Bottom-up height and subtree metrics |
+| 04 | 543 | T1 — Bottom-up height and subtree metrics |
+| 05 | 100 | T2 — Two-tree structural comparison and mirror symmetry |
+| 06 | 101 | T2 — Two-tree structural comparison and mirror symmetry |
+| 07 | 226 | T3 — In-place tree rewiring |
+| 08 | 114 | T3 — In-place tree rewiring |
+| 09 | 102 | T4 — Breadth-first per-level aggregation |
+| 10 | 107 | T4 — Breadth-first per-level aggregation |
+| 11 | 199 | T4 — Breadth-first per-level aggregation |
+| 12 | 637 | T4 — Breadth-first per-level aggregation |
+| 13 | 515 | T4 — Breadth-first per-level aggregation |
+| 14 | 2415 | T4 — Breadth-first per-level aggregation |
+| 15 | 116 | T5 — Next-right link construction |
+| 16 | 117 | T5 — Next-right link construction |
+| 17 | 662 | T6 — Indexed breadth-first width |
+| 18 | 112 | T7 — Root-to-leaf path state |
+| 19 | 113 | T7 — Root-to-leaf path state |
+| 20 | 129 | T7 — Root-to-leaf path state |
+| 21 | 437 | T8 — Prefix-sum frequency along DFS ancestry |
+| 22 | 257 | T9 — String-valued root-to-leaf paths |
+| 23 | 988 | T9 — String-valued root-to-leaf paths |
+| 24 | 1448 | T10 — Ancestor extrema along DFS paths |
+| 25 | 1026 | T10 — Ancestor extrema along DFS paths |
+| 26 | 236 | T11 — General binary-tree lowest common ancestor |
+| 27 | 1123 | T12 — Deepest-leaf postorder LCA |
+| 28 | 700 | T13 — BST ordered lookup and mutation |
+| 29 | 701 | T13 — BST ordered lookup and mutation |
+| 30 | 450 | T13 — BST ordered lookup and mutation |
+| 31 | 669 | T13 — BST ordered lookup and mutation |
+| 32 | 98 | T14 — BST in-order sorted stream |
+| 33 | 530 | T14 — BST in-order sorted stream |
+| 34 | 501 | T14 — BST in-order sorted stream |
+| 35 | 230 | T14 — BST in-order sorted stream |
+| 36 | 108 | T15 — Balanced/reconstructed binary trees from traversals |
+| 37 | 105 | T16 — Tree construction from traversal partitions |
+| 38 | 106 | T16 — Tree construction from traversal partitions |
+| 39 | 889 | T16 — Tree construction from traversal partitions |
+| 40 | 1008 | T17 — BST preorder with value bounds |
+| 41 | 297 | T18 — Tree serialization and reconstruction |
+| 42 | 449 | T18 — Tree serialization and reconstruction |
+| 43 | 99 | T19 — Recover BST by inorder inversions |
+| 44 | 337 | T20 — Tree DP with include/exclude states |
+| 45 | 968 | T21 — Camera-state postorder coverage |
+| 46 | 1325 | T22 — Postorder deletion and forest pruning |
+| 47 | 1110 | T22 — Postorder deletion and forest pruning |
+| 48 | 572 | T23 — Subtree matching and repeated signatures |
+| 49 | 652 | T23 — Subtree matching and repeated signatures |
+| 50 | 173 | T24 — Lazy BST inorder iterator |
+| 51 | 987 | T25 — Coordinate ordering of tree nodes |
+| 52 | 1609 | T26 — Layer parity and node-order constraints |
+| 53 | 958 | T27 — Complete tree positional structure |
+| 54 | 863 | T28 — Tree as undirected neighborhood graph |
+| 55 | 2385 | T28 — Tree as undirected neighborhood graph |
+| 56 | 2096 | T29 — Two-node route from common ancestor |
+| 57 | 2458 | T30 — Euler-tour subtree exclusion queries |
+| 58 | 834 | T31 — Rerooting DP on tree edges |
+
+<a id="validation-report"></a>
+## Validation report
+
+- Registry: 58 entries, 58 distinct LeetCode IDs, 31 algorithm families; exact order extracted from C20.
+- Required sections: two examples, constraints, family recognition, exact evolution, complete Java code, key logic and complexity for every question.
+- Local compiler: `javac 21.0.12.1`. All 58 solutions compiled together in a test harness after renaming their classes only to avoid naming collisions. The workbook retains the required submission class names.
+- Local example tests: Passed 58 / 58; assertions=126. Each question has two example scenarios exercised; several have additional assertions.
+- Not performed: official LeetCode judge submissions, exhaustive/property testing, maximum-size performance or stack-depth stress testing, live verification of numeric constraints. The compiler version above is the actual installed version, not an assumed Java 21 runtime.
+- Progress remains 0/58 in the supplied master; no curriculum or project attachment was modified.

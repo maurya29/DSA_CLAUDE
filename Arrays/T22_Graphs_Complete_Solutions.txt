@@ -1,0 +1,3507 @@
+# T22 — Graphs: Complete Solutions
+
+**Java 21 | 42 locked questions | 25 algorithm families**
+
+Source: `MASTER_DSA_CURRICULUM.md`, section C22. All questions and family boundaries follow the locked registry. Problem statements are paraphrased; examples and solution implementations are authored for this workbook. The master defines algorithms and progression, but does not supply official full statements or constraints; the latter are reconstructed and have not been independently verified against the live problem pages.
+
+## How to use this workbook
+
+Read the reusable family template, solve the foundation, and then compare the next implementation with the preceding one. Start a new mental model whenever the family changes. Each solution is independent and may be submitted separately; `Node` in 133 is provided by the judge. Template fragments intentionally assume surrounding variables and helper functions and are not standalone submissions. Complexity includes auxiliary storage unless stated otherwise. V = vertices, E = edges, and m/n are dimensions or counts as defined locally.
+
+## Contents
+
+- GR1 — Undirected graph DFS and reachability: 1971, 841, 133
+- GR2 — Enumeration of all directed paths: 797
+- GR3 — Bipartite graph two-coloring: 785, 886
+- GR4 — Course ordering with Kahn topological sorting: 207, 210, 2115
+- GR5 — Reverse-topological elimination of unsafe vertices: 802
+- GR6 — Directed cycle in a functional graph: 2360, 2876
+- GR7 — Unweighted shortest paths by BFS: 433, 127, 752
+- GR8 — Shortest path on explicitly modeled state-transition graph: 909, 815
+- GR9 — Index graph BFS with implicit neighbors: 1306, 1345
+- GR10 — Alternating-edge-label BFS: 1129
+- GR11 — BFS with extra resource state: 1293, 864
+- GR12 — BFS over graph and subset state: 847
+- GR13 — Dijkstra additive nonnegative costs: 743, 1514, 1976
+- GR14 — Dijkstra with minimax/path bottleneck: 1631, 778
+- GR15 — 0–1 BFS with deque: 1368, 2290
+- GR16 — Bounded-edge shortest paths / Bellman–Ford: 787
+- GR17 — All-pairs shortest paths / transitive costs: 1334
+- GR18 — Minimum spanning tree with Prim: 1584
+- GR19 — Bridge detection using Tarjan low-link DFS: 1192
+- GR20 — Eulerian trail via Hierholzer: 332, 2097
+- GR21 — Topological DAG ancestor propagation: 1557, 2192
+- GR22 — Topological ordering with nested groups: 1203
+- GR23 — Leaf peeling for tree centers: 310
+- GR24 — Maximum reachable nodes in a directed reachability graph: 2101
+- GR25 — Mixed shortest paths and monotone DAG counting: 1786
+
+---
+
+## GR1 — Undirected graph DFS and reachability
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Edges are bidirectional; explore each vertex once with a visited set.
+
+**Core logic:** Mark a state before adding it to the frontier; a single traversal discovers its entire reachable component. Undirected input needs both edge directions, while supplied directed adjacency must not be symmetrized.
+
+**Locked questions:** 1971, 841, 133
+
+### Reusable Java 21 template
+
+```java
+List<Integer>[] adj = new List[n];
+for (int i=0;i<n;i++) adj[i]=new ArrayList<>();
+for (int[] e: edges) { adj[e[0]].add(e[1]); adj[e[1]].add(e[0]); }
+boolean[] seen = new boolean[n];
+ArrayDeque<Integer> stack = new ArrayDeque<>();
+stack.push(source); seen[source]=true;
+while (!stack.isEmpty()) {
+    int u=stack.pop();
+    for (int v:adj[u]) if (!seen[v]) {seen[v]=true; stack.push(v);}
+}
+```
+
+### 1971
+
+*Registry position: 01/42*
+
+**Problem statement**
+
+Given n vertices numbered 0 through n−1 and undirected edges, determine whether source can reach destination by following any sequence of edges. A vertex reaches itself.
+
+**Examples**
+
+- n=3, edges=[[0,1],[1,2]], source=0, destination=2 → true
+- n=3, edges=[[0,1]], source=0, destination=2 → false
+
+**Constraints**
+
+1≤n≤200000; 0≤edges.length≤200000; valid endpoints; no duplicate edges or self-loops.
+
+**Why this algorithm applies**
+
+Undirected existence of path; adjacency-list DFS/BFS in O(V+E). Build both directions. Mark on enqueue so each vertex enters the queue once. Reaching the destination proves a path.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean validPath(int n,int[][] edges,int source,int destination) {
+        List<Integer>[] g=new List[n];
+        for(int i=0;i<n;i++) g[i]=new ArrayList<>();
+        for(int[] e:edges) {
+            g[e[0]].add(e[1]);
+            g[e[1]].add(e[0]);
+        }
+        boolean[] seen=new boolean[n];
+        Queue<Integer> q=new ArrayDeque<>();
+        q.add(source);
+        seen[source]=true;
+        while(!q.isEmpty()) {
+            int u=q.remove();
+            if(u==destination)return true;
+            for(int v:g[u])if(!seen[v]) {
+                seen[v]=true;
+                q.add(v);
+            }
+        }
+        return false;
+    }
+}
+```
+
+**Key logic**
+
+Build both directions. Mark on enqueue so each vertex enters the queue once. Reaching the destination proves a path.
+
+**Complexity**
+
+O(V+E) time and space.
+
+### 841
+
+*Registry position: 02/42*
+
+**Problem statement**
+
+Room 0 is unlocked. Each room contains keys to other rooms; entering a room lets you collect its keys. Determine whether every room can be entered.
+
+**Examples**
+
+- rooms=[[1],[2],[3],[]] → true
+- rooms=[[1],[],[0]] → false
+
+**Constraints**
+
+2≤n≤1000; keys are valid room indices; up to 3000 keys total.
+
+**Why this algorithm applies**
+
+Directed room-key reachability; use room lists as outgoing adjacency, visit from room zero and test all visited. Use room lists directly as directed adjacency. Count discovered rooms rather than stopping at a specific destination.
+
+**Exact change from the previous solution**
+
+From 1971: Keep visited traversal; replace undirected edge construction with given directed neighbor lists and change success to all-vertices-seen.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean canVisitAllRooms(List<List<Integer>> rooms) {
+        boolean[] seen=new boolean[rooms.size()];
+        Queue<Integer> q=new ArrayDeque<>();
+        q.add(0);
+        seen[0]=true;
+        int count=1;
+        while(!q.isEmpty())for(int v:rooms.get(q.remove()))if(!seen[v]) {
+            seen[v]=true;
+            count++;
+            q.add(v);
+        }
+        return count==rooms.size();
+    }
+}
+```
+
+**Key logic**
+
+Use room lists directly as directed adjacency. Count discovered rooms rather than stopping at a specific destination.
+
+**Complexity**
+
+O(V+E) time, O(V) auxiliary space.
+
+### 133
+
+*Registry position: 03/42*
+
+**Problem statement**
+
+Given a reference to a node of a connected undirected graph, return a deep copy with new node objects and identical values and adjacency. Return null for an empty graph.
+
+**Examples**
+
+- adjacency=[[2],[1]] → [[2],[1]] with distinct objects
+- adjacency=[] → null
+
+**Constraints**
+
+0–100 nodes; unique node values 1–100; no duplicate edges or self-loops. Node is provided by LeetCode.
+
+**Why this algorithm applies**
+
+Graph deep copy; DFS/BFS old-to-new node map, create clone before exploring its neighbors to close cycles. Map each original object to its clone before traversing neighbors; then add cloned neighbor references. This preserves cycles and sharing.
+
+**Exact change from the previous solution**
+
+From 841: Replace boolean visited with identity-to-clone map; add copied edges while traversing existing neighbor references.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public Node cloneGraph(Node node) {
+        if(node==null)return null;
+        Map<Node,Node> copies=new IdentityHashMap<>();
+        Queue<Node> q=new ArrayDeque<>();
+        copies.put(node,new Node(node.val));
+        q.add(node);
+        while(!q.isEmpty()) {
+            Node u=q.remove();
+            for(Node v:u.neighbors) {
+                if(!copies.containsKey(v)) {
+                    copies.put(v,new Node(v.val));
+                    q.add(v);
+                }
+                copies.get(u).neighbors.add(copies.get(v));
+            }
+        }
+        return copies.get(node);
+    }
+}
+```
+
+**Key logic**
+
+Map each original object to its clone before traversing neighbors; then add cloned neighbor references. This preserves cycles and sharing.
+
+**Complexity**
+
+O(V+E) time; O(V) auxiliary space, O(V+E) output.
+
+
+---
+
+## GR2 — Enumeration of all directed paths
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Output every complete path, not merely visited vertices; maintain path-local mutable state.
+
+**Core logic:** Backtrack over path-local state. Copy a completed path before undoing it; do not globally mark vertices visited when multiple paths can share them.
+
+**Locked questions:** 797
+
+### Reusable Java 21 template
+
+```java
+void dfs(int u, int target, int[][] graph, List<Integer> path, List<List<Integer>> out) {
+    if (u == target) {out.add(new ArrayList<>(path)); return;}
+    for (int v:graph[u]) {
+        path.add(v); dfs(v,target,graph,path,out); path.remove(path.size()-1);
+    }
+} // Only for an acyclic graph, or add path-visited cycle guards.
+```
+
+### 797
+
+*Registry position: 04/42*
+
+**Problem statement**
+
+Given a directed acyclic graph as adjacency lists, return every path from vertex 0 to vertex n−1. Paths may be returned in any order.
+
+**Examples**
+
+- graph=[[1,2],[3],[3],[]] → [[0,1,3],[0,2,3]]
+- graph=[[1],[]] → [[0,1]]
+
+**Constraints**
+
+2≤n≤15; valid distinct neighbors; graph is acyclic.
+
+**Why this algorithm applies**
+
+Enumerate start-to-end paths in a DAG; DFS with append/recurse/undo, copy complete paths. Maintain the current path; copy it at the target and undo each appended vertex when returning. Global visited would incorrectly discard distinct paths.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<List<Integer>> allPathsSourceTarget(int[][] graph) {
+        List<List<Integer>> ans=new ArrayList<>();
+        List<Integer> path=new ArrayList<>();
+        path.add(0);
+        dfs(0,graph,path,ans);
+        return ans;
+    }
+    private void dfs(int u,int[][] g,List<Integer> path,List<List<Integer>> ans) {
+        if(u==g.length-1) {
+            ans.add(new ArrayList<>(path));
+            return;
+        }
+        for(int v:g[u]) {
+            path.add(v);
+            dfs(v,g,path,ans);
+            path.remove(path.size()-1);
+        }
+    }
+}
+```
+
+**Key logic**
+
+Maintain the current path; copy it at the target and undo each appended vertex when returning. Global visited would incorrectly discard distinct paths.
+
+**Complexity**
+
+O(n·2^n) worst-case time/output; O(n) auxiliary recursion/path.
+
+
+---
+
+## GR3 — Bipartite graph two-coloring
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Adjacent nodes must receive opposite colors; detect an odd-cycle contradiction.
+
+**Core logic:** Assign an opposite color to each newly discovered neighbor. An edge connecting identical colors is an odd-cycle contradiction. Restart at every uncolored component.
+
+**Locked questions:** 785, 886
+
+### Reusable Java 21 template
+
+```java
+int[] color = new int[n]; // 0 uncolored, +1/-1 colors
+for (int start=0;start<n;start++) if(color[start]==0) {
+    ArrayDeque<Integer> q = new ArrayDeque<>(); q.add(start); color[start]=1;
+    while(!q.isEmpty()) {
+        int u=q.poll();
+        for(int v:adj[u]) {
+            if(color[v]==0) {color[v]=-color[u];q.add(v);}
+            else if(color[v]==color[u]) { /* conflict */ }
+        }
+    }
+}
+```
+
+### 785
+
+*Registry position: 05/42*
+
+**Problem statement**
+
+Given the adjacency lists of an undirected graph, decide whether its vertices can be split into two sets such that every edge connects different sets. The graph may be disconnected.
+
+**Examples**
+
+- graph=[[1,3],[0,2],[1,3],[0,2]] → true
+- graph=[[1,2],[0,2],[0,1]] → false
+
+**Constraints**
+
+1≤n≤100; symmetric adjacency, no self-loops or repeated neighbors.
+
+**Why this algorithm applies**
+
+Test two-colorability of every possibly disconnected component; BFS/DFS color labels. Use 0 for uncolored and ±1 for colors; start BFS from every uncolored vertex and reject any equal-color edge.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean isBipartite(int[][] graph) {
+        int[] color=new int[graph.length];
+        Queue<Integer> q=new ArrayDeque<>();
+        for(int s=0;s<graph.length;s++)if(color[s]==0) {
+            color[s]=1;
+            q.add(s);
+            while(!q.isEmpty()) {
+                int u=q.remove();
+                for(int v:graph[u]) {
+                    if(color[v]==0) {
+                        color[v]=-color[u];
+                        q.add(v);
+                    }
+                    else if(color[v]==color[u])return false;
+                }
+            }
+        }
+        return true;
+    }
+}
+```
+
+**Key logic**
+
+Use 0 for uncolored and ±1 for colors; start BFS from every uncolored vertex and reject any equal-color edge.
+
+**Complexity**
+
+O(V+E) time; O(V) auxiliary space.
+
+### 886
+
+*Registry position: 06/42*
+
+**Problem statement**
+
+Given n people numbered 1 to n and pairs of mutual dislikes, determine whether everyone can be assigned to one of two groups without a dislike pair sharing a group.
+
+**Examples**
+
+- n=4, dislikes=[[1,2],[1,3],[2,4]] → true
+- n=3, dislikes=[[1,2],[2,3],[1,3]] → false
+
+**Constraints**
+
+1≤n≤2000; 0≤dislikes.length≤10000; distinct valid pairs.
+
+**Why this algorithm applies**
+
+People with mutual dislikes must split into two groups; construct 1-indexed adjacency and apply the same two-color traversal. Construct undirected lists indexed from 1. The same opposite-color condition decides feasibility.
+
+**Exact change from the previous solution**
+
+From 785: Keep the same coloring invariant; build adjacency from 1-indexed dislike pairs and iterate all n people.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean possibleBipartition(int n,int[][] dislikes) {
+        List<Integer>[] g=new List[n+1];
+        for(int i=1;i<=n;i++)g[i]=new ArrayList<>();
+        for(int[] e:dislikes) {
+            g[e[0]].add(e[1]);
+            g[e[1]].add(e[0]);
+        }
+        int[] color=new int[n+1];
+        Queue<Integer> q=new ArrayDeque<>();
+        for(int s=1;s<=n;s++)if(color[s]==0) {
+            color[s]=1;
+            q.add(s);
+            while(!q.isEmpty()) {
+                int u=q.remove();
+                for(int v:g[u]) {
+                    if(color[v]==0) {
+                        color[v]=-color[u];
+                        q.add(v);
+                    }
+                    else if(color[v]==color[u])return false;
+                }
+            }
+        }
+        return true;
+    }
+}
+```
+
+**Key logic**
+
+Construct undirected lists indexed from 1. The same opposite-color condition decides feasibility.
+
+**Complexity**
+
+O(V+E) time and space.
+
+
+---
+
+## GR4 — Course ordering with Kahn topological sorting
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Directed dependencies require predecessor-before-successor order; remove zero-indegree vertices.
+
+**Core logic:** Indegree is the number of unresolved prerequisites. Process zero-indegree vertices and decrement successors; a partial topological order signals a cycle.
+
+**Locked questions:** 207, 210, 2115
+
+### Reusable Java 21 template
+
+```java
+int[] indegree = new int[n];
+for (int u=0;u<n;u++) for(int v:adj[u]) indegree[v]++;
+ArrayDeque<Integer> q = new ArrayDeque<>();
+for(int u=0;u<n;u++) if(indegree[u]==0) q.add(u);
+int processed=0;
+while(!q.isEmpty()) {
+    int u=q.poll(); processed++;
+    for(int v:adj[u]) if(--indegree[v]==0) q.add(v);
+} // processed == n iff acyclic.
+```
+
+### 207
+
+*Registry position: 07/42*
+
+**Problem statement**
+
+There are numCourses courses. Each pair [a,b] requires course b before a. Determine whether all courses can be completed.
+
+**Examples**
+
+- numCourses=2, prerequisites=[[1,0]] → true
+- numCourses=2, prerequisites=[[1,0],[0,1]] → false
+
+**Constraints**
+
+1≤numCourses≤2000; up to 5000 distinct prerequisite pairs.
+
+**Why this algorithm applies**
+
+Determine whether directed prerequisites contain a cycle; processed count from Kahn BFS. Indegree counts uncompleted prerequisites. Removing a zero-indegree course unlocks successors; a cycle leaves some courses unprocessed.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean canFinish(int numCourses,int[][] prerequisites) {
+        List<Integer>[] g=new List[numCourses];
+        int[] in=new int[numCourses];
+        for(int i=0;i<numCourses;i++)g[i]=new ArrayList<>();
+        for(int[] e:prerequisites) {
+            g[e[1]].add(e[0]);
+            in[e[0]]++;
+        }
+        Queue<Integer> q=new ArrayDeque<>();
+        for(int i=0;i<numCourses;i++)if(in[i]==0)q.add(i);
+        int count=0;
+        while(!q.isEmpty()) {
+            int u=q.remove();
+            count++;
+            for(int v:g[u])if(--in[v]==0)q.add(v);
+        }
+        return count==numCourses;
+    }
+}
+```
+
+**Key logic**
+
+Indegree counts uncompleted prerequisites. Removing a zero-indegree course unlocks successors; a cycle leaves some courses unprocessed.
+
+**Complexity**
+
+O(V+E) time and space.
+
+### 210
+
+*Registry position: 08/42*
+
+**Problem statement**
+
+Given courses and prerequisite pairs [a,b] requiring b before a, return any order that completes every course, or an empty array if impossible.
+
+**Examples**
+
+- numCourses=2, prerequisites=[[1,0]] → [0,1]
+- numCourses=2, prerequisites=[[1,0],[0,1]] → []
+
+**Constraints**
+
+1≤numCourses≤2000; distinct valid prerequisite pairs; at most n(n−1) pairs.
+
+**Why this algorithm applies**
+
+Return one valid prerequisite order rather than a boolean; record every dequeued course. Record each dequeued course in the result; only return the full array when all vertices were processed.
+
+**Exact change from the previous solution**
+
+From 207: Preserve Kahn indegree changes; append dequeue order to output and return empty if processed != n.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[] findOrder(int numCourses,int[][] prerequisites) {
+        List<Integer>[] g=new List[numCourses];
+        int[] in=new int[numCourses];
+        for(int i=0;i<numCourses;i++)g[i]=new ArrayList<>();
+        for(int[] e:prerequisites) {
+            g[e[1]].add(e[0]);
+            in[e[0]]++;
+        }
+        Queue<Integer> q=new ArrayDeque<>();
+        for(int i=0;i<numCourses;i++)if(in[i]==0)q.add(i);
+        int[] order=new int[numCourses];
+        int count=0;
+        while(!q.isEmpty()) {
+            int u=q.remove();
+            order[count++]=u;
+            for(int v:g[u])if(--in[v]==0)q.add(v);
+        }
+        return count==numCourses?order:new int[0];
+    }
+}
+```
+
+**Key logic**
+
+Record each dequeued course in the result; only return the full array when all vertices were processed.
+
+**Complexity**
+
+O(V+E) time and space.
+
+### 2115
+
+*Registry position: 09/42*
+
+**Problem statement**
+
+Each recipe has a name and a list of required ingredients, which may include other recipes. Starting with unlimited quantities of the supplied names, return every recipe that can be made.
+
+**Examples**
+
+- recipes=["bread","sandwich"], ingredients=[["flour"],["bread"]], supplies=["flour"] → ["bread","sandwich"]
+- recipes=["a","b"], ingredients=[["b"],["a"]], supplies=["x"] → []
+
+**Constraints**
+
+1–100 recipes and supplies; 1–100 ingredients per recipe; distinct recipe/supply names, distinct ingredients per recipe; lowercase names.
+
+**Why this algorithm applies**
+
+Recipes depend on other recipes and available supplies; seed queue with supplied ingredient names and decrease blocked-recipe counts via ingredient-to-recipe edges. Map ingredient names to dependent recipes. Seed supplies, decrement missing counts, and enqueue newly possible recipes. Cycles without supplies remain blocked.
+
+**Exact change from the previous solution**
+
+From 210: Generalize integer course vertices to string-keyed ingredients/recipes; seed known supplies and output recipes when their missing-dependency count reaches zero.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<String> findAllRecipes(String[] recipes,List<List<String>> ingredients,String[] supplies) {
+        Map<String,List<Integer>> depend=new HashMap<>();
+        int[] missing=new int[recipes.length];
+        for(int i=0;i<recipes.length;i++) {
+            missing[i]=ingredients.get(i).size();
+            for(String s:ingredients.get(i))depend.computeIfAbsent(s,k->new ArrayList<>()).add(i);
+        }
+        Queue<String> q=new ArrayDeque<>(Arrays.asList(supplies));
+        List<String> ans=new ArrayList<>();
+        while(!q.isEmpty())for(int i:depend.getOrDefault(q.remove(),Collections.emptyList()))if(--missing[i]==0) {
+            ans.add(recipes[i]);
+            q.add(recipes[i]);
+        }
+        return ans;
+    }
+}
+```
+
+**Key logic**
+
+Map ingredient names to dependent recipes. Seed supplies, decrement missing counts, and enqueue newly possible recipes. Cycles without supplies remain blocked.
+
+**Complexity**
+
+O(I+R+S) expected time and space, ignoring string hashing length.
+
+
+---
+
+## GR5 — Reverse-topological elimination of unsafe vertices
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Directed graph vertices are safe when all outgoing paths end; remove terminal vertices backward.
+
+**Core logic:** Outdegree measures unresolved outgoing paths. Propagate backward from terminal vertices using reverse adjacency until no more nodes can become safe.
+
+**Locked questions:** 802
+
+### Reusable Java 21 template
+
+```java
+int[] outdegree = new int[n];
+List<Integer>[] reverse = new List[n];
+for(int i=0;i<n;i++) reverse[i]=new ArrayList<>();
+for(int u=0;u<n;u++) for(int v:graph[u]) {outdegree[u]++;reverse[v].add(u);}
+ArrayDeque<Integer> q=new ArrayDeque<>();
+for(int u=0;u<n;u++) if(outdegree[u]==0) q.add(u);
+while(!q.isEmpty()) {int u=q.poll(); for(int p:reverse[u]) if(--outdegree[p]==0) q.add(p);}
+```
+
+### 802
+
+*Registry position: 10/42*
+
+**Problem statement**
+
+A terminal vertex has no outgoing edges. A vertex is safe if every path starting from it eventually ends at a terminal vertex. Return all safe vertices in increasing order.
+
+**Examples**
+
+- graph=[[1],[2],[]] → [0,1,2]
+- graph=[[1],[0],[]] → [2]
+
+**Constraints**
+
+1≤n≤10000; up to 40000 directed edges; self-loops allowed.
+
+**Why this algorithm applies**
+
+Find vertices that cannot reach directed cycles; reverse edges and iteratively eliminate outdegree-zero vertices. Start from zero outdegree vertices; reverse edges let a safe successor reduce its predecessors’ remaining unsafe outgoing edges.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<Integer> eventualSafeNodes(int[][] graph) {
+        int n=graph.length;
+        List<Integer>[] rev=new List[n];
+        int[] out=new int[n];
+        for(int i=0;i<n;i++)rev[i]=new ArrayList<>();
+        Queue<Integer> q=new ArrayDeque<>();
+        for(int u=0;u<n;u++) {
+            out[u]=graph[u].length;
+            if(out[u]==0)q.add(u);
+            for(int v:graph[u])rev[v].add(u);
+        }
+        while(!q.isEmpty())for(int p:rev[q.remove()])if(--out[p]==0)q.add(p);
+        List<Integer> ans=new ArrayList<>();
+        for(int i=0;i<n;i++)if(out[i]==0)ans.add(i);
+        return ans;
+    }
+}
+```
+
+**Key logic**
+
+Start from zero outdegree vertices; reverse edges let a safe successor reduce its predecessors’ remaining unsafe outgoing edges.
+
+**Complexity**
+
+O(V+E) time and space.
+
+
+---
+
+## GR6 — Directed cycle in a functional graph
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Every node has at most one outgoing edge; walk successors with current-walk timestamps.
+
+**Core logic:** A functional graph has a unique successor per vertex. Walk IDs distinguish current-path cycles from previously processed paths; depth differences measure cycle length.
+
+**Locked questions:** 2360, 2876
+
+### Reusable Java 21 template
+
+```java
+int[] seenWalk=new int[n], depth=new int[n];
+for(int start=0;start<n;start++) if(seenWalk[start]==0) {
+    int u=start, step=0, mark=start+1;
+    while(u!=-1 && seenWalk[u]==0) {seenWalk[u]=mark;depth[u]=step++;u=next[u];}
+    if(u!=-1 && seenWalk[u]==mark) {int cycleLen=step-depth[u]; /* cycle */}
+}
+```
+
+### 2360
+
+*Registry position: 11/42*
+
+**Problem statement**
+
+Each vertex has at most one outgoing edge, given by edges[i], with −1 indicating no successor. Return the length of the longest directed cycle, or −1 if none exists.
+
+**Examples**
+
+- edges=[3,3,4,2,3] → 3
+- edges=[1,2,-1] → -1
+
+**Constraints**
+
+2≤n≤100000; −1≤edges[i]<n; edges[i]≠i.
+
+**Why this algorithm applies**
+
+Longest cycle in a functional directed graph; identify a back-reference inside the current traversal and compute depth difference. Stamp each visited vertex with a walk ID and position. Re-entering a vertex of the current walk yields cycle length equal to the position difference.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int longestCycle(int[] edges) {
+        int n=edges.length,ans=-1;
+        int[] walk=new int[n],depth=new int[n];
+        for(int s=0;s<n;s++)if(walk[s]==0) {
+            int u=s,d=0,id=s+1;
+            while(u!=-1&&walk[u]==0) {
+                walk[u]=id;
+                depth[u]=d++;
+                u=edges[u];
+            }
+            if(u!=-1&&walk[u]==id)ans=Math.max(ans,d-depth[u]);
+        }
+        return ans;
+    }
+}
+```
+
+**Key logic**
+
+Stamp each visited vertex with a walk ID and position. Re-entering a vertex of the current walk yields cycle length equal to the position difference.
+
+**Complexity**
+
+O(n) time and space.
+
+### 2876
+
+*Registry position: 12/42*
+
+**Problem statement**
+
+In a directed graph where every vertex has exactly one successor, count for each starting vertex how many distinct vertices are visited before the first repetition.
+
+**Examples**
+
+- edges=[1,2,0,0] → [3,3,3,4]
+- edges=[1,0] → [2,2]
+
+**Constraints**
+
+2≤n≤100000; successor in [0,n−1], not itself.
+
+**Why this algorithm applies**
+
+Number of distinct vertices visited from every functional-graph node; identify cycles and then propagate answers through in-trees in reverse order. Store the current walk in a reusable array. Assign the cycle length to every cycle vertex, then fill predecessors backward using successor answer +1.
+
+**Exact change from the previous solution**
+
+From 2360: Retain successor-walk/cycle identification; assign cycle length to cycle nodes and back-propagate answer[next]+1 to predecessors.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[] countVisitedNodes(List<Integer> edges) {
+        int n=edges.size();
+        int[] next=edges.stream().mapToInt(Integer::intValue).toArray(),walk=new int[n],depth=new int[n],ans=new int[n],path=new int[n];
+        for(int s=0;s<n;s++)if(walk[s]==0) {
+            int u=s,d=0,id=s+1;
+            while(walk[u]==0) {
+                walk[u]=id;
+                depth[u]=d;
+                path[d++]=u;
+                u=next[u];
+            }
+            int end=d;
+            if(walk[u]==id) {
+                int start=depth[u];
+                for(int j=start;j<d;j++)ans[path[j]]=d-start;
+                end=start;
+            }
+            for(int j=end-1;j>=0;j--)ans[path[j]]=ans[next[path[j]]]+1;
+        }
+        return ans;
+    }
+}
+```
+
+**Key logic**
+
+Store the current walk in a reusable array. Assign the cycle length to every cycle vertex, then fill predecessors backward using successor answer +1.
+
+**Complexity**
+
+O(n) time and space.
+
+
+---
+
+## GR7 — Unweighted shortest paths by BFS
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Every graph edge has unit cost; first BFS discovery gives minimum edge count.
+
+**Core logic:** In a unit-cost graph, BFS layers are shortest distances. Generate only legal next states, mark at discovery, and count moves or sequence length as required.
+
+**Locked questions:** 433, 127, 752
+
+### Reusable Java 21 template
+
+```java
+int[] dist=new int[n]; Arrays.fill(dist,-1);
+ArrayDeque<Integer> q=new ArrayDeque<>();
+dist[source]=0;q.add(source);
+while(!q.isEmpty()) {
+    int u=q.poll();
+    for(int v:adj[u]) if(dist[v]==-1) {dist[v]=dist[u]+1;q.add(v);}
+}
+```
+
+### 433
+
+*Registry position: 13/42*
+
+**Problem statement**
+
+A gene is an eight-character string over A,C,G,T. Each mutation changes one character and must produce a gene in bank. Return the minimum mutations from startGene to endGene, or −1.
+
+**Examples**
+
+- start="AACCGGTT", end="AACCGGTA", bank=["AACCGGTA"] → 1
+- same start/end as above, bank=[] → -1
+
+**Constraints**
+
+0≤bank.length≤10; all genes length 8 using A,C,G,T.
+
+**Why this algorithm applies**
+
+Minimum one-character mutations among valid gene states; BFS from start with a bank-membership set and one-position mutations. BFS layers count mutations. Remove accepted strings from the bank to avoid revisiting.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int minMutation(String startGene,String endGene,String[] bank) {
+        Set<String> unseen=new HashSet<>(Arrays.asList(bank));
+        Queue<String> q=new ArrayDeque<>();
+        q.add(startGene);
+        unseen.remove(startGene);
+        for(int steps=0;!q.isEmpty();steps++)for(int size=q.size();size>0;size--) {
+            String s=q.remove();
+            if(s.equals(endGene))return steps;
+            char[] a=s.toCharArray();
+            for(int i=0;i<a.length;i++) {
+                char old=a[i];
+                for(char c:"ACGT".toCharArray()) {
+                    if(c==old)continue;
+                    a[i]=c;
+                    String t=new String(a);
+                    if(unseen.remove(t))q.add(t);
+                }
+                a[i]=old;
+            }
+        }
+        return -1;
+    }
+}
+```
+
+**Key logic**
+
+BFS layers count mutations. Remove accepted strings from the bank to avoid revisiting.
+
+**Complexity**
+
+O(B·L²·A) time with Java string creation, O(B·L) space; L=8, A=4.
+
+### 127
+
+*Registry position: 14/42*
+
+**Problem statement**
+
+Transform beginWord to endWord by changing one letter at a time. Every transformed word must be in wordList. Return the number of words in a shortest valid sequence, including both endpoints, or 0 if none exists.
+
+**Examples**
+
+- begin="hit", end="cog", list=["hot","dot","dog","lot","log","cog"] → 5
+- begin="hit", end="cog", list=["hot","dot"] → 0
+
+**Constraints**
+
+1≤word length≤10; 1≤wordList.size≤5000; lowercase equal-length distinct words; beginWord≠endWord.
+
+**Why this algorithm applies**
+
+Shortest single-letter transformations between words; reuse mutation BFS with word dictionary and terminate at target word. The mutation generator now tries 26 lowercase letters. Count words instead of edges; the initial layer is 1.
+
+**Exact change from the previous solution**
+
+From 433: Keep layer-by-layer string BFS; change alphabet/gene length to word alphabet and permit deletion of visited words from the dictionary.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int ladderLength(String beginWord,String endWord,List<String> wordList) {
+        Set<String> unseen=new HashSet<>(wordList);
+        if(!unseen.contains(endWord))return 0;
+        Queue<String> q=new ArrayDeque<>();
+        q.add(beginWord);
+        unseen.remove(beginWord);
+        for(int steps=1;!q.isEmpty();steps++)for(int size=q.size();size>0;size--) {
+            String s=q.remove();
+            if(s.equals(endWord))return steps;
+            char[] a=s.toCharArray();
+            for(int i=0;i<a.length;i++) {
+                char old=a[i];
+                for(char c='a';c<='z';c++) {
+                    if(c==old)continue;
+                    a[i]=c;
+                    String t=new String(a);
+                    if(unseen.remove(t))q.add(t);
+                }
+                a[i]=old;
+            }
+        }
+        return 0;
+    }
+}
+```
+
+**Key logic**
+
+The mutation generator now tries 26 lowercase letters. Count words instead of edges; the initial layer is 1.
+
+**Complexity**
+
+O(N·26·L²) time, O(N·L) space.
+
+### 752
+
+*Registry position: 15/42*
+
+**Problem statement**
+
+A four-wheel lock starts at 0000. Each move rotates one digit forward or backward with wraparound. Avoid all deadend states and return the fewest moves to target, or −1.
+
+**Examples**
+
+- deadends=["8888"], target="0009" → 1
+- deadends=["0000"], target="8888" → -1
+
+**Constraints**
+
+1≤deadends.length≤500; all states four digits; target not a deadend.
+
+**Why this algorithm applies**
+
+Minimum rotations of a 4-wheel lock avoiding deadends; reuse BFS layers but generate eight wraparound digit neighbors. Represent states as integers 0–9999; generate each digit’s two modular rotations. Mark forbidden and discovered states in the same array.
+
+**Exact change from the previous solution**
+
+From 127: Replace word mutation generator with fixed-position modular digit rotations and reject forbidden states; preserve BFS shortest-distance invariant.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int openLock(String[] deadends,String target) {
+        boolean[] seen=new boolean[10000];
+        for(String s:deadends)seen[Integer.parseInt(s)]=true;
+        if(seen[0])return -1;
+        int goal=Integer.parseInt(target);
+        Queue<Integer> q=new ArrayDeque<>();
+        q.add(0);
+        seen[0]=true;
+        for(int d=0;!q.isEmpty();d++)for(int size=q.size();size>0;size--) {
+            int u=q.remove();
+            if(u==goal)return d;
+            for(int p=1;p<=1000;p*=10) {
+                int digit=u/p%10;
+                for(int delta:new int[]{1,9}) {
+                    int v=u+((digit+delta)%10-digit)*p;
+                    if(!seen[v]) {
+                        seen[v]=true;
+                        q.add(v);
+                    }
+                }
+            }
+        }
+        return -1;
+    }
+}
+```
+
+**Key logic**
+
+Represent states as integers 0–9999; generate each digit’s two modular rotations. Mark forbidden and discovered states in the same array.
+
+**Complexity**
+
+O(10^4) time and space (eight transitions per state).
+
+
+---
+
+## GR8 — Shortest path on explicitly modeled state-transition graph
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Physical movements/transfers encode transitions; BFS counts transitions, not physical distance.
+
+**Core logic:** Model the operation that is counted as one edge. Convert real-world transitions into graph states before choosing a BFS frontier.
+
+**Locked questions:** 909, 815
+
+### Reusable Java 21 template
+
+```java
+record State(int id, int steps) {}
+ArrayDeque<State> q=new ArrayDeque<>();
+Set<Integer> seen=new HashSet<>();
+q.add(new State(start,0)); seen.add(start);
+while(!q.isEmpty()) {
+    State cur=q.poll();
+    for(int next:transitions(cur.id())) if(seen.add(next)) q.add(new State(next,cur.steps()+1));
+}
+```
+
+### 909
+
+*Registry position: 16/42*
+
+**Problem statement**
+
+An n×n board is numbered from 1 at bottom-left in alternating row directions. From a square, choose a roll 1–6 without exceeding n²; if the landing square has a snake or ladder, take that jump exactly once. Return minimum rolls from 1 to n², or −1.
+
+**Examples**
+
+- board=[[-1,-1],[-1,-1]] → 1
+- board=[[-1,-1],[-1,3]] → 1
+
+**Constraints**
+
+2≤n≤20; entries −1 or valid square labels; first and last squares have no jumps.
+
+**Why this algorithm applies**
+
+Board square transitions may include a forced snake/ladder teleport; BFS over square numbers after applying destination mapping. Convert a square label to its alternating board coordinates. Apply at most one jump before checking visited.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int snakesAndLadders(int[][] board) {
+        int n=board.length,last=n*n;
+        boolean[] seen=new boolean[last+1];
+        Queue<Integer> q=new ArrayDeque<>();
+        q.add(1);
+        seen[1]=true;
+        for(int d=0;!q.isEmpty();d++)for(int size=q.size();size>0;size--) {
+            int u=q.remove();
+            if(u==last)return d;
+            for(int v=u+1;v<=Math.min(u+6,last);v++) {
+                int row=(v-1)/n,col=(v-1)%n;
+                if(row%2==1)col=n-1-col;
+                int jump=board[n-1-row][col],w=jump==-1?v:jump;
+                if(!seen[w]) {
+                    seen[w]=true;
+                    q.add(w);
+                }
+            }
+        }
+        return -1;
+    }
+}
+```
+
+**Key logic**
+
+Convert a square label to its alternating board coordinates. Apply at most one jump before checking visited.
+
+**Complexity**
+
+O(n²) time and space.
+
+### 815
+
+*Registry position: 17/42*
+
+**Problem statement**
+
+Each bus route repeats its listed stops forever. Starting at source, return the minimum number of buses boarded to reach target, or −1. Transfers are possible at shared stops.
+
+**Examples**
+
+- routes=[[1,2,7],[3,6,7]], source=1, target=6 → 2
+- routes=[[1,2]], source=1, target=1 → 0
+
+**Constraints**
+
+1≤routes.length≤500; total stop entries≤100000; stops distinct per route, labels 0–10^6.
+
+**Why this algorithm applies**
+
+Minimum bus rides, not stops; build stop-to-routes incidence, BFS over bus-route nodes, mark routes and stops visited. Index stops to routes; seed all routes containing source. Expand each route and stop only once, counting buses by BFS level.
+
+**Exact change from the previous solution**
+
+From 909: Replace square-to-square dice transitions with route-to-route transfer via shared stops; count newly boarded routes instead of board moves.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int numBusesToDestination(int[][] routes,int source,int target) {
+        if(source==target)return 0;
+        Map<Integer,List<Integer>> byStop=new HashMap<>();
+        for(int i=0;i<routes.length;i++)for(int s:routes[i])byStop.computeIfAbsent(s,k->new ArrayList<>()).add(i);
+        boolean[] seen=new boolean[routes.length];
+        Queue<Integer> q=new ArrayDeque<>();
+        for(int r:byStop.getOrDefault(source,Collections.emptyList())) {
+            seen[r]=true;
+            q.add(r);
+        }
+        byStop.remove(source);
+        for(int buses=1;!q.isEmpty();buses++)for(int size=q.size();size>0;size--) {
+            int r=q.remove();
+            for(int s:routes[r]) {
+                if(s==target)return buses;
+                List<Integer> next=byStop.remove(s);
+                if(next!=null)for(int v:next)if(!seen[v]) {
+                    seen[v]=true;
+                    q.add(v);
+                }
+            }
+        }
+        return -1;
+    }
+}
+```
+
+**Key logic**
+
+Index stops to routes; seed all routes containing source. Expand each route and stop only once, counting buses by BFS level.
+
+**Complexity**
+
+O(S) expected time and space, S total stop entries.
+
+
+---
+
+## GR9 — Index graph BFS with implicit neighbors
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Array indices are graph vertices; allowed index moves define edges dynamically.
+
+**Core logic:** Use array indices as vertices, computing neighbors only when needed. Expand shared adjacency groups once to prevent quadratic repeated work.
+
+**Locked questions:** 1306, 1345
+
+### Reusable Java 21 template
+
+```java
+Queue<Integer> q = new ArrayDeque<>();
+boolean[] seen = new boolean[n];
+q.add(start); seen[start] = true;
+for (int distance = 0; !q.isEmpty(); distance++) {
+    for (int size = q.size(); size > 0; size--) {
+        int u = q.remove();
+        for (int v : neighbors(u)) {
+            if (v >= 0 && v < n && !seen[v]) {
+                seen[v] = true; q.add(v);
+            }
+        }
+    }
+} // neighbors(u) implements the problem's legal moves.
+```
+
+### 1306
+
+*Registry position: 18/42*
+
+**Problem statement**
+
+Starting at an index of a nonnegative integer array, you may jump from i to i+arr[i] or i−arr[i] when in bounds. Determine whether any zero-valued index can be reached.
+
+**Examples**
+
+- arr=[4,2,3,0,3,1,2], start=5 → true
+- arr=[1,1,1], start=0 → false
+
+**Constraints**
+
+1≤n≤50000; 0≤arr[i]<n; valid start.
+
+**Why this algorithm applies**
+
+Reach a zero-valued array index by jumps i±arr[i]; BFS/DFS over implicitly generated neighbors. Generate neighbors on demand and mark each valid index once. Stop when its value is zero.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean canReach(int[] arr,int start) {
+        boolean[] seen=new boolean[arr.length];
+        Queue<Integer> q=new ArrayDeque<>();
+        q.add(start);
+        seen[start]=true;
+        while(!q.isEmpty()) {
+            int u=q.remove();
+            if(arr[u]==0)return true;
+            for(int v:new int[]{u+arr[u],u-arr[u]})if(v>=0&&v<arr.length&&!seen[v]) {
+                seen[v]=true;
+                q.add(v);
+            }
+        }
+        return false;
+    }
+}
+```
+
+**Key logic**
+
+Generate neighbors on demand and mark each valid index once. Stop when its value is zero.
+
+**Complexity**
+
+O(n) time and space.
+
+### 1345
+
+*Registry position: 19/42*
+
+**Problem statement**
+
+Starting at index 0, jump to an adjacent index or any different index with the same value. Return the fewest jumps to the last index.
+
+**Examples**
+
+- arr=[7] → 0
+- arr=[100,-23,-23,404,100,23,23,23,3,404] → 3
+
+**Constraints**
+
+1≤n≤50000; −10^8≤arr[i]≤10^8.
+
+**Why this algorithm applies**
+
+Find minimum steps with neighbors i±1 and all same-value indices; BFS with value-to-index lists removed after one use. Build equal-value groups; once a group is expanded, remove it because all its indices have already been offered at the earliest possible layer.
+
+**Exact change from the previous solution**
+
+From 1306: Keep index-state BFS and visited set; replace jump edges with adjacent indices plus a one-time expanded equal-value adjacency group.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int minJumps(int[] arr) {
+        int n=arr.length;
+        Map<Integer,List<Integer>> groups=new HashMap<>();
+        for(int i=0;i<n;i++)groups.computeIfAbsent(arr[i],k->new ArrayList<>()).add(i);
+        boolean[] seen=new boolean[n];
+        Queue<Integer> q=new ArrayDeque<>();
+        q.add(0);
+        seen[0]=true;
+        for(int d=0;!q.isEmpty();d++)for(int size=q.size();size>0;size--) {
+            int u=q.remove();
+            if(u==n-1)return d;
+            List<Integer> group=groups.remove(arr[u]);
+            if(group!=null)for(int v:group)offer(v,seen,q);
+            offer(u-1,seen,q);
+            offer(u+1,seen,q);
+        }
+        return -1;
+    }
+    private void offer(int v,boolean[] seen,Queue<Integer> q) {
+        if(v>=0&&v<seen.length&&!seen[v]) {
+            seen[v]=true;
+            q.add(v);
+        }
+    }
+}
+```
+
+**Key logic**
+
+Build equal-value groups; once a group is expanded, remove it because all its indices have already been offered at the earliest possible layer.
+
+**Complexity**
+
+O(n) expected time and space.
+
+
+---
+
+## GR10 — Alternating-edge-label BFS
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** A valid path depends on last edge color; visit (vertex,nextColor) states rather than vertices.
+
+**Core logic:** Combine a graph vertex with the next permitted edge label. Identical vertices in different automaton states have different legal futures.
+
+**Locked questions:** 1129
+
+### Reusable Java 21 template
+
+```java
+int[][] dist=new int[n][2]; for(int[] row:dist) Arrays.fill(row,-1);
+ArrayDeque<int[]> q=new ArrayDeque<>();
+for(int c=0;c<2;c++){dist[0][c]=0;q.add(new int[]{0,c});}
+while(!q.isEmpty()) {
+    int[] s=q.poll(); int u=s[0], color=s[1];
+    for(int v:adjByColor[color][u]) if(dist[v][1-color]<0) {
+        dist[v][1-color]=dist[u][color]+1;q.add(new int[]{v,1-color});
+    }
+}
+```
+
+### 1129
+
+*Registry position: 20/42*
+
+**Problem statement**
+
+Given directed red and blue edges on n vertices, return for every vertex the shortest path length from 0 whose consecutive edges have different colors, or −1 if no such path exists.
+
+**Examples**
+
+- n=3, red=[[0,1],[1,2]], blue=[] → [0,1,-1]
+- n=3, red=[[0,1]], blue=[[1,2]] → [0,1,2]
+
+**Constraints**
+
+1≤n≤100; each color has up to 400 edges; parallel edges and loops allowed.
+
+**Why this algorithm applies**
+
+Shortest paths using strictly alternating red/blue edges; BFS on vertex and required next color. Use (vertex,nextColor) states; seed both colors at vertex 0 and toggle the required color after traversing an edge.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[] shortestAlternatingPaths(int n,int[][] redEdges,int[][] blueEdges) {
+        List<Integer>[][] g=new List[2][n];
+        for(int c=0;c<2;c++)for(int i=0;i<n;i++)g[c][i]=new ArrayList<>();
+        for(int[] e:redEdges)g[0][e[0]].add(e[1]);
+        for(int[] e:blueEdges)g[1][e[0]].add(e[1]);
+        boolean[][] seen=new boolean[n][2];
+        int[] ans=new int[n];
+        Arrays.fill(ans,-1);
+        Queue<int[]> q=new ArrayDeque<>();
+        for(int c=0;c<2;c++) {
+            q.add(new int[]{0,c});
+            seen[0][c]=true;
+        }
+        for(int d=0;!q.isEmpty();d++)for(int size=q.size();size>0;size--) {
+            int[] s=q.remove();
+            int u=s[0],c=s[1];
+            if(ans[u]==-1)ans[u]=d;
+            for(int v:g[c][u])if(!seen[v][1-c]) {
+                seen[v][1-c]=true;
+                q.add(new int[]{v,1-c});
+            }
+        }
+        return ans;
+    }
+}
+```
+
+**Key logic**
+
+Use (vertex,nextColor) states; seed both colors at vertex 0 and toggle the required color after traversing an edge.
+
+**Complexity**
+
+O(V+E) time and space.
+
+
+---
+
+## GR11 — BFS with extra resource state
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Same position with different remaining budget/keys can have different future options; visited is state-aware.
+
+**Core logic:** Augment position with a resource value that determines legal future moves. Use complete state visitation or a provably valid dominance rule.
+
+**Locked questions:** 1293, 864
+
+### Reusable Java 21 template
+
+```java
+record State(int r, int c, int resource) {}
+Queue<State> q = new ArrayDeque<>();
+Set<State> seen = new HashSet<>();
+State initial = new State(sr, sc, initialResource);
+q.add(initial); seen.add(initial);
+for (int steps = 0; !q.isEmpty(); steps++) {
+    for (int size = q.size(); size > 0; size--) {
+        State cur = q.remove();
+        if (goal(cur)) return steps;
+        for (State next : legalTransitions(cur)) {
+            if (seen.add(next)) q.add(next);
+        }
+    }
+}
+return -1; // State transition updates budget or key mask.
+```
+
+### 1293
+
+*Registry position: 21/42*
+
+**Problem statement**
+
+Given a binary grid, move orthogonally from top-left to bottom-right, eliminating at most k obstacle cells (1). Return minimum steps or −1 if impossible.
+
+**Examples**
+
+- grid=[[0,1,0]], k=1 → 2
+- grid=[[0,1,1,0]], k=1 → -1
+
+**Constraints**
+
+1≤m,n≤40; 1≤k≤m·n; endpoints are 0.
+
+**Why this algorithm applies**
+
+Shortest grid path when at most k obstacles can be eliminated; BFS (r,c,remainingBudget) with dominance pruning. Keep maximum remaining budget seen at each cell. A previously discovered state at no greater distance with at least the same budget dominates the new state.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int shortestPath(int[][] grid,int k) {
+        int m=grid.length,n=grid[0].length;
+        if(k>=m+n-2)return m+n-2;
+        int[][] best=new int[m][n];
+        for(int[] row:best)Arrays.fill(row,-1);
+        Queue<int[]> q=new ArrayDeque<>();
+        q.add(new int[]{0,0,k});
+        best[0][0]=k;
+        int[] dir={1,0,-1,0,1};
+        for(int d=0;!q.isEmpty();d++)for(int size=q.size();size>0;size--) {
+            int[] s=q.remove();
+            if(s[0]==m-1&&s[1]==n-1)return d;
+            for(int i=0;i<4;i++) {
+                int r=s[0]+dir[i],c=s[1]+dir[i+1];
+                if(r<0||r>=m||c<0||c>=n)continue;
+                int rem=s[2]-grid[r][c];
+                if(rem>=0&&rem>best[r][c]) {
+                    best[r][c]=rem;
+                    q.add(new int[]{r,c,rem});
+                }
+            }
+        }
+        return -1;
+    }
+}
+```
+
+**Key logic**
+
+Keep maximum remaining budget seen at each cell. A previously discovered state at no greater distance with at least the same budget dominates the new state.
+
+**Complexity**
+
+O(mnk) time and worst-case queue space; O(mn) dominance table.
+
+### 864
+
+*Registry position: 22/42*
+
+**Problem statement**
+
+In a grid, @ is the start, # is a wall, . is open, lowercase letters are keys and uppercase letters are corresponding locks. Move orthogonally, collecting keys and entering locks only with their keys. Return minimum moves to collect every key, or −1.
+
+**Examples**
+
+- grid=["@.a.#","###.#","b.A.B"] → 8
+- grid=["@Aa"] → -1
+
+**Constraints**
+
+1≤m,n≤30; 1–6 distinct keys, first k lowercase letters, matching locks; one start.
+
+**Why this algorithm applies**
+
+Shortest path to collect all keys with doors; BFS on (r,c,collectedKeyMask), unlock moves based on mask. State includes collected-key mask. Door checks use the mask and entering a key sets its bit. The same cell with a different mask is a different state.
+
+**Exact change from the previous solution**
+
+From 1293: Keep position-aware BFS; replace monotonically decreasing elimination budget with a growing bitmask of collected keys and gate moves by door membership.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int shortestPathAllKeys(String[] grid) {
+        int m=grid.length,n=grid[0].length(),sr=0,sc=0,full=0;
+        for(int r=0;r<m;r++)for(int c=0;c<n;c++) {
+            char ch=grid[r].charAt(c);
+            if(ch=='@') {
+                sr=r;
+                sc=c;
+            }
+            else if(ch>='a'&&ch<='f')full|=1<<(ch-'a');
+        }
+        boolean[][][] seen=new boolean[m][n][full+1];
+        Queue<int[]> q=new ArrayDeque<>();
+        q.add(new int[]{sr,sc,0});
+        seen[sr][sc][0]=true;
+        int[] dir={1,0,-1,0,1};
+        for(int d=0;!q.isEmpty();d++)for(int size=q.size();size>0;size--) {
+            int[] s=q.remove();
+            if(s[2]==full)return d;
+            for(int i=0;i<4;i++) {
+                int r=s[0]+dir[i],c=s[1]+dir[i+1],mask=s[2];
+                if(r<0||r>=m||c<0||c>=n)continue;
+                char ch=grid[r].charAt(c);
+                if(ch=='#'||(ch>='A'&&ch<='F'&&(mask&(1<<(ch-'A')))==0))continue;
+                if(ch>='a'&&ch<='f')mask|=1<<(ch-'a');
+                if(!seen[r][c][mask]) {
+                    seen[r][c][mask]=true;
+                    q.add(new int[]{r,c,mask});
+                }
+            }
+        }
+        return -1;
+    }
+}
+```
+
+**Key logic**
+
+State includes collected-key mask. Door checks use the mask and entering a key sets its bit. The same cell with a different mask is a different state.
+
+**Complexity**
+
+O(mn·2^k) time and space.
+
+
+---
+
+## GR12 — BFS over graph and subset state
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Optimal walk must cover every node; visited depends on current vertex and covered subset.
+
+**Core logic:** The state is (vertex, visited subset). Seed all legal starting states and use bitwise OR to accumulate coverage until the full subset is reached.
+
+**Locked questions:** 847
+
+### Reusable Java 21 template
+
+```java
+int full=(1<<n)-1;
+boolean[][] seen=new boolean[n][1<<n];
+ArrayDeque<int[]> q=new ArrayDeque<>();
+for(int u=0;u<n;u++){q.add(new int[]{u,1<<u,0});seen[u][1<<u]=true;}
+while(!q.isEmpty()) {
+    int[] s=q.poll();
+    if(s[1]==full) { /* shortest covering walk */ break; }
+    for(int v:adj[s[0]]) {int mask=s[1]|(1<<v); if(!seen[v][mask]) {seen[v][mask]=true;q.add(new int[]{v,mask,s[2]+1});}}
+}
+```
+
+### 847
+
+*Registry position: 23/42*
+
+**Problem statement**
+
+Given a connected undirected graph, return the length of a shortest walk that visits every vertex at least once. You may start and finish anywhere and revisit vertices or edges.
+
+**Examples**
+
+- graph=[[1,2,3],[0],[0],[0]] → 4
+- graph=[[]] → 0
+
+**Constraints**
+
+1≤n≤12; connected undirected graph with valid distinct neighbors.
+
+**Why this algorithm applies**
+
+Shortest walk that visits every vertex, allowing revisits; multi-source BFS of (currentVertex, visitedMask). Seed every start with its own singleton mask. BFS over (vertex,visitedMask) returns the shortest walk when any state has the full mask.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int shortestPathLength(int[][] graph) {
+        int n=graph.length,full=(1<<n)-1;
+        boolean[][] seen=new boolean[n][full+1];
+        Queue<int[]> q=new ArrayDeque<>();
+        for(int i=0;i<n;i++) {
+            q.add(new int[]{i,1<<i});
+            seen[i][1<<i]=true;
+        }
+        for(int d=0;!q.isEmpty();d++)for(int size=q.size();size>0;size--) {
+            int[] s=q.remove();
+            if(s[1]==full)return d;
+            for(int v:graph[s[0]]) {
+                int mask=s[1]|(1<<v);
+                if(!seen[v][mask]) {
+                    seen[v][mask]=true;
+                    q.add(new int[]{v,mask});
+                }
+            }
+        }
+        return -1;
+    }
+}
+```
+
+**Key logic**
+
+Seed every start with its own singleton mask. BFS over (vertex,visitedMask) returns the shortest walk when any state has the full mask.
+
+**Complexity**
+
+O((V+E)·2^V) time; O(V·2^V) space.
+
+
+---
+
+## GR13 — Dijkstra additive nonnegative costs
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Edge weights are nonnegative; repeatedly finalize the lowest tentative distance using a min-heap.
+
+**Core logic:** Process the best tentative label from a heap; skip stale entries and relax neighbors. The label extension must preserve the greedy ordering (nonnegative additive cost or factors in [0,1]).
+
+**Locked questions:** 743, 1514, 1976
+
+### Reusable Java 21 template
+
+```java
+record Node(int u,long d) {}
+long[] dist=new long[n]; Arrays.fill(dist,Long.MAX_VALUE);
+PriorityQueue<Node> pq=new PriorityQueue<>(Comparator.comparingLong(Node::d));
+dist[source]=0;pq.add(new Node(source,0));
+while(!pq.isEmpty()) {
+    Node cur=pq.poll();if(cur.d()!=dist[cur.u()])continue;
+    for(Edge e:adj[cur.u()]) if(cur.d()+e.weight()<dist[e.to()]) {
+        dist[e.to()]=cur.d()+e.weight();pq.add(new Node(e.to(),dist[e.to()]));
+    }
+} // Edge has methods to() and weight().
+```
+
+### 743
+
+*Registry position: 24/42*
+
+**Problem statement**
+
+A directed weighted graph has vertices 1 through n. Each time entry [u,v,w] gives the travel time of a signal along u→v. Starting from k, return the time by which every vertex receives the signal, or −1 if any is unreachable.
+
+**Examples**
+
+- times=[[2,1,1],[2,3,1],[3,4,1]], n=4, k=2 → 2
+- times=[[1,2,1]], n=2, k=2 → -1
+
+**Constraints**
+
+1≤n≤100; 1≤times.length≤6000; 0≤w≤100; distinct directed pairs.
+
+**Why this algorithm applies**
+
+Compute time for a directed signal to reach every node; Dijkstra and maximum finite shortest distance. Relax additive distances in a min-heap. Ignore stale entries; the maximum shortest distance is the arrival time of the last vertex.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int networkDelayTime(int[][] times,int n,int k) {
+        List<int[]>[] g=new List[n+1];
+        for(int i=1;i<=n;i++)g[i]=new ArrayList<>();
+        for(int[] e:times)g[e[0]].add(new int[]{e[1],e[2]});
+        int[] dist=new int[n+1];
+        Arrays.fill(dist,Integer.MAX_VALUE);
+        dist[k]=0;
+        PriorityQueue<int[]> pq=new PriorityQueue<>(Comparator.comparingInt(a->a[0]));
+        pq.add(new int[]{0,k});
+        while(!pq.isEmpty()) {
+            int[] s=pq.remove();
+            int d=s[0],u=s[1];
+            if(d!=dist[u])continue;
+            for(int[] e:g[u]) {
+                int nd=d+e[1],v=e[0];
+                if(nd<dist[v]) {
+                    dist[v]=nd;
+                    pq.add(new int[]{nd,v});
+                }
+            }
+        }
+        int ans=0;
+        for(int i=1;i<=n;i++) {
+            if(dist[i]==Integer.MAX_VALUE)return -1;
+            ans=Math.max(ans,dist[i]);
+        }
+        return ans;
+    }
+}
+```
+
+**Key logic**
+
+Relax additive distances in a min-heap. Ignore stale entries; the maximum shortest distance is the arrival time of the last vertex.
+
+**Complexity**
+
+O((V+E) log(E+1)) time; O(V+E) space.
+
+### 1514
+
+*Registry position: 25/42*
+
+**Problem statement**
+
+Given an undirected graph with independent success probabilities on its edges, find the maximum probability of reaching end_node from start_node. A path succeeds with the product of its edge probabilities. Return 0 if unreachable.
+
+**Examples**
+
+- n=3, edges=[[0,1],[1,2],[0,2]], succProb=[0.5,0.5,0.2], start=0, end=2 → 0.25
+- n=3, edges=[[0,1]], succProb=[0.5], start=0, end=2 → 0.0
+
+**Constraints**
+
+2≤n≤10000; up to 20000 edges; 0≤probability≤1; distinct endpoints.
+
+**Why this algorithm applies**
+
+Maximize product of independent edge probabilities; replace min-distance by max-probability heap and multiplicative relaxations. A max-heap finalizes the largest probability. Multiplication by a factor ≤1 cannot improve a path beyond its prefix, so Dijkstra’s greedy argument still holds.
+
+**Exact change from the previous solution**
+
+From 743: Retain best-first relaxation and stale-state filtering; switch min-heap to max-heap and sum to product.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    record Edge(int v,double p) {
+    }
+    record State(int u,double p) {
+    }
+    public double maxProbability(int n,int[][] edges,double[] succProb,int start_node,int end_node) {
+        List<Edge>[] g=new List[n];
+        for(int i=0;i<n;i++)g[i]=new ArrayList<>();
+        for(int i=0;i<edges.length;i++) {
+            int u=edges[i][0],v=edges[i][1];
+            g[u].add(new Edge(v,succProb[i]));
+            g[v].add(new Edge(u,succProb[i]));
+        }
+        double[] best=new double[n];
+        best[start_node]=1;
+        PriorityQueue<State> pq=new PriorityQueue<>(Comparator.comparingDouble(State::p).reversed());
+        pq.add(new State(start_node,1));
+        while(!pq.isEmpty()) {
+            State s=pq.remove();
+            if(s.p()<best[s.u()])continue;
+            if(s.u()==end_node)return s.p();
+            for(Edge e:g[s.u()]) {
+                double np=s.p()*e.p();
+                if(np>best[e.v()]) {
+                    best[e.v()]=np;
+                    pq.add(new State(e.v(),np));
+                }
+            }
+        }
+        return 0;
+    }
+}
+```
+
+**Key logic**
+
+A max-heap finalizes the largest probability. Multiplication by a factor ≤1 cannot improve a path beyond its prefix, so Dijkstra’s greedy argument still holds.
+
+**Complexity**
+
+O((V+E) log(E+1)) time; O(V+E) space.
+
+### 1976
+
+*Registry position: 26/42*
+
+**Problem statement**
+
+There are n intersections connected by undirected roads with positive travel times. Return the number of distinct shortest-time routes from intersection 0 to n−1 modulo 1,000,000,007.
+
+**Examples**
+
+- n=4, roads=[[0,1,1],[0,2,1],[1,3,1],[2,3,1]] → 2
+- n=2, roads=[[0,1,10]] → 1
+
+**Constraints**
+
+1≤n≤200; connected graph; positive road weights up to 10^9; at most one road per pair.
+
+**Why this algorithm applies**
+
+Count shortest-distance paths modulo M; keep shortest distance and ways arrays, replace ways on improvement and add on equal distance. Use long distances. On a strictly shorter route replace ways[v]; on equal distance add ways[u]. Positive weights ensure all shortest predecessors are processed first.
+
+**Exact change from the previous solution**
+
+From 1514: Restore additive nonnegative distance; augment Dijkstra with ways[] updates on shorter/equal tentative routes.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int countPaths(int n,int[][] roads) {
+        final int MOD=1_000_000_007;
+        List<int[]>[] g=new List[n];
+        for(int i=0;i<n;i++)g[i]=new ArrayList<>();
+        for(int[] e:roads) {
+            g[e[0]].add(new int[]{e[1],e[2]});
+            g[e[1]].add(new int[]{e[0],e[2]});
+        }
+        long[] dist=new long[n];
+        Arrays.fill(dist,Long.MAX_VALUE);
+        dist[0]=0;
+        int[] ways=new int[n];
+        ways[0]=1;
+        PriorityQueue<long[]> pq=new PriorityQueue<>(Comparator.comparingLong(a->a[0]));
+        pq.add(new long[]{0,0});
+        while(!pq.isEmpty()) {
+            long[] s=pq.remove();
+            long d=s[0];
+            int u=(int)s[1];
+            if(d!=dist[u])continue;
+            for(int[] e:g[u]) {
+                int v=e[0];
+                long nd=d+e[1];
+                if(nd<dist[v]) {
+                    dist[v]=nd;
+                    ways[v]=ways[u];
+                    pq.add(new long[]{nd,v});
+                }
+                else if(nd==dist[v])ways[v]=(ways[v]+ways[u])%MOD;
+            }
+        }
+        return ways[n-1];
+    }
+}
+```
+
+**Key logic**
+
+Use long distances. On a strictly shorter route replace ways[v]; on equal distance add ways[u]. Positive weights ensure all shortest predecessors are processed first.
+
+**Complexity**
+
+O((V+E) log(E+1)) time; O(V+E) space.
+
+
+---
+
+## GR14 — Dijkstra with minimax/path bottleneck
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Path cost is the maximum edge cost, not a sum; relaxation uses max(pathCost,edgeCost).
+
+**Core logic:** For a bottleneck objective, extend the path using max instead of sum. Keep the smallest bottleneck known per vertex and finalize in increasing order.
+
+**Locked questions:** 1631, 778
+
+### Reusable Java 21 template
+
+```java
+record Cell(int id,int cost) {}
+int[] best=new int[n]; Arrays.fill(best,Integer.MAX_VALUE);
+PriorityQueue<Cell> pq=new PriorityQueue<>(Comparator.comparingInt(Cell::cost));
+best[start]=0;pq.add(new Cell(start,0));
+while(!pq.isEmpty()) {
+    Cell cur=pq.poll(); if(cur.cost()!=best[cur.id()])continue;
+    for(Edge e:adj[cur.id()]) {
+        int candidate=Math.max(cur.cost(),e.weight());
+        if(candidate<best[e.to()]) {best[e.to()]=candidate;pq.add(new Cell(e.to(),candidate));}
+    }
+}
+```
+
+### 1631
+
+*Registry position: 27/42*
+
+**Problem statement**
+
+Given a grid of heights, move orthogonally from top-left to bottom-right. The effort of a path is the largest absolute height difference between consecutive cells. Return the minimum possible effort.
+
+**Examples**
+
+- heights=[[1,2,2],[3,8,2],[5,3,5]] → 2
+- heights=[[7]] → 0
+
+**Constraints**
+
+1≤m,n≤100; 1≤height≤10^6.
+
+**Why this algorithm applies**
+
+Minimum possible maximum height difference along grid path; grid Dijkstra with max-edge effort relaxation. Relax with max(current effort, height difference), not addition. The first finalized destination has the smallest bottleneck.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int minimumEffortPath(int[][] heights) {
+        int m=heights.length,n=heights[0].length;
+        int[][] dist=new int[m][n];
+        for(int[] row:dist)Arrays.fill(row,Integer.MAX_VALUE);
+        dist[0][0]=0;
+        PriorityQueue<int[]> pq=new PriorityQueue<>(Comparator.comparingInt(a->a[0]));
+        pq.add(new int[]{0,0,0});
+        int[] dir={1,0,-1,0,1};
+        while(!pq.isEmpty()) {
+            int[] s=pq.remove();
+            int d=s[0],r=s[1],c=s[2];
+            if(d!=dist[r][c])continue;
+            if(r==m-1&&c==n-1)return d;
+            for(int i=0;i<4;i++) {
+                int nr=r+dir[i],nc=c+dir[i+1];
+                if(nr<0||nr>=m||nc<0||nc>=n)continue;
+                int nd=Math.max(d,Math.abs(heights[r][c]-heights[nr][nc]));
+                if(nd<dist[nr][nc]) {
+                    dist[nr][nc]=nd;
+                    pq.add(new int[]{nd,nr,nc});
+                }
+            }
+        }
+        return -1;
+    }
+}
+```
+
+**Key logic**
+
+Relax with max(current effort, height difference), not addition. The first finalized destination has the smallest bottleneck.
+
+**Complexity**
+
+O(mn log(mn+1)) time; O(mn) space.
+
+### 778
+
+*Registry position: 28/42*
+
+**Problem statement**
+
+An n×n grid contains elevations. At time t you may swim between orthogonally adjacent cells if both elevations are at most t, with negligible travel time. Return the earliest time to reach bottom-right from top-left.
+
+**Examples**
+
+- grid=[[0,2],[1,3]] → 3
+- grid=[[0]] → 0
+
+**Constraints**
+
+1≤n≤50; elevations are distinct integers in [0,n²−1].
+
+**Why this algorithm applies**
+
+Minimum water level to reach destination; reuse minimax grid Dijkstra with edge/node elevation as bottleneck. The bottleneck is the maximum elevation on the path. Initialize the source with its own elevation; relax using the neighbor’s elevation.
+
+**Exact change from the previous solution**
+
+From 1631: Retain min-heap and max relaxation; change edge contribution from adjacent absolute height difference to destination cell elevation, initializing source elevation.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int swimInWater(int[][] grid) {
+        int n=grid.length;
+        int[][] dist=new int[n][n];
+        for(int[] row:dist)Arrays.fill(row,Integer.MAX_VALUE);
+        dist[0][0]=grid[0][0];
+        PriorityQueue<int[]> pq=new PriorityQueue<>(Comparator.comparingInt(a->a[0]));
+        pq.add(new int[]{dist[0][0],0,0});
+        int[] dir={1,0,-1,0,1};
+        while(!pq.isEmpty()) {
+            int[] s=pq.remove();
+            int d=s[0],r=s[1],c=s[2];
+            if(d!=dist[r][c])continue;
+            if(r==n-1&&c==n-1)return d;
+            for(int i=0;i<4;i++) {
+                int nr=r+dir[i],nc=c+dir[i+1];
+                if(nr<0||nr>=n||nc<0||nc>=n)continue;
+                int nd=Math.max(d,grid[nr][nc]);
+                if(nd<dist[nr][nc]) {
+                    dist[nr][nc]=nd;
+                    pq.add(new int[]{nd,nr,nc});
+                }
+            }
+        }
+        return -1;
+    }
+}
+```
+
+**Key logic**
+
+The bottleneck is the maximum elevation on the path. Initialize the source with its own elevation; relax using the neighbor’s elevation.
+
+**Complexity**
+
+O(n² log(n+1)) time; O(n²) space.
+
+
+---
+
+## GR15 — 0–1 BFS with deque
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** All edge weights are exactly zero or one; deque pushes free edges to front and costly ones to back.
+
+**Core logic:** For weights 0 and 1, a deque replaces the heap: free edges stay in the current distance layer, costly edges go behind it.
+
+**Locked questions:** 1368, 2290
+
+### Reusable Java 21 template
+
+```java
+int[] dist=new int[n]; Arrays.fill(dist,Integer.MAX_VALUE);
+ArrayDeque<Integer> dq=new ArrayDeque<>();dist[start]=0;dq.addFirst(start);
+while(!dq.isEmpty()) {
+    int u=dq.pollFirst();
+    for(Edge e:adj[u]) if(dist[u]+e.weight()<dist[e.to()]) {
+        dist[e.to()]=dist[u]+e.weight();
+        if(e.weight()==0)dq.addFirst(e.to());else dq.addLast(e.to());
+    }
+} // Store distance with queue entries or tolerate repeated relaxations.
+```
+
+### 1368
+
+*Registry position: 29/42*
+
+**Problem statement**
+
+Each grid cell has an arrow: 1 right, 2 left, 3 down, 4 up. Following the arrow costs zero; changing a cell’s arrow costs one. Return the minimum total cost to make a valid arrow-following path from top-left to bottom-right.
+
+**Examples**
+
+- grid=[[1,1,3],[3,2,2],[1,1,4]] → 0
+- grid=[[2,2],[2,2]] → 2
+
+**Constraints**
+
+1≤m,n≤100; values 1–4.
+
+**Why this algorithm applies**
+
+Minimum direction changes to form a valid path in a grid; zero cost follows indicated arrow, otherwise cost one. For a move matching the arrow, push the relaxed state to the deque front; otherwise push to the back. Stale entries are skipped.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int minCost(int[][] grid) {
+        int m=grid.length,n=grid[0].length;
+        int[][] dist=new int[m][n];
+        for(int[] row:dist)Arrays.fill(row,Integer.MAX_VALUE);
+        dist[0][0]=0;
+        Deque<int[]> q=new ArrayDeque<>();
+        q.add(new int[]{0,0,0});
+        int[] dr={0,0,1,-1},dc={1,-1,0,0};
+        while(!q.isEmpty()) {
+            int[] s=q.removeFirst();
+            int d=s[0],r=s[1],c=s[2];
+            if(d!=dist[r][c])continue;
+            if(r==m-1&&c==n-1)return d;
+            for(int i=0;i<4;i++) {
+                int nr=r+dr[i],nc=c+dc[i];
+                if(nr<0||nr>=m||nc<0||nc>=n)continue;
+                int w=grid[r][c]==i+1?0:1,nd=d+w;
+                if(nd<dist[nr][nc]) {
+                    dist[nr][nc]=nd;
+                    int[] t={nd,nr,nc};
+                    if(w==0)q.addFirst(t);
+                    else q.addLast(t);
+                }
+            }
+        }
+        return -1;
+    }
+}
+```
+
+**Key logic**
+
+For a move matching the arrow, push the relaxed state to the deque front; otherwise push to the back. Stale entries are skipped.
+
+**Complexity**
+
+O(mn) time and space.
+
+### 2290
+
+*Registry position: 30/42*
+
+**Problem statement**
+
+A binary grid contains empty cells (0) and removable obstacles (1). Move orthogonally from top-left to bottom-right. Return the minimum number of obstacles that must be removed.
+
+**Examples**
+
+- grid=[[0,1,1],[1,1,0],[1,1,0]] → 2
+- grid=[[0,0],[0,0]] → 0
+
+**Constraints**
+
+1≤m,n≤10^5; m·n≤10^5; endpoints are 0.
+
+**Why this algorithm applies**
+
+Minimum obstacles to remove to cross a grid; 0–1 BFS where entering an obstacle costs one. The edge cost is the value of the cell entered. Use the same deque ordering as 1368.
+
+**Exact change from the previous solution**
+
+From 1368: Reuse deque and 0/1 relaxation; replace arrow-direction cost with destination-cell obstacle indicator.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int minimumObstacles(int[][] grid) {
+        int m=grid.length,n=grid[0].length;
+        int[][] dist=new int[m][n];
+        for(int[] row:dist)Arrays.fill(row,Integer.MAX_VALUE);
+        dist[0][0]=0;
+        Deque<int[]> q=new ArrayDeque<>();
+        q.add(new int[]{0,0,0});
+        int[] dir={1,0,-1,0,1};
+        while(!q.isEmpty()) {
+            int[] s=q.removeFirst();
+            int d=s[0],r=s[1],c=s[2];
+            if(d!=dist[r][c])continue;
+            if(r==m-1&&c==n-1)return d;
+            for(int i=0;i<4;i++) {
+                int nr=r+dir[i],nc=c+dir[i+1];
+                if(nr<0||nr>=m||nc<0||nc>=n)continue;
+                int w=grid[nr][nc],nd=d+w;
+                if(nd<dist[nr][nc]) {
+                    dist[nr][nc]=nd;
+                    int[] t={nd,nr,nc};
+                    if(w==0)q.addFirst(t);
+                    else q.addLast(t);
+                }
+            }
+        }
+        return -1;
+    }
+}
+```
+
+**Key logic**
+
+The edge cost is the value of the cell entered. Use the same deque ordering as 1368.
+
+**Complexity**
+
+O(mn) time and space.
+
+
+---
+
+## GR16 — Bounded-edge shortest paths / Bellman–Ford
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** A bound on number of edges means ordinary Dijkstra state by vertex alone is insufficient.
+
+**Core logic:** Use a frozen distance array for each edge-count layer. Copy the prior layer so paths may use fewer than the allowed number of edges.
+
+**Locked questions:** 787
+
+### Reusable Java 21 template
+
+```java
+long[] prev=new long[n];Arrays.fill(prev,INF);prev[source]=0;
+for(int used=1;used<=maxEdges;used++) {
+    long[] next=prev.clone();
+    for(int[] e:edges) if(prev[e[0]]!=INF)
+        next[e[1]]=Math.min(next[e[1]],prev[e[0]]+e[2]);
+    prev=next;
+} // Each round uses the previous layer only.
+```
+
+### 787
+
+*Registry position: 31/42*
+
+**Problem statement**
+
+Given n cities and directed flights [from,to,price], find the cheapest route from src to dst with at most k intermediate stops, or −1 if none exists. At most k+1 flight edges may be used.
+
+**Examples**
+
+- n=3, flights=[[0,1,100],[1,2,100],[0,2,500]], src=0, dst=2, k=1 → 200
+- same flights, k=0 → 500
+
+**Constraints**
+
+1≤n≤100; 0≤k<n; positive prices up to 10^4; valid distinct src/dst.
+
+**Why this algorithm applies**
+
+Cheapest flight with at most k intermediate stops; k+1 edge-bounded Bellman–Ford relaxations on copied distances. Copy distances each round and relax only from the previous round. After round r, distances represent paths using at most r edges.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int findCheapestPrice(int n,int[][] flights,int src,int dst,int k) {
+        final int INF=1_000_000_000;
+        int[] dist=new int[n];
+        Arrays.fill(dist,INF);
+        dist[src]=0;
+        for(int i=0;i<=k;i++) {
+            int[] next=dist.clone();
+            for(int[] e:flights)if(dist[e[0]]!=INF)next[e[1]]=Math.min(next[e[1]],dist[e[0]]+e[2]);
+            dist=next;
+        }
+        return dist[dst]==INF?-1:dist[dst];
+    }
+}
+```
+
+**Key logic**
+
+Copy distances each round and relax only from the previous round. After round r, distances represent paths using at most r edges.
+
+**Complexity**
+
+O((k+1)(V+E)) time; O(V) auxiliary space.
+
+
+---
+
+## GR17 — All-pairs shortest paths / transitive costs
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Many source-destination comparisons on a small dense graph justify Floyd–Warshall.
+
+**Core logic:** Floyd–Warshall computes shortest paths by permitting intermediate vertices one at a time. The intermediate-vertex loop must be outermost.
+
+**Locked questions:** 1334
+
+### Reusable Java 21 template
+
+```java
+long[][] d=new long[n][n];
+for(int i=0;i<n;i++){Arrays.fill(d[i],INF);d[i][i]=0;}
+for(int[] e:edges)d[e[0]][e[1]]=Math.min(d[e[0]][e[1]],e[2]);
+for(int k=0;k<n;k++)for(int i=0;i<n;i++)for(int j=0;j<n;j++)
+    if(d[i][k]!=INF && d[k][j]!=INF)
+        d[i][j]=Math.min(d[i][j],d[i][k]+d[k][j]);
+```
+
+### 1334
+
+*Registry position: 32/42*
+
+**Problem statement**
+
+Given an undirected weighted graph and a distance threshold, find the city that can reach the fewest other cities within that shortest-path threshold. Break ties by choosing the greatest city index.
+
+**Examples**
+
+- n=4, edges=[[0,1,3],[1,2,1],[1,3,4],[2,3,1]], threshold=4 → 3
+- n=2, edges=[[0,1,5]], threshold=2 → 1
+
+**Constraints**
+
+2≤n≤100; positive weights and threshold≤10^4; distinct undirected edges.
+
+**Why this algorithm applies**
+
+Find city with fewest other cities reachable within a threshold; Floyd–Warshall O(n³), then threshold counts with tie selection. Floyd–Warshall considers one additional allowed intermediate vertex per outer iteration. Count other vertices within threshold and replace the answer on ties.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int findTheCity(int n,int[][] edges,int distanceThreshold) {
+        final int INF=1_000_000_000;
+        int[][] d=new int[n][n];
+        for(int i=0;i<n;i++) {
+            Arrays.fill(d[i],INF);
+            d[i][i]=0;
+        }
+        for(int[] e:edges)d[e[0]][e[1]]=d[e[1]][e[0]]=e[2];
+        for(int k=0;k<n;k++)for(int i=0;i<n;i++)for(int j=0;j<n;j++)d[i][j]=Math.min(d[i][j],d[i][k]+d[k][j]);
+        int ans=-1,best=n;
+        for(int i=0;i<n;i++) {
+            int count=0;
+            for(int j=0;j<n;j++)if(i!=j&&d[i][j]<=distanceThreshold)count++;
+            if(count<=best) {
+                best=count;
+                ans=i;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+**Key logic**
+
+Floyd–Warshall considers one additional allowed intermediate vertex per outer iteration. Count other vertices within threshold and replace the answer on ties.
+
+**Complexity**
+
+O(n³) time; O(n²) space.
+
+
+---
+
+## GR18 — Minimum spanning tree with Prim
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Connect every vertex at minimum total undirected edge cost, not shortest paths from a source.
+
+**Core logic:** Prim extends one connected tree across the cheapest cut edge. A dense graph can maintain one cheapest candidate per vertex without storing every edge.
+
+**Locked questions:** 1584
+
+### Reusable Java 21 template
+
+```java
+int[] best = new int[n];
+Arrays.fill(best, Integer.MAX_VALUE);
+boolean[] used = new boolean[n];
+best[0] = 0;
+long total = 0;
+for (int step = 0; step < n; step++) {
+    int u = -1;
+    for (int v = 0; v < n; v++)
+        if (!used[v] && (u == -1 || best[v] < best[u])) u = v;
+    used[u] = true; total += best[u];
+    for (int v = 0; v < n; v++)
+        if (!used[v]) best[v] = Math.min(best[v], weight(u, v));
+} // Dense connected graph; weight(u,v) is computed on demand.
+```
+
+### 1584
+
+*Registry position: 33/42*
+
+**Problem statement**
+
+Given distinct points in a plane, connect all points using edges whose costs are Manhattan distances |xi−xj|+|yi−yj|. Return the minimum total cost of a connected network.
+
+**Examples**
+
+- points=[[0,0],[2,2],[3,10],[5,2],[7,0]] → 20
+- points=[[0,0]] → 0
+
+**Constraints**
+
+1≤n≤1000; coordinates between −10^6 and 10^6; distinct points.
+
+**Why this algorithm applies**
+
+Minimum total cost connecting geometric points; Prim MST using O(n²) dense-graph implementation to avoid materializing all O(n²) edges. Maintain the cheapest known edge from the current tree to each unseen vertex. Select the minimum, add its cost, then update using the newly selected point. The cut property guarantees optimality.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int minCostConnectPoints(int[][] points) {
+        int n=points.length;
+        int[] best=new int[n];
+        Arrays.fill(best,Integer.MAX_VALUE);
+        best[0]=0;
+        boolean[] used=new boolean[n];
+        int total=0;
+        for(int i=0;i<n;i++) {
+            int u=-1;
+            for(int v=0;v<n;v++)if(!used[v]&&(u==-1||best[v]<best[u]))u=v;
+            used[u]=true;
+            total+=best[u];
+            for(int v=0;v<n;v++)if(!used[v]) {
+                int w=Math.abs(points[u][0]-points[v][0])+Math.abs(points[u][1]-points[v][1]);
+                best[v]=Math.min(best[v],w);
+            }
+        }
+        return total;
+    }
+}
+```
+
+**Key logic**
+
+Maintain the cheapest known edge from the current tree to each unseen vertex. Select the minimum, add its cost, then update using the newly selected point. The cut property guarantees optimality.
+
+**Complexity**
+
+O(n²) time; O(n) auxiliary space.
+
+
+---
+
+## GR19 — Bridge detection using Tarjan low-link DFS
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Need edges whose removal disconnects an undirected graph; compare child low-link to parent discovery time.
+
+**Core logic:** DFS discovery times and low-link values reveal whether a child subtree has a back edge to the parent or an earlier ancestor. Strict inequality identifies a bridge.
+
+**Locked questions:** 1192
+
+### Reusable Java 21 template
+
+```java
+// Fields: adjacency g, disc[], low[], timer, bridges.
+// This concise recursive template assumes no parallel edges.
+void dfs(int u, int parent) {
+    disc[u] = low[u] = ++timer;
+    for (int v : g[u]) {
+        if (v == parent) continue;
+        if (disc[v] == 0) {
+            dfs(v, u);
+            low[u] = Math.min(low[u], low[v]);
+            if (low[v] > disc[u]) bridges.add(List.of(u, v));
+        } else {
+            low[u] = Math.min(low[u], disc[v]);
+        }
+    }
+} // Use an explicit stack for large depth, as in the full solution.
+```
+
+### 1192
+
+*Registry position: 34/42*
+
+**Problem statement**
+
+Given a connected undirected network, return every connection whose removal disconnects the network. Output order and endpoint orientation do not matter.
+
+**Examples**
+
+- n=4, connections=[[0,1],[1,2],[2,0],[1,3]] → [[1,3]]
+- n=2, connections=[[0,1]] → [[0,1]]
+
+**Constraints**
+
+2≤n≤100000; n−1≤connections.size≤100000; connected, no repeated edges or self-loops.
+
+**Why this algorithm applies**
+
+Identify critical undirected connections (bridges); Tarjan DFS timestamps and low-link values. Use iterative DFS to avoid stack overflow. Each stack frame tracks its next adjacency index. At exit, propagate low[u] to parent p; low[u]>disc[p] proves no alternative connection to an ancestor.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<List<Integer>> criticalConnections(int n,List<List<Integer>> connections) {
+        List<Integer>[] g=new List[n];
+        for(int i=0;i<n;i++)g[i]=new ArrayList<>();
+        for(List<Integer> e:connections) {
+            int u=e.get(0),v=e.get(1);
+            g[u].add(v);
+            g[v].add(u);
+        }
+        int[] disc=new int[n],low=new int[n],parent=new int[n],next=new int[n];
+        Arrays.fill(parent,-1);
+        int timer=0;
+        List<List<Integer>> ans=new ArrayList<>();
+        Deque<Integer> stack=new ArrayDeque<>();
+        for(int s=0;s<n;s++)if(disc[s]==0) {
+            disc[s]=low[s]=++timer;
+            stack.push(s);
+            while(!stack.isEmpty()) {
+                int u=stack.peek();
+                if(next[u]<g[u].size()) {
+                    int v=g[u].get(next[u]++);
+                    if(v==parent[u])continue;
+                    if(disc[v]==0) {
+                        parent[v]=u;
+                        disc[v]=low[v]=++timer;
+                        stack.push(v);
+                    }
+                    else low[u]=Math.min(low[u],disc[v]);
+                }
+                else {
+                    stack.pop();
+                    int p=parent[u];
+                    if(p!=-1) {
+                        if(low[u]>disc[p])ans.add(List.of(p,u));
+                        low[p]=Math.min(low[p],low[u]);
+                    }
+                }
+            }
+        }
+        return ans;
+    }
+}
+```
+
+**Key logic**
+
+Use iterative DFS to avoid stack overflow. Each stack frame tracks its next adjacency index. At exit, propagate low[u] to parent p; low[u]>disc[p] proves no alternative connection to an ancestor.
+
+**Complexity**
+
+O(V+E) time and space, including adjacency.
+
+
+---
+
+## GR20 — Eulerian trail via Hierholzer
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Use every directed edge exactly once; consume outgoing edges and append vertices after exhausting successors.
+
+**Core logic:** Consume edges, not vertices. When a vertex runs out of outgoing edges, append it to reverse postorder; reversing yields the Euler trail under the degree/connectivity conditions.
+
+**Locked questions:** 332, 2097
+
+### Reusable Java 21 template
+
+```java
+Map<Integer,Deque<Integer>> adj=new HashMap<>();
+Deque<Integer> stack=new ArrayDeque<>();List<Integer> reversed=new ArrayList<>();
+stack.push(start);
+while(!stack.isEmpty()) {
+    int u=stack.peek();Deque<Integer> out=adj.get(u);
+    if(out!=null && !out.isEmpty())stack.push(out.removeFirst());
+    else reversed.add(stack.pop());
+}
+Collections.reverse(reversed); // Euler route if degree/connectivity requirements hold.
+```
+
+### 332
+
+*Registry position: 35/42*
+
+**Problem statement**
+
+Given directed flight tickets [from,to], reconstruct an itinerary starting at JFK that uses every ticket exactly once. If several itineraries exist, return the lexicographically smallest sequence of airport codes.
+
+**Examples**
+
+- tickets=[["JFK","SFO"],["JFK","ATL"],["ATL","JFK"]] → ["JFK","ATL","JFK","SFO"]
+- tickets=[["JFK","KUL"],["JFK","NRT"],["NRT","JFK"]] → ["JFK","NRT","JFK","KUL"]
+
+**Constraints**
+
+1≤tickets.size≤300; airport codes are three uppercase letters; a valid itinerary is guaranteed. Duplicate tickets may occur.
+
+**Why this algorithm applies**
+
+Use all directed flight tickets exactly once and return lexicographically smallest itinerary; ordered outgoing edges plus postorder Hierholzer. Consume the lexically smallest remaining outgoing edge using a priority queue. When a vertex has no remaining outgoing edges, prepend it to the result; this reverse postorder avoids premature dead-end commitment.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<String> findItinerary(List<List<String>> tickets) {
+        Map<String,PriorityQueue<String>> g=new HashMap<>();
+        for(List<String> e:tickets)g.computeIfAbsent(e.get(0),k->new PriorityQueue<>()).add(e.get(1));
+        Deque<String> stack=new ArrayDeque<>();
+        LinkedList<String> ans=new LinkedList<>();
+        stack.push("JFK");
+        while(!stack.isEmpty()) {
+            String u=stack.peek();
+            PriorityQueue<String> next=g.get(u);
+            if(next!=null&&!next.isEmpty())stack.push(next.remove());
+            else ans.addFirst(stack.pop());
+        }
+        return ans;
+    }
+}
+```
+
+**Key logic**
+
+Consume the lexically smallest remaining outgoing edge using a priority queue. When a vertex has no remaining outgoing edges, prepend it to the result; this reverse postorder avoids premature dead-end commitment.
+
+**Complexity**
+
+O(E log(E+1)) time; O(V+E) space.
+
+### 2097
+
+*Registry position: 36/42*
+
+**Problem statement**
+
+Reorder all directed pairs [start,end] so that each pair’s end equals the next pair’s start. Use each input pair exactly once; any valid arrangement may be returned.
+
+**Examples**
+
+- pairs=[[5,1],[4,5],[11,9],[9,4]] → [[11,9],[9,4],[4,5],[5,1]]
+- pairs=[[1,3],[3,2],[2,1]] → [[1,3],[3,2],[2,1]]
+
+**Constraints**
+
+1≤pairs.length≤100000; labels 0–10^9; distinct pairs with different endpoints; an arrangement is guaranteed.
+
+**Why this algorithm applies**
+
+Return an Eulerian ordering of directed edge pairs; compute in/out degree imbalance, choose start, run iterative Hierholzer and convert vertex walk to pairs. Choose a start with outdegree−indegree=1 if it exists, otherwise any source. Consume edges with a stack and record vertices on exit. Reverse the vertex walk into consecutive pairs.
+
+**Exact change from the previous solution**
+
+From 332: Reuse edge-consumption/postorder walk; replace fixed itinerary start and lexical order with degree-derived start and vertex-to-edge reconstruction.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[][] validArrangement(int[][] pairs) {
+        Map<Integer,Deque<Integer>> g=new HashMap<>();
+        Map<Integer,Integer> balance=new HashMap<>();
+        for(int[] e:pairs) {
+            g.computeIfAbsent(e[0],k->new ArrayDeque<>()).add(e[1]);
+            balance.merge(e[0],1,Integer::sum);
+            balance.merge(e[1],-1,Integer::sum);
+        }
+        int start=pairs[0][0];
+        for(var e:balance.entrySet())if(e.getValue()==1) {
+            start=e.getKey();
+            break;
+        }
+        Deque<Integer> stack=new ArrayDeque<>();
+        stack.push(start);
+        int[] path=new int[pairs.length+1];
+        int pos=pairs.length;
+        while(!stack.isEmpty()) {
+            int u=stack.peek();
+            Deque<Integer> next=g.get(u);
+            if(next!=null&&!next.isEmpty())stack.push(next.removeLast());
+            else path[pos--]=stack.pop();
+        }
+        int[][] ans=new int[pairs.length][2];
+        for(int i=0;i<ans.length;i++) {
+            ans[i][0]=path[i];
+            ans[i][1]=path[i+1];
+        }
+        return ans;
+    }
+}
+```
+
+**Key logic**
+
+Choose a start with outdegree−indegree=1 if it exists, otherwise any source. Consume edges with a stack and record vertices on exit. Reverse the vertex walk into consecutive pairs.
+
+**Complexity**
+
+O(E) expected time; O(V+E) space.
+
+
+---
+
+## GR21 — Topological DAG ancestor propagation
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Prerequisite ancestry flows forward in DAG order; maintain and merge predecessor sets.
+
+**Core logic:** Zero-indegree vertices are roots of DAG reachability. Process predecessors before successors so ancestor information can be propagated once in topological order.
+
+**Locked questions:** 1557, 2192
+
+### Reusable Java 21 template
+
+```java
+BitSet[] ancestors=new BitSet[n];
+for(int i=0;i<n;i++)ancestors[i]=new BitSet(n);
+// Obtain Kahn order first.
+for(int u:topologicalOrder)for(int v:adj[u]) {
+    ancestors[v].or(ancestors[u]);ancestors[v].set(u);
+}
+```
+
+### 1557
+
+*Registry position: 37/42*
+
+**Problem statement**
+
+Given a directed acyclic graph, return the smallest set of vertices from which every vertex can be reached. Reachability includes the starting vertex itself. The answer may be returned in any order.
+
+**Examples**
+
+- n=6, edges=[[0,1],[0,2],[2,5],[3,4],[4,2]] → [0,3]
+- n=3, edges=[[0,1],[1,2]] → [0]
+
+**Constraints**
+
+2≤n≤100000; up to 100000 directed edges; DAG with distinct edges.
+
+**Why this algorithm applies**
+
+Find all minimum required starting vertices in a DAG; exactly vertices with zero indegree. Every zero-indegree vertex must be selected because no other vertex reaches it. In a DAG every other vertex has a chain of predecessors ending at a zero-indegree vertex.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<Integer> findSmallestSetOfVertices(int n,List<List<Integer>> edges) {
+        boolean[] incoming=new boolean[n];
+        for(List<Integer> e:edges)incoming[e.get(1)]=true;
+        List<Integer> ans=new ArrayList<>();
+        for(int i=0;i<n;i++)if(!incoming[i])ans.add(i);
+        return ans;
+    }
+}
+```
+
+**Key logic**
+
+Every zero-indegree vertex must be selected because no other vertex reaches it. In a DAG every other vertex has a chain of predecessors ending at a zero-indegree vertex.
+
+**Complexity**
+
+O(V+E) time; O(V) auxiliary space.
+
+### 2192
+
+*Registry position: 38/42*
+
+**Problem statement**
+
+Given a directed acyclic graph on n vertices, return a list for each vertex containing all vertices that can reach it through a nonempty directed path, sorted in ascending order.
+
+**Examples**
+
+- n=4, edges=[[0,2],[1,2],[2,3]] → [[],[],[0,1],[0,1,2]]
+- n=2, edges=[] → [[],[]]
+
+**Constraints**
+
+1≤n≤1000; 0≤edges.length≤2000; distinct directed edges; DAG.
+
+**Why this algorithm applies**
+
+Find all ancestors for every DAG vertex; topological propagation of BitSets from each predecessor to each successor. Topological order guarantees a predecessor’s ancestor set is complete before propagating it. Union the predecessor’s BitSet and set its own bit in each successor. Iterate set bits in order for output.
+
+**Exact change from the previous solution**
+
+From 1557: Retain indegree/Kahn processing; add per-node ancestor sets, union current node and its ancestors into outgoing neighbors.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<List<Integer>> getAncestors(int n,int[][] edges) {
+        List<Integer>[] g=new List[n];
+        BitSet[] ancestors=new BitSet[n];
+        int[] in=new int[n];
+        for(int i=0;i<n;i++) {
+            g[i]=new ArrayList<>();
+            ancestors[i]=new BitSet(n);
+        }
+        for(int[] e:edges) {
+            g[e[0]].add(e[1]);
+            in[e[1]]++;
+        }
+        Queue<Integer> q=new ArrayDeque<>();
+        for(int i=0;i<n;i++)if(in[i]==0)q.add(i);
+        while(!q.isEmpty()) {
+            int u=q.remove();
+            for(int v:g[u]) {
+                ancestors[v].or(ancestors[u]);
+                ancestors[v].set(u);
+                if(--in[v]==0)q.add(v);
+            }
+        }
+        List<List<Integer>> ans=new ArrayList<>();
+        for(BitSet bs:ancestors) {
+            List<Integer> a=new ArrayList<>();
+            for(int p=bs.nextSetBit(0);p>=0;p=bs.nextSetBit(p+1))a.add(p);
+            ans.add(a);
+        }
+        return ans;
+    }
+}
+```
+
+**Key logic**
+
+Topological order guarantees a predecessor’s ancestor set is complete before propagating it. Union the predecessor’s BitSet and set its own bit in each successor. Iterate set bits in order for output.
+
+**Complexity**
+
+O(V+E·ceil(V/64)+V²/64+A) time, O(V+E+V·ceil(V/64)+A) space including A output entries (word-RAM model).
+
+
+---
+
+## GR22 — Topological ordering with nested groups
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Dependencies and grouping impose two concurrent DAG orders; preserve group contiguity.
+
+**Core logic:** Satisfy dependencies at two levels: between groups and between items. Bucket a valid item order and emit contiguous groups in group-topological order.
+
+**Locked questions:** 1203
+
+### Reusable Java 21 template
+
+```java
+// After assigning unique groups to ungrouped items:
+int[] itemOrder = topo(itemAdj, itemIndegree);
+int[] groupOrder = topo(groupAdj, groupIndegree);
+if (itemOrder.length != n || groupOrder.length != groupCount)
+    return new int[0];
+List<Integer>[] buckets = new List[groupCount];
+for (int g = 0; g < groupCount; g++) buckets[g] = new ArrayList<>();
+for (int item : itemOrder) buckets[group[item]].add(item);
+int[] result = new int[n];
+int p = 0;
+for (int g : groupOrder)
+    for (int item : buckets[g]) result[p++] = item;
+return result; // topo is Kahn's algorithm; parallel group edges are counted.
+```
+
+### 1203
+
+*Registry position: 39/42*
+
+**Problem statement**
+
+There are n items and m initial groups. group[i] is the item’s group or −1 if unassigned. Each beforeItems[i] lists items that must appear before i. Return an ordering satisfying all dependencies in which items of each group occupy a contiguous block, or an empty array if impossible.
+
+**Examples**
+
+- n=4, m=2, group=[0,0,1,1], beforeItems=[[],[0],[1],[2]] → [0,1,2,3]
+- n=2, m=1, group=[0,0], beforeItems=[[1],[0]] → []
+
+**Constraints**
+
+1≤m≤n≤30000; group values −1 or 0…m−1; distinct prerequisites per item, no self-dependency.
+
+**Why this algorithm applies**
+
+Order dependent items while keeping each assigned group contiguous; separate group-level and within-group topological sorting. Assign each ungrouped item a fresh group. Build item and group DAGs. Topologically order both, bucket the item order by group, then concatenate buckets in group order. A cycle in either order makes the result impossible.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[] sortItems(int n,int m,int[] group,List<List<Integer>> beforeItems) {
+        group=group.clone();
+        for(int i=0;i<n;i++)if(group[i]==-1)group[i]=m++;
+        List<Integer>[] items=new List[n],groups=new List[m];
+        int[] ii=new int[n],gi=new int[m];
+        for(int i=0;i<n;i++)items[i]=new ArrayList<>();
+        for(int i=0;i<m;i++)groups[i]=new ArrayList<>();
+        for(int v=0;v<n;v++)for(int u:beforeItems.get(v)) {
+            items[u].add(v);
+            ii[v]++;
+            if(group[u]!=group[v]) {
+                groups[group[u]].add(group[v]);
+                gi[group[v]]++;
+            }
+        }
+        int[] io=topo(items,ii),go=topo(groups,gi);
+        if(io.length!=n||go.length!=m)return new int[0];
+        List<Integer>[] bucket=new List[m];
+        for(int i=0;i<m;i++)bucket[i]=new ArrayList<>();
+        for(int u:io)bucket[group[u]].add(u);
+        int[] ans=new int[n];
+        int p=0;
+        for(int g:go)for(int u:bucket[g])ans[p++]=u;
+        return ans;
+    }
+    private int[] topo(List<Integer>[] g,int[] in) {
+        Queue<Integer> q=new ArrayDeque<>();
+        for(int i=0;i<in.length;i++)if(in[i]==0)q.add(i);
+        int[] order=new int[in.length];
+        int p=0;
+        while(!q.isEmpty()) {
+            int u=q.remove();
+            order[p++]=u;
+            for(int v:g[u])if(--in[v]==0)q.add(v);
+        }
+        return p==in.length?order:new int[0];
+    }
+}
+```
+
+**Key logic**
+
+Assign each ungrouped item a fresh group. Build item and group DAGs. Topologically order both, bucket the item order by group, then concatenate buckets in group order. A cycle in either order makes the result impossible.
+
+**Complexity**
+
+O(n+m+P) time and space, P total prerequisites (new groups ≤n).
+
+
+---
+
+## GR23 — Leaf peeling for tree centers
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Repeatedly delete all current leaves; remaining one or two vertices minimize maximum distance.
+
+**Core logic:** Peel all current leaves simultaneously. Removing one layer shortens every longest leaf-to-leaf path at both ends, preserving the center.
+
+**Locked questions:** 310
+
+### Reusable Java 21 template
+
+```java
+int[] degree=new int[n];ArrayDeque<Integer> leaves=new ArrayDeque<>();
+for(int u=0;u<n;u++){degree[u]=adj[u].size();if(degree[u]<=1)leaves.add(u);}
+int remaining=n;
+while(remaining>2){int size=leaves.size();remaining-=size;
+    for(int i=0;i<size;i++){int u=leaves.poll();for(int v:adj[u])if(--degree[v]==1)leaves.add(v);}
+} // leftovers are tree centers.
+```
+
+### 310
+
+*Registry position: 40/42*
+
+**Problem statement**
+
+Given an undirected tree on n vertices, return every possible root that minimizes the height of the rooted tree (maximum number of edges from root to any vertex).
+
+**Examples**
+
+- n=4, edges=[[1,0],[1,2],[1,3]] → [1]
+- n=4, edges=[[0,1],[1,2],[2,3]] → [1,2]
+
+**Constraints**
+
+1≤n≤20000; exactly n−1 edges; valid connected tree.
+
+**Why this algorithm applies**
+
+Find all minimum-height roots of an undirected tree; iteratively remove degree-one leaves until at most two centers remain. Repeatedly remove an entire layer of degree-one vertices. The remaining one or two vertices are the centers of the tree. Handle the single-vertex tree separately.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<Integer> findMinHeightTrees(int n,int[][] edges) {
+        if(n==1)return List.of(0);
+        List<Integer>[] g=new List[n];
+        int[] deg=new int[n];
+        for(int i=0;i<n;i++)g[i]=new ArrayList<>();
+        for(int[] e:edges) {
+            g[e[0]].add(e[1]);
+            g[e[1]].add(e[0]);
+            deg[e[0]]++;
+            deg[e[1]]++;
+        }
+        Queue<Integer> q=new ArrayDeque<>();
+        for(int i=0;i<n;i++)if(deg[i]==1)q.add(i);
+        int remaining=n;
+        while(remaining>2) {
+            int size=q.size();
+            remaining-=size;
+            while(size-->0) {
+                int u=q.remove();
+                for(int v:g[u])if(--deg[v]==1)q.add(v);
+            }
+        }
+        return new ArrayList<>(q);
+    }
+}
+```
+
+**Key logic**
+
+Repeatedly remove an entire layer of degree-one vertices. The remaining one or two vertices are the centers of the tree. Handle the single-vertex tree separately.
+
+**Complexity**
+
+O(V) time and space because E=V−1.
+
+
+---
+
+## GR24 — Maximum reachable nodes in a directed reachability graph
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Build edges from a domain-specific reachability predicate, then explore transitive closures.
+
+**Core logic:** Construct directed edges using the domain reachability predicate, then measure the reachable set from every possible starting vertex.
+
+**Locked questions:** 2101
+
+### Reusable Java 21 template
+
+```java
+List<Integer>[] adj=new List[n];for(int i=0;i<n;i++)adj[i]=new ArrayList<>();
+for(int i=0;i<n;i++)for(int j=0;j<n;j++)if(i!=j && canReach(i,j))adj[i].add(j);
+for(int start=0;start<n;start++) {
+    boolean[] seen=new boolean[n];ArrayDeque<Integer> q=new ArrayDeque<>();
+    seen[start]=true;q.add(start);int count=0;
+    while(!q.isEmpty()){int u=q.poll();count++;for(int v:adj[u])if(!seen[v]){seen[v]=true;q.add(v);}}
+    // maximize reachable count
+}
+```
+
+### 2101
+
+*Registry position: 41/42*
+
+**Problem statement**
+
+Each bomb has a center (x,y) and blast radius r. Detonating one bomb triggers any bomb whose center is within its radius, recursively. Choose exactly one initial bomb and return the maximum total number detonated.
+
+**Examples**
+
+- bombs=[[2,1,3],[6,1,4]] → 2
+- bombs=[[1,1,1],[10,10,1]] → 1
+
+**Constraints**
+
+1≤n≤100; 1≤x,y,r≤10^5.
+
+**Why this algorithm applies**
+
+Bomb detonation can trigger others in a directed chain; create edges with squared-distance comparison and DFS/BFS from every start. Build directed edges using squared distances and long arithmetic; reachability can be asymmetric because radii differ. Run traversal from each possible start and take the maximum closure size.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int maximumDetonation(int[][] bombs) {
+        int n=bombs.length;
+        List<Integer>[] g=new List[n];
+        for(int i=0;i<n;i++)g[i]=new ArrayList<>();
+        for(int i=0;i<n;i++)for(int j=0;j<n;j++)if(i!=j) {
+            long dx=(long)bombs[i][0]-bombs[j][0],dy=(long)bombs[i][1]-bombs[j][1],r=bombs[i][2];
+            if(dx*dx+dy*dy<=r*r)g[i].add(j);
+        }
+        int ans=0;
+        for(int s=0;s<n;s++) {
+            boolean[] seen=new boolean[n];
+            Queue<Integer> q=new ArrayDeque<>();
+            q.add(s);
+            seen[s]=true;
+            int count=1;
+            while(!q.isEmpty())for(int v:g[q.remove()])if(!seen[v]) {
+                seen[v]=true;
+                q.add(v);
+                count++;
+            }
+            ans=Math.max(ans,count);
+            if(ans==n)return n;
+        }
+        return ans;
+    }
+}
+```
+
+**Key logic**
+
+Build directed edges using squared distances and long arithmetic; reachability can be asymmetric because radii differ. Run traversal from each possible start and take the maximum closure size.
+
+**Complexity**
+
+O(n²+n(V+E)) time, O(V+E) space, worst-case O(n³) time and O(n²) space.
+
+
+---
+
+## GR25 — Mixed shortest paths and monotone DAG counting
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Shortest distances impose an acyclic direction; count paths that strictly decrease those distances.
+
+**Core logic:** Shortest distances define a scalar potential. Strict decrease makes eligible edges acyclic; process low-distance states first to count paths toward the target.
+
+**Locked questions:** 1786
+
+### Reusable Java 21 template
+
+```java
+long[] dist = dijkstra(destination, adj);
+Integer[] order = new Integer[n];
+for (int i = 0; i < n; i++) order[i] = i;
+Arrays.sort(order, Comparator.comparingLong(u -> dist[u]));
+long[] ways = new long[n];
+ways[destination] = 1;
+for (int u : order) {
+    if (u == destination) continue;
+    for (Edge e : adj[u]) {
+        int v = e.to();
+        if (dist[v] < dist[u]) ways[u] = (ways[u] + ways[v]) % MOD;
+    }
+}
+return ways[source];
+```
+
+### 1786
+
+*Registry position: 42/42*
+
+**Problem statement**
+
+Given a connected undirected positively weighted graph on vertices 1 through n, let dist(u) be the shortest distance from u to n. Count paths from 1 to n for which dist strictly decreases at every edge. Return the count modulo 1,000,000,007.
+
+**Examples**
+
+- n=4, edges=[[1,2,1],[1,3,1],[2,4,1],[3,4,1]] → 2
+- n=2, edges=[[1,2,7]] → 1
+
+**Constraints**
+
+1≤n≤20000; n−1≤edges.length≤40000; positive weights≤10^5; connected, distinct edges.
+
+**Why this algorithm applies**
+
+Count source-to-target paths whose distance-to-target strictly decreases at each step; Dijkstra from target, then sorted-distance DP. Run Dijkstra from n. Sort vertices by increasing distance, set ways[n]=1, and sum ways of neighbors with strictly smaller distance. Strict decrease creates a DAG even if the original graph contains cycles.
+
+**Exact change from the previous solution**
+
+Foundation of this subpattern.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int countRestrictedPaths(int n,int[][] edges) {
+        final int MOD=1_000_000_007;
+        List<int[]>[] g=new List[n+1];
+        for(int i=1;i<=n;i++)g[i]=new ArrayList<>();
+        for(int[] e:edges) {
+            g[e[0]].add(new int[]{e[1],e[2]});
+            g[e[1]].add(new int[]{e[0],e[2]});
+        }
+        long[] dist=new long[n+1];
+        Arrays.fill(dist,Long.MAX_VALUE);
+        dist[n]=0;
+        PriorityQueue<long[]> pq=new PriorityQueue<>(Comparator.comparingLong(a->a[0]));
+        pq.add(new long[]{0,n});
+        while(!pq.isEmpty()) {
+            long[] s=pq.remove();
+            long d=s[0];
+            int u=(int)s[1];
+            if(d!=dist[u])continue;
+            for(int[] e:g[u]) {
+                int v=e[0];
+                long nd=d+e[1];
+                if(nd<dist[v]) {
+                    dist[v]=nd;
+                    pq.add(new long[]{nd,v});
+                }
+            }
+        }
+        Integer[] order=new Integer[n];
+        for(int i=0;i<n;i++)order[i]=i+1;
+        Arrays.sort(order,Comparator.comparingLong(u->dist[u]));
+        int[] ways=new int[n+1];
+        ways[n]=1;
+        for(int u:order)if(u!=n)for(int[] e:g[u])if(dist[e[0]]<dist[u])ways[u]=(ways[u]+ways[e[0]])%MOD;
+        return ways[1];
+    }
+}
+```
+
+**Key logic**
+
+Run Dijkstra from n. Sort vertices by increasing distance, set ways[n]=1, and sum ways of neighbors with strictly smaller distance. Strict decrease creates a DAG even if the original graph contains cycles.
+
+**Complexity**
+
+O((V+E) log(E+1)+V log(V+1)) time; O(V+E) space.
+
+---
+
+## Final locked question registry
+
+| Position | LeetCode | Family |
+|---:|---:|---|
+| 01 | 1971 | GR1 |
+| 02 | 841 | GR1 |
+| 03 | 133 | GR1 |
+| 04 | 797 | GR2 |
+| 05 | 785 | GR3 |
+| 06 | 886 | GR3 |
+| 07 | 207 | GR4 |
+| 08 | 210 | GR4 |
+| 09 | 2115 | GR4 |
+| 10 | 802 | GR5 |
+| 11 | 2360 | GR6 |
+| 12 | 2876 | GR6 |
+| 13 | 433 | GR7 |
+| 14 | 127 | GR7 |
+| 15 | 752 | GR7 |
+| 16 | 909 | GR8 |
+| 17 | 815 | GR8 |
+| 18 | 1306 | GR9 |
+| 19 | 1345 | GR9 |
+| 20 | 1129 | GR10 |
+| 21 | 1293 | GR11 |
+| 22 | 864 | GR11 |
+| 23 | 847 | GR12 |
+| 24 | 743 | GR13 |
+| 25 | 1514 | GR13 |
+| 26 | 1976 | GR13 |
+| 27 | 1631 | GR14 |
+| 28 | 778 | GR14 |
+| 29 | 1368 | GR15 |
+| 30 | 2290 | GR15 |
+| 31 | 787 | GR16 |
+| 32 | 1334 | GR17 |
+| 33 | 1584 | GR18 |
+| 34 | 1192 | GR19 |
+| 35 | 332 | GR20 |
+| 36 | 2097 | GR20 |
+| 37 | 1557 | GR21 |
+| 38 | 2192 | GR21 |
+| 39 | 1203 | GR22 |
+| 40 | 310 | GR23 |
+| 41 | 2101 | GR24 |
+| 42 | 1786 | GR25 |
+
+## Verification and scope
+
+- Registry: 42/42 unique IDs in the exact locked order; all 25 families present.
+- Java compilation: all 42 independent solutions compiled with OpenJDK 21 (`javac --release 21`); generic array creation produces ordinary unchecked-operation warnings. Test-only class renaming and a local `Node` stub were used. The formatted solution code was compiled again.
+- Local examples: two checks per solution (84 example checks total) passed, including cyclic clone identity verification. This is not exhaustive testing or a LeetCode submission result.
+- Ownership: no changes to the locked curriculum; its recorded global collision audit is preserved.
+- Progress: remains 0/42 in the source registry; generating answers is not equivalent to completing practice.
+- Scope: only the 42 assigned questions; companion advanced concept modules (e.g., SCC, articulation points, max flow, A*, negative-cycle detection) are not additional locked problems.
+- Official constraints and judge acceptance were not independently verified.
+
+**End of workbook.**

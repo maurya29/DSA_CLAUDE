@@ -1,0 +1,3717 @@
+# T23 — Disjoint Set Union: Complete Solutions
+
+31 questions · 22 algorithm families · Java 21
+
+Source: MASTER_DSA_CURRICULUM.md, section C23. Reference workbook only; practice progress unchanged. Problem descriptions are independently paraphrased. α denotes the inverse Ackermann function. Complexity uses expected hash-map costs where indicated.
+
+## Table of contents
+
+- [DS1: Connectivity and component statistics](#subpattern-ds1) — [547](#leetcode-547), [1319](#leetcode-1319), [2316](#leetcode-2316), [2685](#leetcode-2685)
+
+- [DS2: Redundant directed/undirected edge detection](#subpattern-ds2) — [684](#leetcode-684), [685](#leetcode-685)
+
+- [DS3: Unify objects by shared identity](#subpattern-ds3) — [721](#leetcode-721), [839](#leetcode-839), [1202](#leetcode-1202)
+
+- [DS4: Equality constraints and canonical representatives](#subpattern-ds4) — [990](#leetcode-990), [1061](#leetcode-1061)
+
+- [DS5: Bipartite coordinate compression with DSU](#subpattern-ds5) — [947](#leetcode-947)
+
+- [DS6: Subcell topology modeling](#subpattern-ds6) — [959](#leetcode-959)
+
+- [DS7: Online cycle detection in a grid](#subpattern-ds7) — [1559](#leetcode-1559)
+
+- [DS8: Grid component sizing and reverse activation](#subpattern-ds8) — [827](#leetcode-827), [803](#leetcode-803)
+
+- [DS9: Two-role edge allocation](#subpattern-ds9) — [1579](#leetcode-1579)
+
+- [DS10: Offline threshold connectivity](#subpattern-ds10) — [1697](#leetcode-1697)
+
+- [DS11: Kruskal edge classification](#subpattern-ds11) — [1489](#leetcode-1489)
+
+- [DS12: Arithmetic equivalence under divisors](#subpattern-ds12) — [1627](#leetcode-1627)
+
+- [DS13: Factor-node connectivity](#subpattern-ds13) — [952](#leetcode-952), [1998](#leetcode-1998)
+
+- [DS14: Greedy swaps among fixed-position partners](#subpattern-ds14) — [765](#leetcode-765)
+
+- [DS15: Value-ordered DSU activation](#subpattern-ds15) — [2421](#leetcode-2421)
+
+- [DS16: Reverse deletion of array segments](#subpattern-ds16) — [2382](#leetcode-2382)
+
+- [DS17: Reverse-time grid connectivity](#subpattern-ds17) — [1970](#leetcode-1970)
+
+- [DS18: Time-batched ephemeral connectivity](#subpattern-ds18) — [2092](#leetcode-2092)
+
+- [DS19: Union operations with incompatibility constraints](#subpattern-ds19) — [2076](#leetcode-2076)
+
+- [DS20: Same-value component batching with rank propagation](#subpattern-ds20) — [1632](#leetcode-1632)
+
+- [DS21: Optimization within swap-connected components](#subpattern-ds21) — [1722](#leetcode-1722)
+
+- [DS22: Contagion containment by component metadata](#subpattern-ds22) — [924](#leetcode-924)
+
+## Shared DSU foundation
+
+Path compression by halving shortens find paths; union by size attaches the smaller tree to the larger. Only roots carry valid size metadata. A failed union leaves the partition unchanged.
+
+```java
+static class DSU  {
+    int[] p,s;
+    int count;
+    DSU(int n) {
+        p=new int[n];
+        s=new int[n];
+        count=n;
+        for(int i=0;i<n;i++) {
+            p[i]=i;
+            s[i]=1;
+        }
+    }
+    int find(int x) {
+        while(x!=p[x]) {
+            p[x]=p[p[x]];
+            x=p[x];
+        }
+        return x;
+    }
+    boolean union(int a,int b) {
+        a=find(a);
+        b=find(b);
+        if(a==b)return false;
+        if(s[a]<s[b]) {
+            int t=a;
+            a=b;
+            b=t;
+        }
+        p[b]=a;
+        s[a]+=s[b];
+        count--;
+        return true;
+    }
+}
+```
+
+Family templates below are methods intended to be placed alongside the shared DSU and `import java.util.*;`. Each full solution independently includes its own helper.
+
+<a id="subpattern-ds1"></a>
+
+## Subpattern DS1: Connectivity and component statistics
+
+**When to Apply:**
+
+Repeated undirected connectivity or component-size queries: union each edge and examine final roots.
+
+The invariant is that DSU roots represent precisely the equivalence classes created by eligible edges; family-specific metadata or processing order controls which edges are eligible and how the answer is extracted.
+
+**Basic Java Code Snippet:**
+
+```java
+int components(int n,int[][] edges) {
+    DSU d=new DSU(n);
+    for(int[] e:edges)d.union(e[0],e[1]);
+    return d.count;
+}
+```
+
+**Core Logic:**
+
+Adjacency matrix connected components; union pairs i<j when linked, count roots. O(n² α(n)).
+
+**Questions Covered:** 547, 1319, 2316, 2685
+
+### LeetCode 547
+
+**Question:**
+
+Given a symmetric n × n matrix isConnected, where 1 indicates a direct connection between cities and 0 indicates none, return the number of provinces. A province contains all cities connected directly or indirectly and no outside city.
+
+**Examples:**
+
+- [[1,1,0],[1,1,0],[0,0,1]] → 2
+- [[1,0],[0,1]] → 2
+- [[1]] → 1
+
+**Constraints:**
+
+1 ≤ n ≤ 200; binary symmetric matrix; diagonal entries are 1.
+
+**Why This Subpattern Applies:**
+
+Repeated undirected connectivity or component-size queries: union each edge and examine final roots. Scan only the upper triangle; successful merges reduce the province count..
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public int findCircleNum(int[][] a) {
+        int n=a.length;
+        DSU d=new DSU(n);
+        for(int i=0;i<n;i++)for(int j=i+1;j<n;j++)if(a[i][j]==1)d.union(i,j);
+        return d.count;
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Scan only the upper triangle; successful merges reduce the province count.
+
+**Time Complexity:**
+
+O(n² α(n)). The matrix scan dominates.
+
+**Space Complexity:**
+
+O(n). DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+### LeetCode 1319
+
+**Question:**
+
+There are n computers numbered 0 to n−1 and undirected cables connections. You may remove a cable and reconnect it between any disconnected computers. Return the minimum operations to connect all computers, or −1 if impossible.
+
+**Examples:**
+
+- n=4, [[0,1],[0,2],[1,2]] → 1
+- n=4, [[0,1],[2,3]] → -1
+
+**Constraints:**
+
+1 ≤ n ≤ 10^5; 1 ≤ connections.length ≤ min(10^5,n(n−1)/2); distinct edges, no self loops.
+
+**Why This Subpattern Applies:**
+
+Repeated undirected connectivity or component-size queries: union each edge and examine final roots. A spanning tree needs n−1 cables.
+
+**Connection to Previous Solution:**
+
+Retain pairwise unions; count redundant edges / use n−1 edge lower bound; return components−1.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public int makeConnected(int n,int[][] connections) {
+        if(connections.length<n-1)return -1;
+        DSU d=new DSU(n);
+        for(int[] e:connections)d.union(e[0],e[1]);
+        return d.count-1;
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+A spanning tree needs n−1 cables. With enough cables, redundant cables can connect the remaining components.
+
+**Time Complexity:**
+
+O(n+m α(n)). Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(n). DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+### LeetCode 2316
+
+**Question:**
+
+Given n vertices numbered 0 to n−1 and undirected edges, count unordered pairs of distinct vertices for which no path exists.
+
+**Examples:**
+
+- n=3, edges=[[0,1],[0,2],[1,2]] → 0
+- n=4, edges=[[0,1]] → 5
+
+**Constraints:**
+
+1 ≤ n ≤ 10^5; 0 ≤ edges.length ≤ 2×10^5; distinct edges, no self loops.
+
+**Why This Subpattern Applies:**
+
+Repeated undirected connectivity or component-size queries: union each edge and examine final roots. Each component contributes its size times the number of vertices in later components.
+
+**Connection to Previous Solution:**
+
+Replace count-of-components answer with root sizes and sum size × remaining; use long.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public long countPairs(int n,int[][] edges) {
+        DSU d=new DSU(n);
+        for(int[] e:edges)d.union(e[0],e[1]);
+        long ans=0,remaining=n;
+        for(int i=0;i<n;i++)if(d.find(i)==i) {
+            remaining-=d.s[i];
+            ans+=remaining*d.s[i];
+        }
+        return ans;
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Each component contributes its size times the number of vertices in later components. long prevents overflow.
+
+**Time Complexity:**
+
+O((n+m) α(n)). Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(n). DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+### LeetCode 2685
+
+**Question:**
+
+Given an undirected simple graph on n vertices, return the number of connected components that are complete: every distinct pair of vertices in the component must have an edge. Isolated vertices qualify.
+
+**Examples:**
+
+- n=6, edges=[[0,1],[0,2],[1,2],[3,4]] → 3
+- n=3, edges=[[0,1],[1,2]] → 0
+
+**Constraints:**
+
+1 ≤ n ≤ 50; 0 ≤ m ≤ n(n−1)/2; no duplicate edges or self loops.
+
+**Why This Subpattern Applies:**
+
+Repeated undirected connectivity or component-size queries: union each edge and examine final roots. Count edges at final roots, including redundant edges.
+
+**Connection to Previous Solution:**
+
+Extend DSU root metadata from size alone to size plus edge count, including internal edges.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public int countCompleteComponents(int n,int[][] edges) {
+        DSU d=new DSU(n);
+        for(int[] e:edges)d.union(e[0],e[1]);
+        int[] ec=new int[n];
+        for(int[] e:edges)ec[d.find(e[0])]++;
+        int ans=0;
+        for(int i=0;i<n;i++)if(d.find(i)==i&&ec[i]==d.s[i]*(d.s[i]-1)/2)ans++;
+        return ans;
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Count edges at final roots, including redundant edges. A simple component of size s is complete exactly when it has s(s−1)/2 edges.
+
+**Time Complexity:**
+
+O((n+m) α(n)). Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(n). DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+<a id="subpattern-ds2"></a>
+
+## Subpattern DS2: Redundant directed/undirected edge detection
+
+**When to Apply:**
+
+An edge can be rejected when endpoints already share a root; directed trees also require indegree constraints.
+
+The invariant is that DSU roots represent precisely the equivalence classes created by eligible edges; family-specific metadata or processing order controls which edges are eligible and how the answer is extracted.
+
+**Basic Java Code Snippet:**
+
+```java
+int[] redundant(int n,int[][] edges) {
+    DSU d=new DSU(n);
+    for(int[] e:edges)if(!d.union(e[0],e[1]))return e;
+    return null;
+}
+```
+
+**Core Logic:**
+
+Find extra undirected edge; first edge whose endpoints already share root closes a cycle. O(nα(n)).
+
+**Questions Covered:** 684, 685
+
+### LeetCode 684
+
+**Question:**
+
+An undirected tree on labels 1 through n receives one extra edge between previously nonadjacent vertices. Given the resulting n edges, return an edge whose removal restores a tree; if several qualify, return the last in input order.
+
+**Examples:**
+
+- [[1,2],[1,3],[2,3]] → [2,3]
+- [[1,2],[2,3],[3,4],[1,4],[1,5]] → [1,4]
+
+**Constraints:**
+
+3 ≤ n ≤ 1000; n edges; connected simple graph.
+
+**Why This Subpattern Applies:**
+
+An edge can be rejected when endpoints already share a root; directed trees also require indegree constraints. The unique cycle closes when its last input edge is encountered..
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public int[] findRedundantConnection(int[][] edges) {
+        DSU d=new DSU(edges.length+1);
+        for(int[] e:edges)if(!d.union(e[0],e[1]))return e;
+        return new int[0];
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+The unique cycle closes when its last input edge is encountered.
+
+**Time Complexity:**
+
+O(n α(n)). Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(n). DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+### LeetCode 685
+
+**Question:**
+
+A rooted directed tree on labels 1 through n has one extra directed edge added. Return an edge whose removal restores a rooted tree (one root, every other vertex has exactly one parent and is reachable from the root). Break ties by latest input edge.
+
+**Examples:**
+
+- [[1,2],[1,3],[2,3]] → [2,3]
+- [[1,2],[2,3],[3,4],[4,1],[1,5]] → [4,1]
+
+**Constraints:**
+
+3 ≤ n ≤ 1000; n directed edges; distinct endpoints; input is a rooted tree plus one edge.
+
+**Why This Subpattern Applies:**
+
+An edge can be rejected when endpoints already share a root; directed trees also require indegree constraints. Skip the later incoming edge of a two-parent vertex.
+
+**Connection to Previous Solution:**
+
+Add indegree/parent-candidate detection and conditional skip; return correct edge based on whether cycle remains.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public int[] findRedundantDirectedConnection(int[][] edges) {
+        int n=edges.length;
+        int[] incoming=new int[n+1];
+        Arrays.fill(incoming,-1);
+        int a=-1,b=-1;
+        for(int i=0;i<n;i++) {
+            int v=edges[i][1];
+            if(incoming[v]>=0) {
+                a=incoming[v];
+                b=i;
+            }
+            else incoming[v]=i;
+        }
+        DSU d=new DSU(n+1);
+        for(int i=0;i<n;i++) {
+            if(i==b)continue;
+            int[] e=edges[i];
+            if(!d.union(e[0],e[1]))return edges[a<0?i:a];
+        }
+        return edges[b];
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Skip the later incoming edge of a two-parent vertex. If a cycle survives, remove its earlier incoming edge; otherwise remove the skipped edge. Without two parents, remove the cycle-closing edge.
+
+**Time Complexity:**
+
+O(n α(n)). Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(n). DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+<a id="subpattern-ds3"></a>
+
+## Subpattern DS3: Unify objects by shared identity
+
+**When to Apply:**
+
+Different records refer to one entity when a matching key or permitted relation implies equivalence.
+
+The invariant is that DSU roots represent precisely the equivalence classes created by eligible edges; family-specific metadata or processing order controls which edges are eligible and how the answer is extracted.
+
+**Basic Java Code Snippet:**
+
+```java
+DSU group(String[][] keys) {
+    DSU d=new DSU(keys.length);
+    Map<String,Integer> owner=new HashMap<>();
+    for(int i=0;i<keys.length;i++)for(String k:keys[i]) {
+        Integer j=owner.putIfAbsent(k,i);
+        if(j!=null)d.union(i,j);
+    }
+    return d;
+}
+```
+
+**Core Logic:**
+
+Merge accounts by shared emails; map email→first account index, union account indices, gather emails by root. O(E α(n)+E log E).
+
+**Questions Covered:** 721, 839, 1202
+
+### LeetCode 721
+
+**Question:**
+
+Each account contains a name followed by email addresses. Accounts sharing any email belong to the same person, transitively; identical names alone do not establish identity. Merge accounts, returning each name followed by its distinct emails in sorted order. Account order is arbitrary.
+
+**Examples:**
+
+- [["A","x@m","y@m"],["A","y@m","z@m"]] → [["A","x@m","y@m","z@m"]]
+- [["A","x@m"],["A","y@m"]] → unchanged
+
+**Constraints:**
+
+1 ≤ accounts.length ≤ 1000; 2–10 strings per account; string lengths 1–30; same person has same name.
+
+**Why This Subpattern Applies:**
+
+Different records refer to one entity when a matching key or permitted relation implies equivalence. Email ownership creates union edges; grouping unique email keys by final root avoids duplicates..
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public List<List<String>> accountsMerge(List<List<String>> accounts) {
+        int n=accounts.size();
+        DSU d=new DSU(n);
+        Map<String,Integer> owner=new HashMap<>();
+        for(int i=0;i<n;i++)for(int j=1;j<accounts.get(i).size();j++) {
+            Integer p=owner.putIfAbsent(accounts.get(i).get(j),i);
+            if(p!=null)d.union(i,p);
+        }
+        Map<Integer,List<String>> groups=new HashMap<>();
+        for(var e:owner.entrySet())groups.computeIfAbsent(d.find(e.getValue()),k->new ArrayList<>()).add(e.getKey());
+        List<List<String>> ans=new ArrayList<>();
+        for(var e:groups.entrySet()) {
+            List<String> list=e.getValue();
+            Collections.sort(list);
+            list.add(0,accounts.get(e.getKey()).get(0));
+            ans.add(list);
+        }
+        return ans;
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Email ownership creates union edges; grouping unique email keys by final root avoids duplicates.
+
+**Time Complexity:**
+
+O(E α(n)+E log E) expected, treating strings as bounded. Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(n+E), including output. DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+### LeetCode 839
+
+**Question:**
+
+All strings are anagrams of one another. Two strings are similar if equal or if swapping exactly two positions in one makes it equal to the other. Similarity groups are connected components under this relation. Return their count.
+
+**Examples:**
+
+- ["tars","rats","arts","star"] → 2
+- ["omv","ovm"] → 1
+
+**Constraints:**
+
+1 ≤ number of strings, length ≤ 300; lowercase; all strings are anagrams.
+
+**Why This Subpattern Applies:**
+
+Different records refer to one entity when a matching key or permitted relation implies equivalence. Stop at a third mismatch; two mismatches must cross-match.
+
+**Connection to Previous Solution:**
+
+Replace email-key unions with O(n²) predicate-driven similarity checks; retain DSU grouping.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public int numSimilarGroups(String[] strs) {
+        DSU d=new DSU(strs.length);
+        for(int i=0;i<strs.length;i++)for(int j=i+1;j<strs.length;j++)if(d.find(i)!=d.find(j)&&similar(strs[i],strs[j]))d.union(i,j);
+        return d.count;
+    }
+    boolean similar(String a,String b) {
+        int x=-1,y=-1;
+        for(int i=0;i<a.length();i++)if(a.charAt(i)!=b.charAt(i)) {
+            if(x<0)x=i;
+            else if(y<0)y=i;
+            else return false;
+        }
+        return x<0||(y>=0&&a.charAt(x)==b.charAt(y)&&a.charAt(y)==b.charAt(x));
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Stop at a third mismatch; two mismatches must cross-match. Transitive similarity is captured by unions.
+
+**Time Complexity:**
+
+O(n²(L+α(n))). Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(n). DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+### LeetCode 1202
+
+**Question:**
+
+Given lowercase string s and pairs of zero-based indices, you may swap characters at any listed pair any number of times. Return the lexicographically smallest obtainable string.
+
+**Examples:**
+
+- s="dcab", pairs=[[0,3],[1,2]] → "bacd"
+- s="dcab", pairs=[[0,3],[1,2],[0,2]] → "abcd"
+
+**Constraints:**
+
+1 ≤ s.length ≤ 10^5; 0 ≤ pairs.length ≤ 10^5; valid indices.
+
+**Why This Subpattern Applies:**
+
+Different records refer to one entity when a matching key or permitted relation implies equivalence. Connected swap edges allow arbitrary permutations.
+
+**Connection to Previous Solution:**
+
+Replace component-count output with grouped index/character reconstruction for lexicographically minimal result.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public String smallestStringWithSwaps(String s,List<List<Integer>> pairs) {
+        int n=s.length();
+        DSU d=new DSU(n);
+        for(var p:pairs)d.union(p.get(0),p.get(1));
+        Map<Integer,int[]> counts=new HashMap<>();
+        for(int i=0;i<n;i++)counts.computeIfAbsent(d.find(i),k->new int[26])[s.charAt(i)-'a']++;
+        char[] ans=new char[n];
+        for(int i=0;i<n;i++) {
+            int[] c=counts.get(d.find(i));
+            int j=0;
+            while(c[j]==0)j++;
+            c[j]--;
+            ans[i]=(char)('a'+j);
+        }
+        return new String(ans);
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Connected swap edges allow arbitrary permutations. Fill positions in increasing order with the smallest available component character.
+
+**Time Complexity:**
+
+O((n+m) α(n)+26n) expected. Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(26n) plus output. DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+<a id="subpattern-ds4"></a>
+
+## Subpattern DS4: Equality constraints and canonical representatives
+
+**When to Apply:**
+
+Constraints create equivalence classes; inequalities or canonical ordering act on those classes.
+
+The invariant is that DSU roots represent precisely the equivalence classes created by eligible edges; family-specific metadata or processing order controls which edges are eligible and how the answer is extracted.
+
+**Basic Java Code Snippet:**
+
+```java
+boolean consistent(int n,int[][] equal,int[][] unequal) {
+    DSU d=new DSU(n);
+    for(int[] e:equal)d.union(e[0],e[1]);
+    for(int[] e:unequal)if(d.find(e[0])==d.find(e[1]))return false;
+    return true;
+}
+```
+
+**Core Logic:**
+
+Test equalities/inequalities; union all == pairs, then reject any != pair within one root. O(m α(26)).
+
+**Questions Covered:** 990, 1061
+
+### LeetCode 990
+
+**Question:**
+
+Given equations of form x==y or x!=y over lowercase variables, determine whether integer values can be assigned to satisfy all equations simultaneously.
+
+**Examples:**
+
+- ["a==b","b!=a"] → false
+- ["b==a","a==b"] → true
+
+**Constraints:**
+
+1 ≤ equations.length ≤ 500; each equation has four characters; variables a–z.
+
+**Why This Subpattern Applies:**
+
+Constraints create equivalence classes; inequalities or canonical ordering act on those classes. Resolve all equalities before testing inequalities, including self-inequalities..
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public boolean equationsPossible(String[] equations) {
+        DSU d=new DSU(26);
+        for(String e:equations)if(e.charAt(1)=='=')d.union(e.charAt(0)-'a',e.charAt(3)-'a');
+        for(String e:equations)if(e.charAt(1)=='!'&&d.find(e.charAt(0)-'a')==d.find(e.charAt(3)-'a'))return false;
+        return true;
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Resolve all equalities before testing inequalities, including self-inequalities.
+
+**Time Complexity:**
+
+O(m α(26)). Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(26). DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+### LeetCode 1061
+
+**Question:**
+
+Strings s1 and s2 of equal length establish equivalence between characters at matching positions. Equivalence is reflexive, symmetric and transitive. Return the lexicographically smallest string equivalent to baseStr by replacing each character with any equivalent character.
+
+**Examples:**
+
+- s1="parker", s2="morris", baseStr="parser" → "makkek"
+- s1="a", s2="b", baseStr="b" → "a"
+
+**Constraints:**
+
+1 ≤ lengths ≤ 1000; lowercase; s1 and s2 equal length.
+
+**Why This Subpattern Applies:**
+
+Constraints create equivalence classes; inequalities or canonical ordering act on those classes. Always attach larger root to smaller root; the representative is the minimum character.
+
+**Connection to Previous Solution:**
+
+Keep character equivalence unions; change union rule to minimum root and map each output character to its root.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public String smallestEquivalentString(String s1,String s2,String baseStr) {
+        DSU d=new DSU(26);
+        for(int i=0;i<s1.length();i++) {
+            int a=d.find(s1.charAt(i)-'a'),b=d.find(s2.charAt(i)-'a');
+            d.p[Math.max(a,b)]=Math.min(a,b);
+        }
+        char[] out=baseStr.toCharArray();
+        for(int i=0;i<out.length;i++)out[i]=(char)('a'+d.find(out[i]-'a'));
+        return new String(out);
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Always attach larger root to smaller root; the representative is the minimum character. Size metadata is unused.
+
+**Time Complexity:**
+
+O(26(m+n)) worst case, linear for fixed alphabet. Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(26) auxiliary plus output. DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+<a id="subpattern-ds5"></a>
+
+## Subpattern DS5: Bipartite coordinate compression with DSU
+
+**When to Apply:**
+
+Rows and columns form a bipartite graph; stones in the same connected component can be removed until one remains.
+
+The invariant is that DSU roots represent precisely the equivalence classes created by eligible edges; family-specific metadata or processing order controls which edges are eligible and how the answer is extracted.
+
+**Basic Java Code Snippet:**
+
+```java
+DSU coordinateGroups(int rows,int cols,int[][] points) {
+    DSU d=new DSU(rows+cols);
+    for(int[] p:points)d.union(p[0],rows+p[1]);
+    return d;
+}
+```
+
+**Core Logic:**
+
+Union row-node and column-node for each stone using disjoint namespaces (compressed IDs/maps); answer stones−componentCount. O(nα(n)).
+
+**Questions Covered:** 947
+
+### LeetCode 947
+
+**Question:**
+
+Given distinct stones at integer coordinates, remove a stone only if another remaining stone shares its row or column. Return the maximum number removable.
+
+**Examples:**
+
+- [[0,0],[0,1],[1,0]] → 2
+- [[0,0],[1,1]] → 0
+
+**Constraints:**
+
+1 ≤ stones.length ≤ 1000; coordinates 0–10^4; unique positions.
+
+**Why This Subpattern Applies:**
+
+Rows and columns form a bipartite graph; stones in the same connected component can be removed until one remains. Complemented column keys are negative, distinct from row keys.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public int removeStones(int[][] stones) {
+        DSU d=new DSU(2*stones.length);
+        Map<Integer,Integer> ids=new HashMap<>();
+        for(int[] s:stones) {
+            int a=ids.computeIfAbsent(s[0],k->ids.size());
+            int b=ids.computeIfAbsent(~s[1],k->ids.size());
+            d.union(a,b);
+        }
+        int components=0;
+        for(int i=0;i<ids.size();i++)if(d.find(i)==i)components++;
+        return stones.length-components;
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Complemented column keys are negative, distinct from row keys. Every connected stone group can be reduced to one by removing leaves of a spanning tree.
+
+**Time Complexity:**
+
+O(n α(n)) expected. Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(n). DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+<a id="subpattern-ds6"></a>
+
+## Subpattern DS6: Subcell topology modeling
+
+**When to Apply:**
+
+Visual cell separators alter connectivity inside each grid cell; model subregions explicitly.
+
+The invariant is that DSU roots represent precisely the equivalence classes created by eligible edges; family-specific metadata or processing order controls which edges are eligible and how the answer is extracted.
+
+**Basic Java Code Snippet:**
+
+```java
+void joinCell(DSU d,int x,char slash) {
+    if(slash!='/') {
+        d.union(x,x+1);
+        d.union(x+2,x+3);
+    }
+    if(slash!=92) {
+        d.union(x,x+3);
+        d.union(x+1,x+2);
+    }
+}
+```
+
+**Core Logic:**
+
+Divide each cell into four triangles; union internal triangles based on slash direction and neighboring triangles; count roots. O(n²α(n²)).
+
+**Questions Covered:** 959
+
+### LeetCode 959
+
+**Question:**
+
+An n × n grid of characters contains spaces, forward slashes or backslashes. Each slash divides its unit square into two triangular regions. Return the number of connected regions formed inside the grid.
+
+**Examples:**
+
+- [" /","/ "] → 2
+- [" /","  "] → 1
+
+**Constraints:**
+
+1 ≤ n ≤ 30; each row length n; characters space, /, or backslash.
+
+**Why This Subpattern Applies:**
+
+Visual cell separators alter connectivity inside each grid cell; model subregions explicitly. Triangles are top/right/bottom/left.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public int regionsBySlashes(String[] grid) {
+        int n=grid.length;
+        DSU d=new DSU(4*n*n);
+        for(int r=0;r<n;r++)for(int c=0;c<n;c++) {
+            int x=4*(r*n+c);
+            char ch=grid[r].charAt(c);
+            if(ch!='/') {
+                d.union(x,x+1);
+                d.union(x+2,x+3);
+            }
+            if(ch!=92) {
+                d.union(x,x+3);
+                d.union(x+1,x+2);
+            }
+            if(r+1<n)d.union(x+2,x+4*n);
+            if(c+1<n)d.union(x+1,x+7);
+        }
+        return d.count;
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Triangles are top/right/bottom/left. Internal joins respect separators; external joins connect matching borders.
+
+**Time Complexity:**
+
+O(n² α(n²)). Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(n²). DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+<a id="subpattern-ds7"></a>
+
+## Subpattern DS7: Online cycle detection in a grid
+
+**When to Apply:**
+
+Adding an undirected same-character neighbor edge creates a cycle if both endpoints are already connected.
+
+The invariant is that DSU roots represent precisely the equivalence classes created by eligible edges; family-specific metadata or processing order controls which edges are eligible and how the answer is extracted.
+
+**Basic Java Code Snippet:**
+
+```java
+boolean closesCycle(DSU d,int u,int v,char a,char b) {
+    return a==b&&!d.union(u,v);
+}
+```
+
+**Core Logic:**
+
+Union right/down equal-character neighbors; if an attempted union fails, a cycle exists. O(mnα(mn)).
+
+**Questions Covered:** 1559
+
+### LeetCode 1559
+
+**Question:**
+
+Given a rectangular character grid, determine whether a cycle exists consisting of equal characters. A cycle has length at least four, moves orthogonally and cannot immediately retrace its previous edge.
+
+**Examples:**
+
+- [[a,a],[a,a]] → true
+- [[a,b],[b,a]] → false
+
+**Constraints:**
+
+1 ≤ m,n ≤ 500; lowercase letters.
+
+**Why This Subpattern Applies:**
+
+Adding an undirected same-character neighbor edge creates a cycle if both endpoints are already connected. Process each undirected edge once; a failed union indicates a cycle.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public boolean containsCycle(char[][] grid) {
+        int m=grid.length,n=grid[0].length;
+        DSU d=new DSU(m*n);
+        for(int r=0;r<m;r++)for(int c=0;c<n;c++) {
+            int x=r*n+c;
+            if(r+1<m&&grid[r][c]==grid[r+1][c]&&!d.union(x,x+n))return true;
+            if(c+1<n&&grid[r][c]==grid[r][c+1]&&!d.union(x,x+1))return true;
+        }
+        return false;
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Process each undirected edge once; a failed union indicates a cycle. Grid bipartiteness ensures minimum cycle length four.
+
+**Time Complexity:**
+
+O(mn α(mn)). Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(mn). DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+<a id="subpattern-ds8"></a>
+
+## Subpattern DS8: Grid component sizing and reverse activation
+
+**When to Apply:**
+
+Cell activation makes connectivity monotone; DSU supports near-constant-time merging and component sizes.
+
+The invariant is that DSU roots represent precisely the equivalence classes created by eligible edges; family-specific metadata or processing order controls which edges are eligible and how the answer is extracted.
+
+**Basic Java Code Snippet:**
+
+```java
+void activate(DSU d,boolean[] active,int x,int[] neighbors) {
+    active[x]=true;
+    for(int y:neighbors)if(active[y])d.union(x,y);
+}
+```
+
+**Core Logic:**
+
+Largest island after flipping at most one zero; union existing land, examine unique neighboring roots and sum component sizes+1. O(n²α(n²)).
+
+**Questions Covered:** 827, 803
+
+### LeetCode 827
+
+**Question:**
+
+Given an n × n binary grid, change at most one 0 to 1. An island is a maximal orthogonally connected set of ones. Return the largest possible island size.
+
+**Examples:**
+
+- [[1,0],[0,1]] → 3
+- [[1,1],[1,1]] → 4
+
+**Constraints:**
+
+1 ≤ n ≤ 500; binary grid.
+
+**Why This Subpattern Applies:**
+
+Cell activation makes connectivity monotone; DSU supports near-constant-time merging and component sizes. Deduplicate at most four neighboring roots before summing.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public int largestIsland(int[][] grid) {
+        int n=grid.length;
+        DSU d=new DSU(n*n);
+        for(int r=0;r<n;r++)for(int c=0;c<n;c++)if(grid[r][c]==1) {
+            if(r>0&&grid[r-1][c]==1)d.union(r*n+c,(r-1)*n+c);
+            if(c>0&&grid[r][c-1]==1)d.union(r*n+c,r*n+c-1);
+        }
+        int best=1;
+        int[] dr= {
+            -1,1,0,0
+        }
+        ,dc= {
+            0,0,-1,1
+        }
+        ,roots=new int[4];
+        for(int r=0;r<n;r++)for(int c=0;c<n;c++) {
+            if(grid[r][c]==1) {
+                best=Math.max(best,d.s[d.find(r*n+c)]);
+                continue;
+            }
+            int k=0,sum=1;
+            for(int j=0;j<4;j++) {
+                int a=r+dr[j],b=c+dc[j];
+                if(a<0||a>=n||b<0||b>=n||grid[a][b]==0)continue;
+                int root=d.find(a*n+b),i=0;
+                while(i<k&&roots[i]!=root)i++;
+                if(i==k) {
+                    roots[k++]=root;
+                    sum+=d.s[root];
+                }
+            }
+            best=Math.max(best,sum);
+        }
+        return best;
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Deduplicate at most four neighboring roots before summing. All-land and all-water cases are handled.
+
+**Time Complexity:**
+
+O(n² α(n²)). Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(n²). DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+### LeetCode 803
+
+**Question:**
+
+A binary grid contains bricks (1) and empty cells (0). A brick is stable if connected orthogonally to the top row. Each hit removes the brick at its coordinate if present, then bricks no longer stable fall. Return the number of other bricks falling after each hit; hitting an empty cell yields zero.
+
+**Examples:**
+
+- grid=[[1,0,0,0],[1,1,1,0]], hits=[[1,0]] → [2]
+- grid=[[1],[1]], hits=[[0,0]] → [1]
+
+**Constraints:**
+
+1 ≤ m,n ≤ 200; 1 ≤ hits.length ≤ 4×10^4; distinct valid hit coordinates.
+
+**Why This Subpattern Applies:**
+
+Cell activation makes connectivity monotone; DSU supports near-constant-time merging and component sizes. Reverse hits; roof component growth counts newly stable bricks, excluding the restored brick itself..
+
+**Connection to Previous Solution:**
+
+Switch one hypothetical activation to multiple reverse-time activations, add ceiling sentinel and record growth excluding restored brick.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public int[] hitBricks(int[][] grid,int[][] hits) {
+        int m=grid.length,n=grid[0].length,roof=m*n;
+        int[][] a=new int[m][];
+        for(int i=0;i<m;i++)a[i]=grid[i].clone();
+        for(int[] h:hits)a[h[0]][h[1]]=0;
+        DSU d=new DSU(roof+1);
+        for(int r=0;r<m;r++)for(int c=0;c<n;c++)if(a[r][c]==1) {
+            int x=r*n+c;
+            if(r==0)d.union(x,roof);
+            if(r>0&&a[r-1][c]==1)d.union(x,x-n);
+            if(c>0&&a[r][c-1]==1)d.union(x,x-1);
+        }
+        int[] ans=new int[hits.length],dr= {
+            -1,1,0,0
+        }
+        ,dc= {
+            0,0,-1,1
+        }
+        ;
+        for(int i=hits.length-1;i>=0;i--) {
+            int r=hits[i][0],c=hits[i][1];
+            if(grid[r][c]==0)continue;
+            int before=d.s[d.find(roof)],x=r*n+c;
+            a[r][c]=1;
+            if(r==0)d.union(x,roof);
+            for(int j=0;j<4;j++) {
+                int u=r+dr[j],v=c+dc[j];
+                if(u>=0&&u<m&&v>=0&&v<n&&a[u][v]==1)d.union(x,u*n+v);
+            }
+            ans[i]=Math.max(0,d.s[d.find(roof)]-before-1);
+        }
+        return ans;
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Reverse hits; roof component growth counts newly stable bricks, excluding the restored brick itself.
+
+**Time Complexity:**
+
+O((mn+h) α(mn)). Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(mn) auxiliary plus O(h) output. DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+<a id="subpattern-ds9"></a>
+
+## Subpattern DS9: Two-role edge allocation
+
+**When to Apply:**
+
+Different users share some usable edges; shared connectivity must be prioritized before user-specific edges.
+
+The invariant is that DSU roots represent precisely the equivalence classes created by eligible edges; family-specific metadata or processing order controls which edges are eligible and how the answer is extracted.
+
+**Basic Java Code Snippet:**
+
+```java
+void shared(DSU a,DSU b,int[][] edges) {
+    for(int[] e:edges)if(e[0]==3) {
+        a.union(e[1],e[2]);
+        b.union(e[1],e[2]);
+    }
+}
+```
+
+**Core Logic:**
+
+Max removable edges keeping Alice/Bob traversable; process type-3 edges first in both DSUs, then exclusive edges. O(mα(n)).
+
+**Questions Covered:** 1579
+
+### LeetCode 1579
+
+**Question:**
+
+Alice and Bob traverse an undirected graph on vertices 1 through n. Each edge [type,u,v] is usable by Alice only (1), Bob only (2), or both (3). Return the maximum number of edges removable while both can still reach every vertex, or −1 if impossible.
+
+**Examples:**
+
+- n=4, edges=[[3,1,2],[3,2,3],[1,1,3],[1,2,4],[1,1,2],[2,3,4]] → 2
+- n=2, edges=[[1,1,2]] → -1
+
+**Constraints:**
+
+1 ≤ n ≤ 10^5; 1 ≤ edges.length ≤ 10^5; distinct triples; 1 ≤ u<v≤n.
+
+**Why This Subpattern Applies:**
+
+Different users share some usable edges; shared connectivity must be prioritized before user-specific edges. Shared edges reduce both component counts for one retained edge.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public int maxNumEdgesToRemove(int n,int[][] edges) {
+        DSU a=new DSU(n),b=new DSU(n);
+        int used=0;
+        for(int[] e:edges)if(e[0]==3) {
+            boolean x=a.union(e[1]-1,e[2]-1),y=b.union(e[1]-1,e[2]-1);
+            if(x||y)used++;
+        }
+        for(int[] e:edges)if(e[0]==1?a.union(e[1]-1,e[2]-1):e[0]==2&&b.union(e[1]-1,e[2]-1))used++;
+        return a.count==1&&b.count==1?edges.length-used:-1;
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Shared edges reduce both component counts for one retained edge. Process them first, then complete each spanning forest independently.
+
+**Time Complexity:**
+
+O(n+m α(n)). Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(n). DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+<a id="subpattern-ds10"></a>
+
+## Subpattern DS10: Offline threshold connectivity
+
+**When to Apply:**
+
+Queries ask if a path exists using only edges below a varying weight threshold; sort edges and queries.
+
+The invariant is that DSU roots represent precisely the equivalence classes created by eligible edges; family-specific metadata or processing order controls which edges are eligible and how the answer is extracted.
+
+**Basic Java Code Snippet:**
+
+```java
+int advance(DSU d,int[][] sortedEdges,int cursor,int limit) {
+    while(cursor<sortedEdges.length&&sortedEdges[cursor][2]<limit) {
+        int[] e=sortedEdges[cursor++];
+        d.union(e[0],e[1]);
+    }
+    return cursor;
+}
+```
+
+**Core Logic:**
+
+Sort edges by weight, queries by strict limit; union edges with weight<limit, answer endpoints in same root. O((m+q)log(m+q)).
+
+**Questions Covered:** 1697
+
+### LeetCode 1697
+
+**Question:**
+
+Given an undirected weighted graph with n vertices and queries [p,q,limit], return a boolean for each query indicating whether a path from p to q exists on which every edge weight is strictly less than limit. Parallel edges are allowed.
+
+**Examples:**
+
+- n=3, edges=[[0,1,2],[1,2,4]], queries=[[0,2,4],[0,2,5]] → [false,true]
+- n=2, edges=[[0,1,1]], queries=[[0,1,2]] → [true]
+
+**Constraints:**
+
+2 ≤ n ≤ 10^5; 1 ≤ edges.length, queries.length ≤ 10^5; weights and limits 1–10^9; distinct endpoints.
+
+**Why This Subpattern Applies:**
+
+Queries ask if a path exists using only edges below a varying weight threshold; sort edges and queries. Sorted limits only add eligible edges.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public boolean[] distanceLimitedPathsExist(int n,int[][] edgeList,int[][] queries) {
+        Arrays.sort(edgeList,Comparator.comparingInt(e->e[2]));
+        Integer[] order=new Integer[queries.length];
+        for(int i=0;i<order.length;i++)order[i]=i;
+        Arrays.sort(order,Comparator.comparingInt(i->queries[i][2]));
+        DSU d=new DSU(n);
+        boolean[] ans=new boolean[order.length];
+        int j=0;
+        for(int i:order) {
+            int[] q=queries[i];
+            while(j<edgeList.length&&edgeList[j][2]<q[2]) {
+                d.union(edgeList[j][0],edgeList[j][1]);
+                j++;
+            }
+            ans[i]=d.find(q[0])==d.find(q[1]);
+        }
+        return ans;
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Sorted limits only add eligible edges. Strict comparison excludes equal weights; original indices preserve answer order.
+
+**Time Complexity:**
+
+O(n+m log m+q log q+(m+q) α(n)). Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(n+m+q) including sorting workspace and output. DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+<a id="subpattern-ds11"></a>
+
+## Subpattern DS11: Kruskal edge classification
+
+**When to Apply:**
+
+MST edge criticality is tested by excluding or forcing each edge and recomputing a minimal spanning tree.
+
+The invariant is that DSU roots represent precisely the equivalence classes created by eligible edges; family-specific metadata or processing order controls which edges are eligible and how the answer is extracted.
+
+**Basic Java Code Snippet:**
+
+```java
+long kruskal(int n,int[][] sorted,int skip,int force) {
+    DSU d=new DSU(n);
+    long cost=0;
+    if(force>=0) {
+        int[] e=sorted[force];
+        d.union(e[0],e[1]);
+        cost=e[2];
+    }
+    for(int i=0;i<sorted.length;i++)if(i!=skip&&i!=force&&d.union(sorted[i][0],sorted[i][1]))cost+=sorted[i][2];
+    return d.count==1?cost:Long.MAX_VALUE;
+}
+```
+
+**Core Logic:**
+
+Compute baseline MST cost; for each indexed edge run Kruskal excluding it and then forcing it to classify critical/pseudocritical. O(m² α(n)) after sorting.
+
+**Questions Covered:** 1489
+
+### LeetCode 1489
+
+**Question:**
+
+Given a connected weighted undirected graph, classify original edge indices as critical (removing the edge increases minimum spanning tree cost or disconnects the graph) or pseudo-critical (belongs to some but not every MST). Return the two lists in any order.
+
+**Examples:**
+
+- n=3, edges=[[0,1,1],[1,2,1],[0,2,2]] → [[0,1],[]]
+- n=3, edges=[[0,1,1],[1,2,1],[0,2,1]] → [[],[0,1,2]]
+
+**Constraints:**
+
+2 ≤ n ≤ 100; n−1 ≤ m ≤ min(200,n(n−1)/2); weights 1–1000; unique undirected edges.
+
+**Why This Subpattern Applies:**
+
+MST edge criticality is tested by excluding or forcing each edge and recomputing a minimal spanning tree. Kruskal finds the cheapest tree under exclusion or forced inclusion.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public List<List<Integer>> findCriticalAndPseudoCriticalEdges(int n,int[][] edges) {
+        int[][] a=new int[edges.length][4];
+        for(int i=0;i<a.length;i++) {
+            System.arraycopy(edges[i],0,a[i],0,3);
+            a[i][3]=i;
+        }
+        Arrays.sort(a,Comparator.comparingInt(e->e[2]));
+        int base=cost(n,a,-1,-1);
+        List<Integer> critical=new ArrayList<>(),pseudo=new ArrayList<>();
+        for(int i=0;i<a.length;i++) {
+            if(cost(n,a,i,-1)>base)critical.add(a[i][3]);
+            else if(cost(n,a,-1,i)==base)pseudo.add(a[i][3]);
+        }
+        return List.of(critical,pseudo);
+    }
+    int cost(int n,int[][] a,int skip,int force) {
+        DSU d=new DSU(n);
+        int total=0;
+        if(force>=0) {
+            int[] e=a[force];
+            d.union(e[0],e[1]);
+            total=e[2];
+        }
+        for(int i=0;i<a.length&&d.count>1;i++)if(i!=skip&&i!=force&&d.union(a[i][0],a[i][1]))total+=a[i][2];
+        return d.count==1?total:Integer.MAX_VALUE;
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Kruskal finds the cheapest tree under exclusion or forced inclusion. Compare with baseline, treating disconnected graphs as infinite cost.
+
+**Time Complexity:**
+
+O(m log m+m(n+m α(n))). Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(n+m). DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+<a id="subpattern-ds12"></a>
+
+## Subpattern DS12: Arithmetic equivalence under divisors
+
+**When to Apply:**
+
+Connectivity is induced by a mathematical relation, without explicitly listing every possible edge.
+
+The invariant is that DSU roots represent precisely the equivalence classes created by eligible edges; family-specific metadata or processing order controls which edges are eligible and how the answer is extracted.
+
+**Basic Java Code Snippet:**
+
+```java
+DSU divisorGroups(int n,int threshold) {
+    DSU d=new DSU(n+1);
+    for(int k=threshold+1;k<=n/2;k++)for(int j=2*k;j<=n;j+=k)d.union(k,j);
+    return d;
+}
+```
+
+**Core Logic:**
+
+Cities connect through common divisors greater than threshold; union all multiples for divisors d>threshold, then answer root equality. O(n log n α(n)+qα(n)).
+
+**Questions Covered:** 1627
+
+### LeetCode 1627
+
+**Question:**
+
+Cities are numbered 1 through n. Two cities have a direct road if they share a divisor strictly greater than threshold. For each query [a,b], determine whether a path of roads connects the cities.
+
+**Examples:**
+
+- n=6, threshold=2, queries=[[1,4],[2,5],[3,6]] → [false,false,true]
+- n=4, threshold=0, queries=[[1,4]] → [true]
+
+**Constraints:**
+
+2 ≤ n ≤ 10^4; 0 ≤ threshold ≤ n; 1 ≤ queries.length ≤ 10^5; distinct valid endpoints.
+
+**Why This Subpattern Applies:**
+
+Connectivity is induced by a mathematical relation, without explicitly listing every possible edge. All multiples of an eligible divisor belong together; joining them to the divisor avoids enumerating pairs..
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public List<Boolean> areConnected(int n,int threshold,int[][] queries) {
+        DSU d=new DSU(n+1);
+        for(int k=threshold+1;k<=n/2;k++)for(int j=2*k;j<=n;j+=k)d.union(k,j);
+        List<Boolean> ans=new ArrayList<>(queries.length);
+        for(int[] q:queries)ans.add(d.find(q[0])==d.find(q[1]));
+        return ans;
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+All multiples of an eligible divisor belong together; joining them to the divisor avoids enumerating pairs.
+
+**Time Complexity:**
+
+O((n log n+q) α(n)). Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(n) auxiliary plus O(q) output. DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+<a id="subpattern-ds13"></a>
+
+## Subpattern DS13: Factor-node connectivity
+
+**When to Apply:**
+
+Two values are connected through shared prime factors; union numbers or their prime factors.
+
+The invariant is that DSU roots represent precisely the equivalence classes created by eligible edges; family-specific metadata or processing order controls which edges are eligible and how the answer is extracted.
+
+**Basic Java Code Snippet:**
+
+```java
+void factorLink(DSU d,int value) {
+    int x=value;
+    for(int p=2;p<=x/p;p++)if(x%p==0) {
+        d.union(value,p);
+        while(x%p==0)x/=p;
+    }
+    if(x>1)d.union(value,x);
+}
+```
+
+**Core Logic:**
+
+Largest component by common factor >1; factor each number, union numbers sharing prime factors using a first-seen map.
+
+**Questions Covered:** 952, 1998
+
+### LeetCode 952
+
+**Question:**
+
+Given distinct positive integers, form a graph with one vertex per integer and an edge whenever two integers share a common factor greater than one. Return the size of its largest connected component.
+
+**Examples:**
+
+- [4,6,15,35] → 4
+- [20,50,9,63] → 2
+
+**Constraints:**
+
+1 ≤ nums.length ≤ 2×10^4; 1 ≤ nums[i] ≤ 10^5; distinct values.
+
+**Why This Subpattern Applies:**
+
+Two values are connected through shared prime factors; union numbers or their prime factors. Only distinct prime factors matter.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public int largestComponentSize(int[] nums) {
+        DSU d=new DSU(nums.length);
+        Map<Integer,Integer> owner=new HashMap<>();
+        int best=1;
+        for(int i=0;i<nums.length;i++) {
+            int x=nums[i];
+            for(int p=2;p<=x/p;p++)if(x%p==0) {
+                link(d,owner,p,i);
+                while(x%p==0)x/=p;
+            }
+            if(x>1)link(d,owner,x,i);
+            best=Math.max(best,d.s[d.find(i)]);
+        }
+        return best;
+    }
+    void link(DSU d,Map<Integer,Integer> owner,int p,int i) {
+        Integer j=owner.putIfAbsent(p,i);
+        if(j!=null)d.union(i,j);
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Only distinct prime factors matter. First owner links all later numbers sharing that prime; 1 remains isolated.
+
+**Time Complexity:**
+
+O(n√M+n log M α(n)) expected, M=max value. Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(n+P), P distinct primes encountered. DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+### LeetCode 1998
+
+**Question:**
+
+Given an integer array nums, you may repeatedly swap any two entries whose greatest common divisor is greater than one. Determine whether nums can be sorted into nondecreasing order.
+
+**Examples:**
+
+- [7,21,3] → true
+- [5,2,6,2] → false
+
+**Constraints:**
+
+1 ≤ nums.length ≤ 3×10^4; 2 ≤ nums[i] ≤ 10^5.
+
+**Why This Subpattern Applies:**
+
+Two values are connected through shared prime factors; union numbers or their prime factors. Prime nodes connect values that can be exchanged transitively.
+
+**Connection to Previous Solution:**
+
+Reuse prime-factor-based components; change objective from largest size to positional feasibility after sorting.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public boolean gcdSort(int[] nums) {
+        int max=Arrays.stream(nums).max().getAsInt();
+        DSU d=new DSU(max+1);
+        int[] spf=new int[max+1];
+        for(int p=2;p<=max;p++)if(spf[p]==0)for(int j=p;j<=max;j+=p)if(spf[j]==0)spf[j]=p;
+        for(int v:nums) {
+            int x=v;
+            while(x>1) {
+                int p=spf[x];
+                d.union(v,p);
+                while(x%p==0)x/=p;
+            }
+        }
+        int[] sorted=nums.clone();
+        Arrays.sort(sorted);
+        for(int i=0;i<nums.length;i++)if(d.find(nums[i])!=d.find(sorted[i]))return false;
+        return true;
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Prime nodes connect values that can be exchanged transitively. Each target position must require a value from its original component.
+
+**Time Complexity:**
+
+O(M log log M+n log M α(M)+n log n). Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(M+n). DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+<a id="subpattern-ds14"></a>
+
+## Subpattern DS14: Greedy swaps among fixed-position partners
+
+**When to Apply:**
+
+Pairs of entities must be placed together; each successful swap can merge two mismatched pair components.
+
+The invariant is that DSU roots represent precisely the equivalence classes created by eligible edges; family-specific metadata or processing order controls which edges are eligible and how the answer is extracted.
+
+**Basic Java Code Snippet:**
+
+```java
+int swaps(int[] row) {
+    DSU d=new DSU(row.length/2);
+    for(int i=0;i<row.length;i+=2)d.union(row[i]/2,row[i+1]/2);
+    return row.length/2-d.count;
+}
+```
+
+**Core Logic:**
+
+Minimum swaps to seat couples together; map each person to couple ID, union couple IDs occupying a seat pair, answer couples−components. O(nα(n)).
+
+**Questions Covered:** 765
+
+### LeetCode 765
+
+**Question:**
+
+There are n couples (people 2k and 2k+1) seated in a row of 2n seats. A swap exchanges any two people. Return the minimum swaps needed so each couple sits together in one of the consecutive seat pairs (0,1), (2,3), etc.
+
+**Examples:**
+
+- [0,2,1,3] → 1
+- [3,2,0,1] → 0
+
+**Constraints:**
+
+2 ≤ row.length ≤ 60; even length; permutation of 0 through row.length−1.
+
+**Why This Subpattern Applies:**
+
+Pairs of entities must be placed together; each successful swap can merge two mismatched pair components. A component containing k couples forms a cycle of mismatches and needs k−1 swaps.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public int minSwapsCouples(int[] row) {
+        int n=row.length/2;
+        DSU d=new DSU(n);
+        for(int i=0;i<row.length;i+=2)d.union(row[i]/2,row[i+1]/2);
+        return n-d.count;
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+A component containing k couples forms a cycle of mismatches and needs k−1 swaps. Sum over components.
+
+**Time Complexity:**
+
+O(n α(n)). Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(n). DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+<a id="subpattern-ds15"></a>
+
+## Subpattern DS15: Value-ordered DSU activation
+
+**When to Apply:**
+
+A path qualifies when all vertices on it have values at most the endpoint value; activate equal-valued vertices in batches.
+
+The invariant is that DSU roots represent precisely the equivalence classes created by eligible edges; family-specific metadata or processing order controls which edges are eligible and how the answer is extracted.
+
+**Basic Java Code Snippet:**
+
+```java
+long batch(DSU d,int[] nodes,int[] values,List<List<Integer>> adj) {
+    for(int x:nodes)for(int y:adj.get(x))if(values[y]<=values[x])d.union(x,y);
+    Map<Integer,Integer> c=new HashMap<>();
+    long total=0;
+    for(int x:nodes)total+=c.merge(d.find(x),1,Integer::sum);
+    return total;
+}
+```
+
+**Core Logic:**
+
+Count good paths by sorted node values; union with neighbors whose values≤current, count current-value nodes per component and add c(c+1)/2. O((n+m)α(n)+n log n).
+
+**Questions Covered:** 2421
+
+### LeetCode 2421
+
+**Question:**
+
+Given a tree with vertex values vals, a good path is a simple path whose endpoints have equal value and whose internal vertices have values no greater than that endpoint value. Single vertices count; reverse directions represent the same path. Return the number of good paths.
+
+**Examples:**
+
+- vals=[1,3,2,1,3], edges=[[0,1],[0,2],[2,3],[2,4]] → 6
+- vals=[1], edges=[] → 1
+
+**Constraints:**
+
+1 ≤ n ≤ 3×10^4; 0 ≤ vals[i] ≤ 10^5; n−1 edges forming a tree.
+
+**Why This Subpattern Applies:**
+
+A path qualifies when all vertices on it have values at most the endpoint value; activate equal-valued vertices in batches. At value v, DSU contains exactly eligible connections.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public int numberOfGoodPaths(int[] vals,int[][] edges) {
+        int n=vals.length;
+        List<List<Integer>> adj=new ArrayList<>();
+        for(int i=0;i<n;i++)adj.add(new ArrayList<>());
+        for(int[] e:edges) {
+            adj.get(e[0]).add(e[1]);
+            adj.get(e[1]).add(e[0]);
+        }
+        Integer[] order=new Integer[n];
+        for(int i=0;i<n;i++)order[i]=i;
+        Arrays.sort(order,Comparator.comparingInt(i->vals[i]));
+        DSU d=new DSU(n);
+        int ans=0;
+        for(int l=0;l<n;) {
+            int r=l,v=vals[order[l]];
+            while(r<n&&vals[order[r]]==v) {
+                int x=order[r++];
+                for(int y:adj.get(x))if(vals[y]<=v)d.union(x,y);
+            }
+            Map<Integer,Integer> counts=new HashMap<>();
+            for(int i=l;i<r;i++) {
+                int c=counts.merge(d.find(order[i]),1,Integer::sum);
+                ans+=c;
+            }
+            l=r;
+        }
+        return ans;
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+At value v, DSU contains exactly eligible connections. Each new same-value endpoint contributes one singleton and one path to each earlier endpoint in its root.
+
+**Time Complexity:**
+
+O(n log n+n α(n)) expected. Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(n). DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+<a id="subpattern-ds16"></a>
+
+## Subpattern DS16: Reverse deletion of array segments
+
+**When to Apply:**
+
+Forward deletions split components; reverse additions only merge components and are DSU-friendly.
+
+The invariant is that DSU roots represent precisely the equivalence classes created by eligible edges; family-specific metadata or processing order controls which edges are eligible and how the answer is extracted.
+
+**Basic Java Code Snippet:**
+
+```java
+long mergeSum(DSU d,long[] sums,int x,int y) {
+    x=d.find(x);
+    y=d.find(y);
+    if(x==y)return sums[x];
+    long total=sums[x]+sums[y];
+    d.union(x,y);
+    return sums[d.find(x)]=total;
+}
+```
+
+**Core Logic:**
+
+Maximum segment sum after each removal; reactivate indices backward, union adjacent active indices, maintain long component sums and maximum. O(nα(n)).
+
+**Questions Covered:** 2382
+
+### LeetCode 2382
+
+**Question:**
+
+Given positive nums and a permutation removeQueries of its indices, remove one element per query. A segment is a contiguous run of remaining elements. Return the maximum segment sum after each removal, or zero when none remain.
+
+**Examples:**
+
+- nums=[1,2,5,6,1], removeQueries=[0,3,2,4,1] → [14,7,2,2,0]
+- nums=[5], removeQueries=[0] → [0]
+
+**Constraints:**
+
+1 ≤ n ≤ 10^5; 1 ≤ nums[i] ≤ 10^9; removal indices form a permutation.
+
+**Why This Subpattern Applies:**
+
+Forward deletions split components; reverse additions only merge components and are DSU-friendly. Record best before restoration.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public long[] maximumSegmentSum(int[] nums,int[] removeQueries) {
+        int n=nums.length;
+        DSU d=new DSU(n);
+        boolean[] active=new boolean[n];
+        long[] sum=new long[n],ans=new long[n];
+        long best=0;
+        for(int k=n-1;k>=0;k--) {
+            ans[k]=best;
+            int i=removeQueries[k];
+            active[i]=true;
+            sum[i]=nums[i];
+            if(i>0&&active[i-1])merge(d,sum,i,i-1);
+            if(i+1<n&&active[i+1])merge(d,sum,i,i+1);
+            best=Math.max(best,sum[d.find(i)]);
+        }
+        return ans;
+    }
+    void merge(DSU d,long[] sum,int a,int b) {
+        a=d.find(a);
+        b=d.find(b);
+        if(a==b)return;
+        long total=sum[a]+sum[b];
+        d.union(a,b);
+        sum[d.find(a)]=total;
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Record best before restoration. Positive values ensure maximum never decreases in reverse; long stores segment sums.
+
+**Time Complexity:**
+
+O(n α(n)). Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(n) auxiliary plus output. DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+<a id="subpattern-ds17"></a>
+
+## Subpattern DS17: Reverse-time grid connectivity
+
+**When to Apply:**
+
+A monotone flooded grid becomes easier if reversed into land activation until opposite borders connect.
+
+The invariant is that DSU roots represent precisely the equivalence classes created by eligible edges; family-specific metadata or processing order controls which edges are eligible and how the answer is extracted.
+
+**Basic Java Code Snippet:**
+
+```java
+boolean open(DSU d,boolean[] land,int x,int[] neighbors,int top,int bottom,boolean first,boolean last) {
+    land[x]=true;
+    for(int y:neighbors)if(land[y])d.union(x,y);
+    if(first)d.union(x,top);
+    if(last)d.union(x,bottom);
+    return d.find(top)==d.find(bottom);
+}
+```
+
+**Core Logic:**
+
+Latest day to cross; add cells in reverse day order, union neighboring land and top/bottom sentinel nodes, stop when connected. O(mnα(mn)).
+
+**Questions Covered:** 1970
+
+### LeetCode 1970
+
+**Question:**
+
+Initially every cell of a row × col grid is land. On day i+1 the one-based coordinate cells[i] floods. You can move orthogonally on land, starting anywhere in the top row and ending anywhere in the bottom row. Return the last day crossing is possible.
+
+**Examples:**
+
+- row=2,col=2,cells=[[1,1],[2,1],[1,2],[2,2]] → 2
+- row=2,col=2,cells=[[1,1],[1,2],[2,1],[2,2]] → 1
+
+**Constraints:**
+
+2 ≤ row,col ≤ 2×10^4; row×col ≤ 2×10^4; cells lists every coordinate exactly once.
+
+**Why This Subpattern Applies:**
+
+A monotone flooded grid becomes easier if reversed into land activation until opposite borders connect. Restoring cells[i] recreates the grid after i days.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public int latestDayToCross(int row,int col,int[][] cells) {
+        int n=row*col;
+        DSU d=new DSU(n+2);
+        boolean[] land=new boolean[n];
+        int[] dr= {
+            -1,1,0,0
+        }
+        ,dc= {
+            0,0,-1,1
+        }
+        ;
+        for(int i=n-1;i>=0;i--) {
+            int r=cells[i][0]-1,c=cells[i][1]-1,x=r*col+c;
+            land[x]=true;
+            if(r==0)d.union(x,n);
+            if(r==row-1)d.union(x,n+1);
+            for(int j=0;j<4;j++) {
+                int a=r+dr[j],b=c+dc[j];
+                if(a>=0&&a<row&&b>=0&&b<col&&land[a*col+b])d.union(x,a*col+b);
+            }
+            if(d.find(n)==d.find(n+1))return i;
+        }
+        return 0;
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Restoring cells[i] recreates the grid after i days. Boundary sentinels detect the first reverse crossing.
+
+**Time Complexity:**
+
+O(row×col α(row×col)). Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(row×col). DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+<a id="subpattern-ds18"></a>
+
+## Subpattern DS18: Time-batched ephemeral connectivity
+
+**When to Apply:**
+
+Connections within one timestamp transmit information simultaneously; components must not leak across timestamps.
+
+The invariant is that DSU roots represent precisely the equivalence classes created by eligible edges; family-specific metadata or processing order controls which edges are eligible and how the answer is extracted.
+
+**Basic Java Code Snippet:**
+
+```java
+void meetingBatch(DSU d,int[][] edges) {
+    Set<Integer> reset=new HashSet<>();
+    for(int[] e:edges)d.union(e[0],e[1]);
+    for(int[] e:edges)for(int x:e)if(d.find(x)!=d.find(0))reset.add(x);
+    for(int x:reset) {
+        d.p[x]=x;
+        d.s[x]=1;
+    }
+}
+```
+
+**Core Logic:**
+
+People learn a secret through time-grouped meetings; sort meetings, union each time batch, then reset roots of attendees not connected to secret-holder zero. O(m log m+mα(n)).
+
+**Questions Covered:** 2092
+
+### LeetCode 2092
+
+**Question:**
+
+There are n people, numbered 0 to n−1. Person 0 tells firstPerson a secret at time zero. Each meeting [x,y,time] allows either participant who knows the secret to share it instantly; someone can receive and share at the same time. Return all people who eventually know the secret, in any order.
+
+**Examples:**
+
+- n=6, meetings=[[1,2,5],[2,3,8],[1,5,10]], firstPerson=1 → [0,1,2,3,5]
+- n=4, meetings=[[2,3,1],[1,2,2]], firstPerson=1 → [0,1,2]
+
+**Constraints:**
+
+2 ≤ n ≤ 10^5; 1 ≤ meetings.length ≤ 10^5; times 1–10^5; distinct participants; 1 ≤ firstPerson<n.
+
+**Why This Subpattern Applies:**
+
+Connections within one timestamp transmit information simultaneously; components must not leak across timestamps. Union all simultaneous meetings before checking knowledge.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public List<Integer> findAllPeople(int n,int[][] meetings,int firstPerson) {
+        Arrays.sort(meetings,Comparator.comparingInt(e->e[2]));
+        DSU d=new DSU(n);
+        d.union(0,firstPerson);
+        for(int l=0;l<meetings.length;) {
+            int r=l;
+            while(r<meetings.length&&meetings[r][2]==meetings[l][2]) {
+                d.union(meetings[r][0],meetings[r][1]);
+                r++;
+            }
+            Set<Integer> reset=new HashSet<>();
+            int root=d.find(0);
+            for(int i=l;i<r;i++)for(int j=0;j<2;j++) {
+                int x=meetings[i][j];
+                if(d.find(x)!=root)reset.add(x);
+            }
+            for(int x:reset) {
+                d.p[x]=x;
+                d.s[x]=1;
+            }
+            l=r;
+        }
+        List<Integer> ans=new ArrayList<>();
+        for(int i=0;i<n;i++)if(d.find(i)==d.find(0))ans.add(i);
+        return ans;
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Union all simultaneous meetings before checking knowledge. Collect uninformed participants before resetting any parent; all such components are entirely temporary. DSU count is unused.
+
+**Time Complexity:**
+
+O(n+m log m+(n+m) α(n)) expected. Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(n+m) including sort workspace. DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+<a id="subpattern-ds19"></a>
+
+## Subpattern DS19: Union operations with incompatibility constraints
+
+**When to Apply:**
+
+Union is permitted only if merging the two current groups violates no restricted pair.
+
+The invariant is that DSU roots represent precisely the equivalence classes created by eligible edges; family-specific metadata or processing order controls which edges are eligible and how the answer is extracted.
+
+**Basic Java Code Snippet:**
+
+```java
+boolean allowed(DSU d,int a,int b,int[][] restrictions) {
+    a=d.find(a);
+    b=d.find(b);
+    for(int[] e:restrictions) {
+        int x=d.find(e[0]),y=d.find(e[1]);
+        if(x==a&&y==b||x==b&&y==a)return false;
+    }
+    return true;
+}
+```
+
+**Core Logic:**
+
+For each friend request, inspect restricted pairs under current DSU roots; accept only if no restriction crosses proposed groups. O(qr α(n)).
+
+**Questions Covered:** 2076
+
+### LeetCode 2076
+
+**Question:**
+
+There are n people initially without friendships. Restrictions [x,y] prohibit x and y from becoming friends directly or indirectly. Process requests [u,v] in order; accept if adding the friendship violates no restriction, otherwise reject. Already connected people may be accepted. Return one boolean per request.
+
+**Examples:**
+
+- n=3, restrictions=[[0,1]], requests=[[0,2],[2,1]] → [true,false]
+- n=3, restrictions=[[0,1]], requests=[[1,2],[0,2]] → [true,false]
+
+**Constraints:**
+
+2 ≤ n ≤ 1000; 0 ≤ restrictions.length ≤ 1000; 1 ≤ requests.length ≤ 1000; valid distinct endpoints.
+
+**Why This Subpattern Applies:**
+
+Union is permitted only if merging the two current groups violates no restricted pair. Only restrictions crossing the two proposed components can become newly violated.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public boolean[] friendRequests(int n,int[][] restrictions,int[][] requests) {
+        DSU d=new DSU(n);
+        boolean[] ans=new boolean[requests.length];
+        for(int i=0;i<requests.length;i++) {
+            int a=d.find(requests[i][0]),b=d.find(requests[i][1]);
+            boolean ok=true;
+            if(a!=b)for(int[] r:restrictions) {
+                int x=d.find(r[0]),y=d.find(r[1]);
+                if((x==a&&y==b)||(x==b&&y==a)) {
+                    ok=false;
+                    break;
+                }
+            }
+            if(ok)d.union(a,b);
+            ans[i]=ok;
+        }
+        return ans;
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Only restrictions crossing the two proposed components can become newly violated. Check before mutating DSU.
+
+**Time Complexity:**
+
+O(n+q(r+1) α(n)). Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(n) auxiliary plus output. DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+<a id="subpattern-ds20"></a>
+
+## Subpattern DS20: Same-value component batching with rank propagation
+
+**When to Apply:**
+
+Equal-valued matrix cells in connected rows/columns need equal rank without conflating other values.
+
+The invariant is that DSU roots represent precisely the equivalence classes created by eligible edges; family-specific metadata or processing order controls which edges are eligible and how the answer is extracted.
+
+**Basic Java Code Snippet:**
+
+```java
+int[] batchRanks(DSU d,int[][] cells,int[] ranks,int rows) {
+    for(int[] c:cells)d.union(c[0],rows+c[1]);
+    int[] best=new int[ranks.length];
+    for(int[] c:cells) {
+        int root=d.find(c[0]);
+        best[root]=Math.max(best[root],1+Math.max(ranks[c[0]],ranks[rows+c[1]]));
+    }
+    return best;
+}
+```
+
+**Core Logic:**
+
+Matrix rank transform; group cells by increasing value, locally union same-value cells sharing row/column, assign component rank=1+max prior row/col rank, apply batch updates.
+
+**Questions Covered:** 1632
+
+### LeetCode 1632
+
+**Question:**
+
+Given an integer matrix, assign positive ranks to cells. For any two cells sharing a row or column, smaller values must have smaller ranks, equal values equal ranks, and larger values larger ranks. Return the unique matrix of ranks that are as small as possible under these rules.
+
+**Examples:**
+
+- [[1,2],[3,4]] → [[1,2],[2,3]]
+- [[7,7],[7,7]] → [[1,1],[1,1]]
+
+**Constraints:**
+
+1 ≤ m,n ≤ 500; −10^9 ≤ matrix[i][j] ≤ 10^9.
+
+**Why This Subpattern Applies:**
+
+Equal-valued matrix cells in connected rows/columns need equal rank without conflating other values. Equal-value row/column links create temporary components.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public int[][] matrixRankTransform(int[][] matrix) {
+        int m=matrix.length,n=matrix[0].length;
+        TreeMap<Integer,List<Integer>> batches=new TreeMap<>();
+        for(int r=0;r<m;r++)for(int c=0;c<n;c++)batches.computeIfAbsent(matrix[r][c],k->new ArrayList<>()).add(r*n+c);
+        int[] rank=new int[m+n];
+        int[][] ans=new int[m][n];
+        for(List<Integer> batch:batches.values()) {
+            Map<Integer,Integer> ids=new HashMap<>();
+            for(int x:batch) {
+                ids.computeIfAbsent(x/n,k->ids.size());
+                ids.computeIfAbsent(m+x%n,k->ids.size());
+            }
+            DSU d=new DSU(ids.size());
+            for(int x:batch)d.union(ids.get(x/n),ids.get(m+x%n));
+            int[] best=new int[ids.size()];
+            for(int x:batch) {
+                int r=x/n,c=x%n,root=d.find(ids.get(r));
+                best[root]=Math.max(best[root],1+Math.max(rank[r],rank[m+c]));
+            }
+            for(int x:batch) {
+                int r=x/n,c=x%n,v=best[d.find(ids.get(r))];
+                ans[r][c]=v;
+                rank[r]=Math.max(rank[r],v);
+                rank[m+c]=Math.max(rank[m+c],v);
+            }
+        }
+        return ans;
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Equal-value row/column links create temporary components. Compute all required ranks from earlier values before updating row and column maxima. Compress active IDs to avoid full DSU initialization per value.
+
+**Time Complexity:**
+
+O(N log N+N α(m+n)) expected, N=mn. Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(N+m+n) including output. DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+<a id="subpattern-ds21"></a>
+
+## Subpattern DS21: Optimization within swap-connected components
+
+**When to Apply:**
+
+Allowed swaps permute entries within each DSU group; count multiset overlap with target rather than simulate swaps.
+
+The invariant is that DSU roots represent precisely the equivalence classes created by eligible edges; family-specific metadata or processing order controls which edges are eligible and how the answer is extracted.
+
+**Basic Java Code Snippet:**
+
+```java
+int mismatch(DSU d,int[] a,int[] b) {
+    Map<Integer,Map<Integer,Integer>> counts=new HashMap<>();
+    for(int i=0;i<a.length;i++)counts.computeIfAbsent(d.find(i),k->new HashMap<>()).merge(a[i],1,Integer::sum);
+    int miss=0;
+    for(int i=0;i<b.length;i++) {
+        var c=counts.get(d.find(i));
+        int k=c.getOrDefault(b[i],0);
+        if(k==0)miss++;
+        else c.put(b[i],k-1);
+    }
+    return miss;
+}
+```
+
+**Core Logic:**
+
+Minimum Hamming distance after allowed swaps; union indices, count source values in each root, greedily match target values against root frequencies. O((n+m)α(n)).
+
+**Questions Covered:** 1722
+
+### LeetCode 1722
+
+**Question:**
+
+Given equal-length integer arrays source and target and allowedSwaps pairs of indices, you may swap source entries at any allowed pair repeatedly. Return the minimum Hamming distance (number of unequal positions) between the resulting source and target.
+
+**Examples:**
+
+- source=[1,2,3,4], target=[2,1,4,5], allowedSwaps=[[0,1],[2,3]] → 1
+- source=[1,2], target=[2,1], allowedSwaps=[] → 2
+
+**Constraints:**
+
+1 ≤ n ≤ 10^5; values 1–10^5; 0 ≤ allowedSwaps.length ≤ 10^5; valid distinct indices.
+
+**Why This Subpattern Applies:**
+
+Allowed swaps permute entries within each DSU group; count multiset overlap with target rather than simulate swaps. Each component can permute freely.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public int minimumHammingDistance(int[] source,int[] target,int[][] allowedSwaps) {
+        int n=source.length;
+        DSU d=new DSU(n);
+        for(int[] e:allowedSwaps)d.union(e[0],e[1]);
+        Map<Long,Integer> counts=new HashMap<>();
+        for(int i=0;i<n;i++)counts.merge(key(d.find(i),source[i]),1,Integer::sum);
+        int ans=0;
+        for(int i=0;i<n;i++) {
+            long k=key(d.find(i),target[i]);
+            int c=counts.getOrDefault(k,0);
+            if(c==0)ans++;
+            else counts.put(k,c-1);
+        }
+        return ans;
+    }
+    long key(int root,int value) {
+        return ((long)root<<32)|(value&0xffffffffL);
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Each component can permute freely. Match target occurrences against available source multiplicities, using a collision-free packed root/value key.
+
+**Time Complexity:**
+
+O((n+m) α(n)) expected. Includes initialization, the indicated traversal or sorting, and amortized union/find operations.
+
+**Space Complexity:**
+
+O(n). DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+<a id="subpattern-ds22"></a>
+
+## Subpattern DS22: Contagion containment by component metadata
+
+**When to Apply:**
+
+One initially infected vertex can infect its whole connected component; saving a component requires exactly one initial infection.
+
+The invariant is that DSU roots represent precisely the equivalence classes created by eligible edges; family-specific metadata or processing order controls which edges are eligible and how the answer is extracted.
+
+**Basic Java Code Snippet:**
+
+```java
+int saved(DSU d,int[] infected,int x) {
+    int root=d.find(x);
+    return infected[root]==1?d.s[root]:0;
+}
+```
+
+**Core Logic:**
+
+Minimize malware spread by removing one initial infected node; DSU full graph, count infected per root, choose unique-infected component with greatest size; tie smallest index.
+
+**Questions Covered:** 924
+
+### LeetCode 924
+
+**Question:**
+
+Given a symmetric adjacency matrix graph and distinct initially infected vertices initial, infection spreads along edges until no new vertex is infected. Remove exactly one vertex from the initial infection list (not from the graph). Return the removed vertex minimizing final infections; ties choose the smallest index.
+
+**Examples:**
+
+- graph=[[1,1,0],[1,1,0],[0,0,1]], initial=[0,1] → 0
+- graph=[[1,1,0],[1,1,0],[0,0,1]], initial=[0,2] → 0
+
+**Constraints:**
+
+2 ≤ n ≤ 300; binary symmetric matrix with diagonal 1; 1 ≤ initial.length ≤ n; distinct valid indices.
+
+**Why This Subpattern Applies:**
+
+One initially infected vertex can infect its whole connected component; saving a component requires exactly one initial infection. Only a component with exactly one initial infection can be saved by removing that infection.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+
+class Solution  {
+    public int minMalwareSpread(int[][] graph,int[] initial) {
+        int n=graph.length;
+        DSU d=new DSU(n);
+        for(int i=0;i<n;i++)for(int j=i+1;j<n;j++)if(graph[i][j]==1)d.union(i,j);
+        int[] infected=new int[n];
+        for(int x:initial)infected[d.find(x)]++;
+        int ans=n,best=-1;
+        for(int x:initial) {
+            int r=d.find(x),saved=infected[r]==1?d.s[r]:0;
+            if(saved>best||(saved==best&&x<ans)) {
+                best=saved;
+                ans=x;
+            }
+        }
+        return ans;
+    }
+    static class DSU  {
+        int[] p,s;
+        int count;
+        DSU(int n) {
+            p=new int[n];
+            s=new int[n];
+            count=n;
+            for(int i=0;i<n;i++) {
+                p[i]=i;
+                s[i]=1;
+            }
+        }
+        int find(int x) {
+            while(x!=p[x]) {
+                p[x]=p[p[x]];
+                x=p[x];
+            }
+            return x;
+        }
+        boolean union(int a,int b) {
+            a=find(a);
+            b=find(b);
+            if(a==b)return false;
+            if(s[a]<s[b]) {
+                int t=a;
+                a=b;
+                b=t;
+            }
+            p[b]=a;
+            s[a]+=s[b];
+            count--;
+            return true;
+        }
+    }
+}
+```
+
+**Key Logic:**
+
+Only a component with exactly one initial infection can be saved by removing that infection. If none can be saved, smallest index wins.
+
+**Time Complexity:**
+
+O(n² α(n)). The matrix scan dominates.
+
+**Space Complexity:**
+
+O(n). DSU arrays store parent and size; additional structures are included in the stated bound.
+
+---
+
+## Final question registry
+
+547, 1319, 2316, 2685, 684, 685, 721, 839, 1202, 990, 1061, 947, 959, 1559, 827, 803, 1579, 1697, 1489, 1627, 952, 1998, 765, 2421, 2382, 1970, 2092, 2076, 1632, 1722, 924
+
+**Verification:** 31/31 locked IDs, exact order, no duplicates, 22 family templates.
+
+Java 21 compilation: 31/31 standalone solutions compiled. Runtime tests were not performed. Constraints and examples were prepared from known problem specifications, not independently checked against live LeetCode pages.
