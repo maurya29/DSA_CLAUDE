@@ -1,0 +1,1920 @@
+# T26 — Range Query Data Structures: Complete Solutions
+
+**Master curriculum:** v1.26, Section C26 (LOCKED). **21 questions / 15 algorithm families.**
+
+This reference workbook does not change practice progress. Problem descriptions and examples are independently written; the master specifies algorithms and order, not official full problem statements or numerical limits. Numerical constraints are based on known problem specifications and have not been independently checked against the live judge. Design problems use their required LeetCode class names instead of `Solution` (307, 308, 2286, 2080, 1157). Each Java block is a separate submission.
+
+## Table of contents
+
+- [RQ1: Fenwick point updates and prefix/range sums](#rq1) — [307](#leetcode-307), [308](#leetcode-308)
+
+- [RQ2: Fenwick frequency ranks and order counting](#rq2) — [1649](#leetcode-1649), [2179](#leetcode-2179), [2031](#leetcode-2031)
+
+- [RQ3: Fenwick active-position order statistics](#rq3) — [2659](#leetcode-2659), [1505](#leetcode-1505)
+
+- [RQ4: Fenwick maintenance of local predicates](#rq4) — [3187](#leetcode-3187)
+
+- [RQ5: Fenwick prefix maximum for optimized DP](#rq5) — [2926](#leetcode-2926)
+
+- [RQ6: Segment-tree range maximum and point improvement](#rq6) — [2407](#leetcode-2407), [2736](#leetcode-2736)
+
+- [RQ7: Segment-tree first feasible position search](#rq7) — [2940](#leetcode-2940)
+
+- [RQ8: Segment-tree capacity aggregation and leftmost fit](#rq8) — [2286](#leetcode-2286)
+
+- [RQ9: Lazy segment-tree range flip and sum](#rq9) — [2569](#leetcode-2569)
+
+- [RQ10: Lazy segment-tree range addition with second moments](#rq10) — [2916](#leetcode-2916)
+
+- [RQ11: Segment-tree range assignment and coordinate compression](#rq11) — [699](#leetcode-699)
+
+- [RQ12: Mergeable run metadata in a segment tree](#rq12) — [2213](#leetcode-2213)
+
+- [RQ13: Segment-tree state-machine merge for nonadjacent selection](#rq13) — [3165](#leetcode-3165)
+
+- [RQ14: Sweep line with covered-length segment tree](#rq14) — [850](#leetcode-850)
+
+- [RQ15: Static occurrence-index queries and majority-candidate augmentation](#rq15) — [2080](#leetcode-2080), [1157](#leetcode-1157)
+
+<a id="rq1"></a>
+## Subpattern RQ1: Fenwick point updates and prefix/range sums
+
+**When to Apply:**
+
+Mutable point values, repeated prefix or rectangle sums; accumulate disjoint lowbit blocks. Use one-based indices for updates; never update index zero. prefix(r)-prefix(l-1) gives a one-based inclusive interval. Each loop visits disjoint blocks or their ancestors.
+
+**Basic Java Code Snippet:**
+
+```java
+void add(int[] bit,int i,int delta) {
+    for(;i<bit.length;i+=i&-i) bit[i]+=delta;
+}
+int prefix(int[] bit,int i) {
+    int s=0; for(;i>0;i-=i&-i) s+=bit[i]; return s;
+}
+```
+
+**Core Logic:**
+
+Use one-based indices for updates; never update index zero. prefix(r)-prefix(l-1) gives a one-based inclusive interval. Each loop visits disjoint blocks or their ancestors.
+
+**Questions Covered:** 307, 308
+
+### LeetCode 307
+
+**Question:**
+
+Implement NumArray for an integer array. update(index,val) replaces the element at the given zero-based index. sumRange(left,right) returns the sum of the inclusive interval in the current array. Calls may be interleaved arbitrarily.
+
+**Examples:**
+
+[1,3,5]: sumRange(0,2) → 9; update(1,2); sumRange(0,2) → 8.
+
+[-2]: sumRange(0,0) → -2; update(0,7); sumRange(0,0) → 7.
+
+**Constraints:**
+
+1 ≤ n ≤ 30,000; -100 ≤ nums[i], val ≤ 100; 0 ≤ left ≤ right < n; at most 30,000 update/query calls.
+
+**Why This Subpattern Applies:**
+
+Mutable point values, repeated prefix or rectangle sums; accumulate disjoint lowbit blocks.  Mutable 1D point assignment and inclusive sum queries; Fenwick tree of deltas with sum(r+1)-sum(l), O(log n) each.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class NumArray {
+    private final int[] a, bit;
+    public NumArray(int[] nums) {
+        a = nums.clone(); bit = new int[a.length + 1];
+        for (int i = 1; i < bit.length; i++) {
+            bit[i] += a[i - 1];
+            int p = i + (i & -i);
+            if (p < bit.length) bit[p] += bit[i];
+        }
+    }
+    public void update(int index, int val) {
+        int delta = val - a[index]; a[index] = val;
+        for (int i = index + 1; i < bit.length; i += i & -i) bit[i] += delta;
+    }
+    private int prefix(int i) {
+        int sum = 0;
+        for (; i > 0; i -= i & -i) sum += bit[i];
+        return sum;
+    }
+    public int sumRange(int left, int right) {
+        return prefix(right + 1) - prefix(left);
+    }
+}
+```
+
+**Key Logic:**
+
+Each BIT cell contains the sum of a lowbit-sized block ending at its one-based index. Build propagates each completed block to its parent. Assignment becomes a delta; prefix queries remove the last block repeatedly. Subtraction cancels the prefix outside the requested interval.
+
+**Time Complexity:** O(n) construction, O(log n) per operation.
+
+**Space Complexity:** O(n) persistent storage; O(1) auxiliary per operation.
+
+---
+
+### LeetCode 308
+
+**Question:**
+
+Implement NumMatrix for a nonempty integer matrix. update(row,col,val) replaces one cell. sumRegion(row1,col1,row2,col2) returns the sum of the inclusive rectangle with the given top-left and bottom-right corners, reflecting every prior update.
+
+**Examples:**
+
+[[1,2],[3,4]]: sumRegion(0,0,1,1) → 10; update(0,1,5); sumRegion(0,1,1,1) → 9.
+
+[[4]]: update(0,0,-2); sumRegion(0,0,0,0) → -2.
+
+**Constraints:**
+
+1 ≤ rows, cols ≤ 200; -100,000 ≤ matrix[i][j], val ≤ 100,000; valid ordered rectangle corners; at most 5,000 calls to update and sumRegion.
+
+**Why This Subpattern Applies:**
+
+Mutable point values, repeated prefix or rectangle sums; accumulate disjoint lowbit blocks.  Mutable 2D point assignment and rectangle sums; 2D Fenwick tree, inclusion-exclusion of four prefix rectangles, O(log rows · log cols) per operation. (Premium access may be required.)
+
+**Connection to Previous Solution:**
+
+Generalize each BIT index and lowbit loop to nested row/column loops; replace two-prefix difference by four-prefix inclusion-exclusion.
+
+**Java Solution:**
+
+```java
+class NumMatrix {
+    private final int[][] a;
+    private final long[][] bit;
+    private final int m,n;
+    public NumMatrix(int[][] matrix) {
+        m=matrix.length; n=matrix[0].length;
+        a=new int[m][n]; bit=new long[m+1][n+1];
+        for(int i=0;i<m;i++) for(int j=0;j<n;j++) update(i,j,matrix[i][j]);
+    }
+    public void update(int row,int col,int val) {
+        long d=(long)val-a[row][col]; a[row][col]=val;
+        for(int i=row+1;i<=m;i+=i&-i)
+            for(int j=col+1;j<=n;j+=j&-j) bit[i][j]+=d;
+    }
+    private long prefix(int r,int c) {
+        long s=0;
+        for(int i=r;i>0;i-=i&-i)
+            for(int j=c;j>0;j-=j&-j) s+=bit[i][j];
+        return s;
+    }
+    public int sumRegion(int r1,int c1,int r2,int c2) {
+        return (int)(prefix(r2+1,c2+1)-prefix(r1,c2+1)
+            -prefix(r2+1,c1)+prefix(r1,c1));
+    }
+}
+```
+
+**Key Logic:**
+
+Each cell aggregates a Cartesian product of two lowbit blocks. Nested updates touch every ancestor rectangle. Inclusion–exclusion subtracts the top and left strips and restores their overlap. Long intermediates avoid overflow; the judge API returns int.
+
+**Time Complexity:** O(mn log(m+1) log(n+1)) construction; O(log(m+1) log(n+1)) per operation.
+
+**Space Complexity:** O(mn) storage; O(1) auxiliary per operation.
+
+---
+
+<a id="rq2"></a>
+## Subpattern RQ2: Fenwick frequency ranks and order counting
+
+**When to Apply:**
+
+Elements arrive in an order; query how many earlier keys are smaller/greater. The axis is ordered values, not array indices. Count strict lower and upper ranks before recording the current event; duplicates must share a rank.
+
+**Basic Java Code Snippet:**
+
+```java
+long insertionCost(int[] bit,int rank,int seen) {
+    int less=0, atMost=0;
+    for(int i=rank-1;i>0;i-=i&-i) less+=bit[i];
+    for(int i=rank;i>0;i-=i&-i) atMost+=bit[i];
+    for(int i=rank;i<bit.length;i+=i&-i) bit[i]++;
+    return Math.min(less,seen-atMost);
+}
+```
+
+**Core Logic:**
+
+The axis is ordered values, not array indices. Count strict lower and upper ranks before recording the current event; duplicates must share a rank.
+
+**Questions Covered:** 1649, 2179, 2031
+
+### LeetCode 1649
+
+**Question:**
+
+Insert the values of instructions in their given order into an initially empty sorted multiset. Inserting x costs the smaller of the number of previously inserted values strictly less than x and strictly greater than x. Equal values do not contribute. Return total cost modulo 1,000,000,007.
+
+**Examples:**
+
+[1,5,6,2] → 1 (the last insertion costs 1).
+
+[1,2,3,6,5,4] → 3.
+
+[2,2,2] → 0.
+
+**Constraints:**
+
+1 ≤ instructions.length ≤ 100,000; 1 ≤ instructions[i] ≤ 100,000.
+
+**Why This Subpattern Applies:**
+
+Elements arrive in an order; query how many earlier keys are smaller/greater.  Stream values into a bounded-coordinate frequency BIT; cost at each insertion is min(countLess, countGreater), accumulated modulo 1e9+7.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    private int[] bit;
+    private void add(int i,int d) {
+        for(;i<bit.length;i+=i&-i) bit[i]+=d;
+    }
+    private int sum(int i) {
+        int s=0; for(;i>0;i-=i&-i) s+=bit[i]; return s;
+    }
+    public int createSortedArray(int[] instructions) {
+        int max=0; for(int x:instructions) max=Math.max(max,x);
+        bit=new int[max+1]; long ans=0; int seen=0;
+        for(int x:instructions) {
+            ans+=Math.min(sum(x-1),seen-sum(x));
+            add(x,1); seen++;
+        }
+        return (int)(ans%1_000_000_007);
+    }
+}
+```
+
+**Key Logic:**
+
+Query before inserting so only earlier values count. The prefix ending at x includes equal values, so subtracting it from seen counts strictly greater values.
+
+**Time Complexity:** O(n log(V+1) + V), where V is maximum value.
+
+**Space Complexity:** O(V) auxiliary.
+
+---
+
+### LeetCode 2179
+
+**Question:**
+
+Given two permutations nums1 and nums2 of the integers 0 through n-1, count triples of distinct values (x,y,z) whose positions are strictly increasing in both permutations. Return the number of such triples as a long.
+
+**Examples:**
+
+[2,0,1,3], [0,1,2,3] → 1.
+
+[0,1,2], [0,1,2] → 1.
+
+[0,1,2], [2,1,0] → 0.
+
+**Constraints:**
+
+3 ≤ n ≤ 100,000; both arrays are permutations of [0,n-1].
+
+**Why This Subpattern Applies:**
+
+Elements arrive in an order; query how many earlier keys are smaller/greater.  Map values in one permutation to their positions in another; compute smaller positions on left and larger on right using BIT, sum products.
+
+**Connection to Previous Solution:**
+
+Retain prefix-frequency rank queries; transform items into permutation ranks and replace per-item minimum with leftCount * rightCount (using two directional sweeps or total-left counts).
+
+**Java Solution:**
+
+```java
+class Solution {
+    private int[] bit;
+    private void add(int i,int d) {
+        for(;i<bit.length;i+=i&-i) bit[i]+=d;
+    }
+    private int sum(int i) {
+        int s=0; for(;i>0;i-=i&-i) s+=bit[i]; return s;
+    }
+    public long goodTriplets(int[] nums1,int[] nums2) {
+        int n=nums1.length; int[] pos=new int[n]; bit=new int[n+1];
+        for(int i=0;i<n;i++) pos[nums2[i]]=i+1;
+        long ans=0;
+        for(int i=0;i<n;i++) {
+            int r=pos[nums1[i]], left=sum(r-1);
+            int right=n-r-(i-left);
+            ans+=(long)left*right; add(r,1);
+        }
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+Map each value to its one-based position in nums2. For a middle element, left counts earlier smaller ranks. Of all n-r greater ranks, i-left have already appeared; the rest are on the right. Every valid triple has exactly one middle element.
+
+**Time Complexity:** O(n log n).
+
+**Space Complexity:** O(n) auxiliary.
+
+---
+
+### LeetCode 2031
+
+**Question:**
+
+Given a binary array nums, count nonempty contiguous subarrays containing strictly more ones than zeros. Return the count modulo 1,000,000,007.
+
+**Examples:**
+
+[0,1,1,0,1] → 9.
+
+[0] → 0.
+
+[1,1] → 3.
+
+**Constraints:**
+
+1 ≤ n ≤ 100,000; nums[i] is 0 or 1. Premium access may be required.
+
+**Why This Subpattern Applies:**
+
+Elements arrive in an order; query how many earlier keys are smaller/greater.  Convert 0 to -1 and 1 to +1; count earlier prefix sums strictly below current prefix using coordinate-compressed BIT, modulo 1e9+7.
+
+**Connection to Previous Solution:**
+
+Replace permutation-rank events with signed cumulative balances; coordinate-compress prefix states, seed prefix zero, and query ranks strictly less than current state.
+
+**Java Solution:**
+
+```java
+class Solution {
+    private int[] bit;
+    private void add(int i,int d) {
+        for(;i<bit.length;i+=i&-i) bit[i]+=d;
+    }
+    private int sum(int i) {
+        int s=0; for(;i>0;i-=i&-i) s+=bit[i]; return s;
+    }
+    public int subarraysWithMoreZerosThanOnes(int[] nums) {
+        int n=nums.length, rank=n+1; bit=new int[2*n+2];
+        add(rank,1); long ans=0;
+        for(int x:nums) {
+            rank+=x==1?1:-1;
+            ans+=sum(rank-1); add(rank,1);
+        }
+        return (int)(ans%1_000_000_007);
+    }
+}
+```
+
+**Key Logic:**
+
+A subarray has more ones exactly when its ending balance exceeds its starting balance. The empty prefix is inserted first. Balances lie in [-n,n], so shifting by n+1 is a direct rank mapping instead of sorting compressed keys. The judge method name is counterintuitive: the required condition is more ones than zeros.
+
+**Time Complexity:** O(n log n).
+
+**Space Complexity:** O(n) auxiliary.
+
+---
+
+<a id="rq3"></a>
+## Subpattern RQ3: Fenwick active-position order statistics
+
+**When to Apply:**
+
+Positions are removed over time; rank among surviving positions determines cost or order. Start with all positions active. Prefix rank gives the number of surviving elements before a chosen position; remove it by decrementing its ancestors.
+
+**Basic Java Code Snippet:**
+
+```java
+int[] activeTree(int n) {
+    int[] bit=new int[n+1];
+    for(int i=1;i<=n;i++) bit[i]=i&-i;
+    return bit;
+}
+int removeAndCountBefore(int[] bit,int rank) {
+    int count=0;
+    for(int i=rank-1;i>0;i-=i&-i) count+=bit[i];
+    for(int i=rank;i<bit.length;i+=i&-i) bit[i]--;
+    return count;
+}
+```
+
+**Core Logic:**
+
+Start with all positions active. Prefix rank gives the number of surviving elements before a chosen position; remove it by decrementing its ancestors.
+
+**Questions Covered:** 2659, 1505
+
+### LeetCode 2659
+
+**Question:**
+
+Given an array of distinct integers, repeatedly perform one operation until empty: if the first value is the smallest remaining value, delete it; otherwise move the first value to the end. Return the total number of operations.
+
+**Examples:**
+
+[3,4,-1] → 5.
+
+[1,2,4,3] → 5.
+
+[1,2,3] → 3.
+
+**Constraints:**
+
+1 ≤ n ≤ 100,000; -10^9 ≤ nums[i] ≤ 10^9; all values distinct.
+
+**Why This Subpattern Applies:**
+
+Positions are removed over time; rank among surviving positions determines cost or order.  Sort (value,index) for deletion order; BIT marks active positions, calculate circular surviving distance to next removed index.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.Arrays;
+class Solution {
+    private int[] bit;
+    private void add(int i,int d) {
+        for(;i<bit.length;i+=i&-i) bit[i]+=d;
+    }
+    private int sum(int i) {
+        int s=0; for(;i>0;i-=i&-i) s+=bit[i]; return s;
+    }
+    public long countOperationsToEmptyArray(int[] nums) {
+        int n=nums.length; bit=new int[n+1]; long[] order=new long[n];
+        for(int i=1;i<=n;i++) {
+            bit[i]=i&-i;
+            order[i-1]=((long)nums[i-1]<<32)|(i-1L);
+        }
+        Arrays.sort(order); int prev=0; long ans=0;
+        for(long entry:order) {
+            int r=(int)entry+1;
+            if(r>prev) ans+=sum(r)-sum(prev);
+            else ans+=sum(n)-sum(prev)+sum(r);
+            add(r,-1); prev=r;
+        }
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+Sorting fixes deletion order. The BIT marks surviving original positions. Starting just after the previous deleted index, count active elements through the target, wrapping when necessary. That count includes the deletion operation. Encoding signed value in the high bits preserves numeric sorting.
+
+**Time Complexity:** O(n log n).
+
+**Space Complexity:** O(n) auxiliary.
+
+---
+
+### LeetCode 1505
+
+**Question:**
+
+Given a decimal string num and an integer k, perform at most k swaps of adjacent digits. Return the lexicographically smallest string obtainable, preserving length and allowing leading zeros.
+
+**Examples:**
+
+num="4321", k=4 → "1342".
+
+num="100", k=1 → "010".
+
+num="36789", k=1000 → "36789".
+
+**Constraints:**
+
+1 ≤ num.length ≤ 30,000; 1 ≤ k ≤ 10^9; num contains decimal digits.
+
+**Why This Subpattern Applies:**
+
+Positions are removed over time; rank among surviving positions determines cost or order.  To minimize decimal text under at most k adjacent swaps, greedily choose earliest feasible smallest digit via per-digit index queues and BIT ranks of earlier removed positions.
+
+**Connection to Previous Solution:**
+
+Reuse BIT of active/removed position ranks and removal updates; replace predetermined deletion order with smallest-affordable digit selection and deduct its current-rank swap cost.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    private int[] bit;
+    private void add(int i,int d) {
+        for(;i<bit.length;i+=i&-i) bit[i]+=d;
+    }
+    private int sum(int i) {
+        int s=0; for(;i>0;i-=i&-i) s+=bit[i]; return s;
+    }
+    public String minInteger(String num,int k) {
+        int n=num.length();
+        return build(num,k,n);
+    }
+    private String build(String num,int k,int n) {
+        bit=new int[n+1];
+        List<ArrayDeque<Integer>> queues=new ArrayList<>(10);
+        for(int d=0;d<10;d++) queues.add(new ArrayDeque<>());
+        for(int i=0;i<n;i++) { queues.get(num.charAt(i)-'0').add(i+1); bit[i+1]=(i+1)&-(i+1); }
+        StringBuilder out=new StringBuilder(n);
+        for(int i=0;i<n;i++) for(int d=0;d<10;d++) {
+            var q=queues.get(d); if(q.isEmpty()) continue;
+            int p=q.peek(), cost=sum(p-1);
+            if(cost<=k) {
+                k-=cost; out.append((char)('0'+d)); q.remove(); add(p,-1); break;
+            }
+        }
+        return out.toString();
+    }
+}
+```
+
+**Key Logic:**
+
+Each queue keeps original positions for one digit. Only its earliest unused occurrence can be cheapest. The number of still-active positions before it equals adjacent swaps needed. Greedily take the smallest affordable digit; at least the first active digit costs zero.
+
+**Time Complexity:** O(10n log n) = O(n log n).
+
+**Space Complexity:** O(n) auxiliary and O(n) output.
+
+---
+
+<a id="rq4"></a>
+## Subpattern RQ4: Fenwick maintenance of local predicates
+
+**When to Apply:**
+
+One edit changes only a constant number of locally defined indicators, while queries aggregate those indicators over ranges. After editing a value, refresh only predicates whose neighborhoods include it. Query the indicator tree rather than rescanning the interval.
+
+**Basic Java Code Snippet:**
+
+```java
+void refresh(int[] a,int[] flags,int[] bit,int index) {
+    for(int j=Math.max(1,index-1);j<=Math.min(a.length-2,index+1);j++) {
+        int v=a[j]>a[j-1]&&a[j]>a[j+1]?1:0;
+        int d=v-flags[j]; flags[j]=v;
+        for(int i=j+1;i<bit.length;i+=i&-i) bit[i]+=d;
+    }
+}
+```
+
+**Core Logic:**
+
+After editing a value, refresh only predicates whose neighborhoods include it. Query the indicator tree rather than rescanning the interval.
+
+**Questions Covered:** 3187
+
+### LeetCode 3187
+
+**Question:**
+
+Given nums and queries, a peak is an interior index whose value is strictly greater than both neighbors. Query [1,l,r] asks how many peaks lie strictly inside nums[l..r], excluding its endpoints. Query [2,index,val] assigns nums[index]=val. Return answers for type 1 queries in order.
+
+**Examples:**
+
+nums=[3,1,4,2,5], queries=[[1,0,4],[2,3,6],[1,0,4]] → [1,1].
+
+nums=[1,2,1], queries=[[1,0,2],[2,1,1],[1,0,2]] → [1,0].
+
+**Constraints:**
+
+3 ≤ n ≤ 100,000; 1 ≤ nums[i], val ≤ 100,000; 1 ≤ queries.length ≤ 100,000; valid indices, l ≤ r.
+
+**Why This Subpattern Applies:**
+
+One edit changes only a constant number of locally defined indicators, while queries aggregate those indicators over ranges.  Maintain whether each interior element is a peak; point update changes only indices i-1,i,i+1, BIT answers peak counts strictly inside queried endpoints.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    private int[] bit;
+    private void add(int i,int d) {
+        for(;i<bit.length;i+=i&-i) bit[i]+=d;
+    }
+    private int sum(int i) {
+        int s=0; for(;i>0;i-=i&-i) s+=bit[i]; return s;
+    }
+    private int peak(int[] a,int i) {
+        return i>0&&i+1<a.length&&a[i]>a[i-1]&&a[i]>a[i+1]?1:0;
+    }
+    public List<Integer> countOfPeaks(int[] nums,int[][] queries) {
+        int n=nums.length; bit=new int[n+1]; int[] flags=new int[n];
+        for(int i=1;i<n-1;i++) { flags[i]=peak(nums,i); add(i+1,flags[i]); }
+        List<Integer> ans=new ArrayList<>();
+        for(int[] q:queries) {
+            if(q[0]==1) ans.add(q[2]-q[1]<2?0:sum(q[2])-sum(q[1]+1));
+            else {
+                int i=q[1]; nums[i]=q[2];
+                for(int j=Math.max(1,i-1);j<=Math.min(n-2,i+1);j++) {
+                    int v=peak(nums,j); add(j+1,v-flags[j]); flags[j]=v;
+                }
+            }
+        }
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+Only three peak predicates depend on an edited position. Store each old flag to compute the delta. The interior interval is [l+1,r-1]; intervals shorter than three elements have zero peaks.
+
+**Time Complexity:** O((n+q) log n).
+
+**Space Complexity:** O(n) auxiliary plus O(q) output.
+
+---
+
+<a id="rq5"></a>
+## Subpattern RQ5: Fenwick prefix maximum for optimized DP
+
+**When to Apply:**
+
+DP transition asks for best earlier state among values meeting a monotone key boundary. Here zero allows restarting a DP chain. This Fenwick variant supports monotone improvements and prefix maxima, not arbitrary decreases or range subtraction.
+
+**Basic Java Code Snippet:**
+
+```java
+long prefixMax(long[] bit,int rank) {
+    long best=0;
+    for(int i=rank;i>0;i-=i&-i) best=Math.max(best,bit[i]);
+    return best;
+}
+void improve(long[] bit,int rank,long score) {
+    for(int i=rank;i<bit.length;i+=i&-i) bit[i]=Math.max(bit[i],score);
+}
+```
+
+**Core Logic:**
+
+Here zero allows restarting a DP chain. This Fenwick variant supports monotone improvements and prefix maxima, not arbitrary decreases or range subtraction.
+
+**Questions Covered:** 2926
+
+### LeetCode 2926
+
+**Question:**
+
+Choose a nonempty subsequence with increasing indices i0,i1,... such that for every consecutive pair nums[ij]-nums[ij-1] ≥ ij-ij-1. Return the maximum possible sum of its elements; a singleton is always valid.
+
+**Examples:**
+
+[3,3,5,6] → 14.
+
+[5,-1,-3,8] → 13.
+
+[-2,-1] → -1.
+
+**Constraints:**
+
+1 ≤ n ≤ 100,000; -10^9 ≤ nums[i] ≤ 10^9.
+
+**Why This Subpattern Applies:**
+
+DP transition asks for best earlier state among values meeting a monotone key boundary.  Sort/compress keys nums[i]-i; Fenwick prefix maximum stores best balanced-subsequence sum at each key; query key <= current then update best.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.Arrays;
+class Solution {
+    public long maxBalancedSubsequenceSum(int[] nums) {
+        int n=nums.length; long[] keys=new long[n];
+        for(int i=0;i<n;i++) keys[i]=(long)nums[i]-i;
+        long[] sorted=keys.clone(); Arrays.sort(sorted);
+        long[] bit=new long[n+1]; long ans=Long.MIN_VALUE;
+        for(int i=0;i<n;i++) {
+            int r=Arrays.binarySearch(sorted,keys[i])+1;
+            long best=0;
+            for(int j=r;j>0;j-=j&-j) best=Math.max(best,bit[j]);
+            long dp=best+nums[i]; ans=Math.max(ans,dp);
+            for(int j=r;j<=n;j+=j&-j) bit[j]=Math.max(bit[j],dp);
+        }
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+Rearrange the balance inequality into nondecreasing keys nums[i]-i. The prefix maximum supplies the best compatible earlier sum. Zero is a restart option, not an allowed empty final answer; ans tracks actual nonempty candidates. Equal keys obtain the same binary-search rank.
+
+**Time Complexity:** O(n log n).
+
+**Space Complexity:** O(n) auxiliary.
+
+---
+
+<a id="rq6"></a>
+## Subpattern RQ6: Segment-tree range maximum and point improvement
+
+**When to Apply:**
+
+Dynamic maximum over an ordered value axis; query a value interval and improve one leaf. Use half-open ranges in this iterative tree. Point chmax updates ancestors and the query merges disjoint blocks; choose a neutral value no larger than any valid answer.
+
+**Basic Java Code Snippet:**
+
+```java
+private long[] tree;
+    private int size;
+    private void init(int n,long identity) {
+        size=1; while(size<n) size<<=1;
+        tree=new long[size*2]; java.util.Arrays.fill(tree,identity);
+    }
+    private void improve(int p,long v) {
+        p+=size; tree[p]=Math.max(tree[p],v);
+        for(p>>=1;p>0;p>>=1) tree[p]=Math.max(tree[p*2],tree[p*2+1]);
+    }
+    private long max(int l,int r,long identity) {
+        long ans=identity;
+        for(l+=size,r+=size;l<r;l>>=1,r>>=1) {
+            if((l&1)==1) ans=Math.max(ans,tree[l++]);
+            if((r&1)==1) ans=Math.max(ans,tree[--r]);
+        }
+        return ans;
+    }
+```
+
+**Core Logic:**
+
+Use half-open ranges in this iterative tree. Point chmax updates ancestors and the query merges disjoint blocks; choose a neutral value no larger than any valid answer.
+
+**Questions Covered:** 2407, 2736
+
+### LeetCode 2407
+
+**Question:**
+
+Find the maximum length of a strictly increasing subsequence of nums in which the difference between every pair of consecutive selected values is at most k. The selected indices must preserve input order.
+
+**Examples:**
+
+[4,2,1,4,3,4,5,8,15], k=3 → 5.
+
+[1,5], k=1 → 1.
+
+[2,2,2], k=2 → 1.
+
+**Constraints:**
+
+1 ≤ n ≤ 100,000; 1 ≤ nums[i], k ≤ 100,000.
+
+**Why This Subpattern Applies:**
+
+Dynamic maximum over an ordered value axis; query a value interval and improve one leaf.  DP for strictly increasing subsequences with adjacent value difference at most k: range-max query on [value-k,value-1], point chmax at value.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    private long[] tree;
+    private int size;
+    private void init(int n,long identity) {
+        size=1; while(size<n) size<<=1;
+        tree=new long[size*2]; java.util.Arrays.fill(tree,identity);
+    }
+    private void improve(int p,long v) {
+        p+=size; tree[p]=Math.max(tree[p],v);
+        for(p>>=1;p>0;p>>=1) tree[p]=Math.max(tree[p*2],tree[p*2+1]);
+    }
+    private long max(int l,int r,long identity) {
+        long ans=identity;
+        for(l+=size,r+=size;l<r;l>>=1,r>>=1) {
+            if((l&1)==1) ans=Math.max(ans,tree[l++]);
+            if((r&1)==1) ans=Math.max(ans,tree[--r]);
+        }
+        return ans;
+    }
+    public int lengthOfLIS(int[] nums,int k) {
+        int v=0; for(int x:nums) v=Math.max(v,x);
+        init(v+1,0); int ans=0;
+        for(int x:nums) {
+            int dp=1+(int)max(Math.max(1,x-k),x,0);
+            improve(x,dp); ans=Math.max(ans,dp);
+        }
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+Leaves store the longest valid subsequence ending at a value. Query [max(1,x-k),x) to enforce both strict increase and the gap limit. Point chmax preserves the best previous state for duplicate values.
+
+**Time Complexity:** O(V+n log(V+1)), V=max(nums).
+
+**Space Complexity:** O(V) auxiliary.
+
+---
+
+### LeetCode 2736
+
+**Question:**
+
+Given equal-length arrays nums1 and nums2, answer each query [x,y] independently. Among indices i satisfying nums1[i] ≥ x and nums2[i] ≥ y, return the maximum nums1[i]+nums2[i], or -1 if no index qualifies. Preserve query order.
+
+**Examples:**
+
+nums1=[4,3,1,2], nums2=[2,4,9,5], queries=[[4,1],[1,3],[2,5]] → [6,10,7].
+
+nums1=[1], nums2=[2], queries=[[2,1],[1,2]] → [-1,3].
+
+**Constraints:**
+
+1 ≤ n,q ≤ 100,000; 1 ≤ nums1[i],nums2[i],x,y ≤ 10^9.
+
+**Why This Subpattern Applies:**
+
+Dynamic maximum over an ordered value axis; query a value interval and improve one leaf.  Offline queries need best nums1[i]+nums2[i] subject to both coordinates meeting lower bounds; sort points/queries by first coordinate and maintain segment-tree suffix maximum over compressed second coordinates.
+
+**Connection to Previous Solution:**
+
+Retain point chmax and max range query; change DP single-input scan into offline descending first-coordinate activation and second-coordinate suffix threshold queries.
+
+**Java Solution:**
+
+```java
+import java.util.Arrays;
+class Solution {
+    private long[] tree;
+    private int size;
+    private void init(int n,long identity) {
+        size=1; while(size<n) size<<=1;
+        tree=new long[size*2]; java.util.Arrays.fill(tree,identity);
+    }
+    private void improve(int p,long v) {
+        p+=size; tree[p]=Math.max(tree[p],v);
+        for(p>>=1;p>0;p>>=1) tree[p]=Math.max(tree[p*2],tree[p*2+1]);
+    }
+    private long max(int l,int r,long identity) {
+        long ans=identity;
+        for(l+=size,r+=size;l<r;l>>=1,r>>=1) {
+            if((l&1)==1) ans=Math.max(ans,tree[l++]);
+            if((r&1)==1) ans=Math.max(ans,tree[--r]);
+        }
+        return ans;
+    }
+    private int lower(int[] a,int x) {
+        int l=0,r=a.length;
+        while(l<r) { int m=(l+r)>>>1; if(a[m]<x) l=m+1; else r=m; }
+        return l;
+    }
+    public int[] maximumSumQueries(int[] nums1,int[] nums2,int[][] queries) {
+        int n=nums1.length,q=queries.length; int[] ys=nums2.clone(); Arrays.sort(ys);
+        Integer[] p=new Integer[n], order=new Integer[q];
+        for(int i=0;i<n;i++) p[i]=i;
+        for(int i=0;i<q;i++) order[i]=i;
+        Arrays.sort(p,(i,j)->Integer.compare(nums1[j],nums1[i]));
+        Arrays.sort(order,(i,j)->Integer.compare(queries[j][0],queries[i][0]));
+        init(n,-1); int[] ans=new int[q]; int j=0;
+        for(int id:order) {
+            while(j<n&&nums1[p[j]]>=queries[id][0]) {
+                int i=p[j++]; improve(lower(ys,nums2[i]),(long)nums1[i]+nums2[i]);
+            }
+            ans[id]=(int)max(lower(ys,queries[id][1]),n,-1);
+        }
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+Sweep queries by decreasing x; activated points always meet the first threshold. The tree stores the best sum at each second-coordinate rank. A suffix maximum enforces y. Duplicate ranks are merged with chmax; an empty suffix returns -1.
+
+**Time Complexity:** O(n log n + q log q + q log n).
+
+**Space Complexity:** O(n+q) auxiliary; O(q) output.
+
+---
+
+<a id="rq7"></a>
+## Subpattern RQ7: Segment-tree first feasible position search
+
+**When to Apply:**
+
+Need earliest position in a suffix whose height/value exceeds a threshold; aggregate maxima enable skipping impossible subtrees. A node can be skipped when it is before the allowed start or its maximum cannot satisfy the strict threshold. Explore the left child first.
+
+**Basic Java Code Snippet:**
+
+```java
+int firstAbove(int[] tree,int p,int l,int r,int start,int threshold) {
+    if(r<start||tree[p]<=threshold) return -1;
+    if(l==r) return l;
+    int m=(l+r)>>>1;
+    int x=firstAbove(tree,p*2,l,m,start,threshold);
+    return x>=0?x:firstAbove(tree,p*2+1,m+1,r,start,threshold);
+}
+```
+
+**Core Logic:**
+
+A node can be skipped when it is before the allowed start or its maximum cannot satisfy the strict threshold. Explore the left child first.
+
+**Questions Covered:** 2940
+
+### LeetCode 2940
+
+**Question:**
+
+Given building heights, a person at building i can move to building j only if i<j and heights[i]<heights[j]. For each query [a,b], Alice starts at a and Bob at b. Return the leftmost building both can reach (including their starting buildings), or -1 if none exists.
+
+**Examples:**
+
+heights=[6,4,8,5,2,7], queries=[[0,1],[0,3],[2,4],[3,4],[2,2]] → [2,5,-1,5,2].
+
+heights=[2,2], queries=[[0,1],[1,1]] → [-1,1].
+
+**Constraints:**
+
+1 ≤ n,q ≤ 50,000; 1 ≤ heights[i] ≤ 10^9; 0 ≤ a,b < n.
+
+**Why This Subpattern Applies:**
+
+Need earliest position in a suffix whose height/value exceeds a threshold; aggregate maxima enable skipping impossible subtrees.  Resolve direct comparable-building cases; otherwise segment tree stores range maxima and descends to first index beyond both starting points exceeding required height.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    private int[] tree;
+    private void build(int p,int l,int r,int[] a) {
+        if(l==r) {tree[p]=a[l]; return;}
+        int m=(l+r)>>>1; build(p*2,l,m,a); build(p*2+1,m+1,r,a);
+        tree[p]=Math.max(tree[p*2],tree[p*2+1]);
+    }
+    private int first(int p,int l,int r,int start,int h) {
+        if(r<start||tree[p]<=h) return -1;
+        if(l==r) return l;
+        int m=(l+r)>>>1, x=first(p*2,l,m,start,h);
+        return x!=-1?x:first(p*2+1,m+1,r,start,h);
+    }
+    public int[] leftmostBuildingQueries(int[] heights,int[][] queries) {
+        int n=heights.length; tree=new int[4*n]; build(1,0,n-1,heights);
+        int[] ans=new int[queries.length];
+        for(int i=0;i<ans.length;i++) {
+            int a=Math.min(queries[i][0],queries[i][1]), b=Math.max(queries[i][0],queries[i][1]);
+            ans[i]=a==b||heights[a]<heights[b]?b:first(1,0,n-1,b+1,heights[a]);
+        }
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+Normalize the two indices. If the left person can jump directly to the right building, that is the earliest possible meeting point. Otherwise both need a height strictly greater than the left height beyond b. Maximum metadata prunes impossible nodes and left-first search finds the earliest index.
+
+**Time Complexity:** O(n+q log(n+1)).
+
+**Space Complexity:** O(n) tree, O(log n) stack; O(q) output.
+
+---
+
+<a id="rq8"></a>
+## Subpattern RQ8: Segment-tree capacity aggregation and leftmost fit
+
+**When to Apply:**
+
+Contiguous capacity allocation needs both total available capacity and largest single-block availability. A single block depends on the maximum; distributed demand depends on the sum. Merge both independently, using long for total capacity.
+
+**Basic Java Code Snippet:**
+
+```java
+record Aggregate(long sum,int max) {}
+Aggregate merge(Aggregate a,Aggregate b) {
+    return new Aggregate(a.sum()+b.sum(),Math.max(a.max(),b.max()));
+}
+boolean fitsOneRow(Aggregate a,int k) {return a.max()>=k;}
+boolean fitsAcrossRows(Aggregate a,int k) {return a.sum()>=k;}
+```
+
+**Core Logic:**
+
+A single block depends on the maximum; distributed demand depends on the sum. Merge both independently, using long for total capacity.
+
+**Questions Covered:** 2286
+
+### LeetCode 2286
+
+**Question:**
+
+Design BookMyShow for n rows of m seats each, numbered from zero. gather(k,maxRow) books k consecutive seats in a single row at or before maxRow, selecting the earliest row and smallest starting seat, returning [row,seat] or an empty array if impossible. scatter(k,maxRow) books k seats, not necessarily consecutive or in one row, prioritizing smaller row then smaller seat; return true if possible, otherwise false without changing bookings.
+
+**Examples:**
+
+BookMyShow(2,5): gather(4,0) → [0,0]; gather(2,0) → []; scatter(5,1) → true; scatter(5,1) → false.
+
+BookMyShow(1,3): scatter(1,0) → true; gather(2,0) → [0,1]; gather(1,0) → [].
+
+**Constraints:**
+
+1 ≤ n ≤ 50,000; 1 ≤ m,k ≤ 10^9; 0 ≤ maxRow < n; at most 50,000 calls.
+
+**Why This Subpattern Applies:**
+
+Contiguous capacity allocation needs both total available capacity and largest single-block availability.  Track remaining seats per row; segment tree stores row sum and row maximum. Gather finds earliest sufficient row; Scatter consumes earliest nonempty rows using aggregate sums.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class BookMyShow {
+    private final int n,m;
+    private final long[] sum;
+    private final int[] max;
+    private final boolean[] cleared;
+    public BookMyShow(int n,int m) {
+        this.n=n; this.m=m; sum=new long[4*n]; max=new int[4*n]; cleared=new boolean[4*n]; build(1,0,n-1);
+    }
+    private void build(int p,int l,int r) {
+        sum[p]=(long)(r-l+1)*m; max[p]=m;
+        if(l<r) {int mid=(l+r)>>>1; build(p*2,l,mid); build(p*2+1,mid+1,r);}
+    }
+    private void clear(int p) {sum[p]=0; max[p]=0; cleared[p]=true;}
+    private void push(int p) {if(cleared[p]) {clear(p*2); clear(p*2+1); cleared[p]=false;}}
+    private void pull(int p) {sum[p]=sum[p*2]+sum[p*2+1]; max[p]=Math.max(max[p*2],max[p*2+1]);}
+    private long prefix(int p,int l,int r,int end) {
+        if(l>end||sum[p]==0) return 0;
+        if(r<=end) return sum[p];
+        int mid=(l+r)>>>1; return prefix(p*2,l,mid,end)+prefix(p*2+1,mid+1,r,end);
+    }
+    private int first(int p,int l,int r,int k,int end) {
+        if(l>end||max[p]<k) return -1;
+        if(l==r) return l;
+        int mid=(l+r)>>>1,x=first(p*2,l,mid,k,end);
+        return x>=0?x:first(p*2+1,mid+1,r,k,end);
+    }
+    private int take(int p,int l,int r,int row,int k) {
+        if(l==r) {int seat=m-max[p]; max[p]-=k; sum[p]-=k; return seat;}
+        push(p); int mid=(l+r)>>>1;
+        int seat=row<=mid?take(p*2,l,mid,row,k):take(p*2+1,mid+1,r,row,k);
+        pull(p); return seat;
+    }
+    private void consume(int p,int l,int r,long k) {
+        if(k==0) return;
+        if(sum[p]==k) {clear(p); return;}
+        if(l==r) {sum[p]-=k; max[p]=(int)sum[p]; return;}
+        push(p); int mid=(l+r)>>>1;
+        long left=Math.min(k,sum[p*2]);
+        consume(p*2,l,mid,left); consume(p*2+1,mid+1,r,k-left); pull(p);
+    }
+    public int[] gather(int k,int maxRow) {
+        int row=first(1,0,n-1,k,maxRow);
+        return row<0?new int[0]:new int[]{row,take(1,0,n-1,row,k)};
+    }
+    public boolean scatter(int k,int maxRow) {
+        if(prefix(1,0,n-1,maxRow)<k) return false;
+        consume(1,0,n-1,k); return true;
+    }
+}
+```
+
+**Key Logic:**
+
+Every row retains a contiguous free suffix because allocation always starts at its first free seat. Sum checks scatter feasibility without mutation; max prunes gather searches. Scatter can clear whole subtrees at once with a lazy zero tag; after the prefix feasibility check, consuming the globally earliest k free seats cannot pass maxRow. Only one partially consumed branch exists at each level. A cleared node has zero aggregate, so read-only searches never descend into stale children.
+
+**Time Complexity:** O(n) build; O(log(n+1)) per gather or scatter, including the prefix check.
+
+**Space Complexity:** O(n) storage, O(log n) recursion stack.
+
+---
+
+<a id="rq9"></a>
+## Subpattern RQ9: Lazy segment-tree range flip and sum
+
+**When to Apply:**
+
+Many operations invert a binary interval and ask the number of ones across the whole domain. Flip twice is identity. A node count already reflects its tag, but children need the tag before partial traversal.
+
+**Basic Java Code Snippet:**
+
+```java
+void applyFlip(int[] ones,boolean[] lazy,int node,int len) {
+    ones[node]=len-ones[node]; lazy[node]=!lazy[node];
+}
+void push(int[] ones,boolean[] lazy,int p,int leftLen,int rightLen) {
+    if(!lazy[p]) return;
+    applyFlip(ones,lazy,p*2,leftLen);
+    applyFlip(ones,lazy,p*2+1,rightLen); lazy[p]=false;
+}
+```
+
+**Core Logic:**
+
+Flip twice is identity. A node count already reflects its tag, but children need the tag before partial traversal.
+
+**Questions Covered:** 2569
+
+### LeetCode 2569
+
+**Question:**
+
+Given a binary nums1 and integer nums2 of equal length, process queries of three types: [1,l,r] flips every bit in nums1[l..r]; [2,p,0] adds p*nums1[i] to nums2[i] for every index; [3,0,0] records the current sum of nums2. Return all recorded sums in order.
+
+**Examples:**
+
+nums1=[1,0,1], nums2=[0,0,0], queries=[[1,1,1],[2,1,0],[3,0,0]] → [3].
+
+nums1=[1], nums2=[5], queries=[[2,0,0],[3,0,0],[1,0,0],[2,9,0],[3,0,0]] → [5,5].
+
+**Constraints:**
+
+1 ≤ n,q ≤ 100,000; nums1[i] ∈ {0,1}; 0 ≤ nums2[i],p ≤ 10^9 (p is bounded by 10^6 in the published query constraints); valid l,r.
+
+**Why This Subpattern Applies:**
+
+Many operations invert a binary interval and ask the number of ones across the whole domain.  Store count of ones and lazy XOR flip; flipping segment length len maps ones to len-ones; type-2 queries add p*ones to running total.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    private int[] ones;
+    private boolean[] flip;
+    private void build(int p,int l,int r,int[] a) {
+        if(l==r) {ones[p]=a[l]; return;}
+        int m=(l+r)>>>1; build(p*2,l,m,a); build(p*2+1,m+1,r,a); pull(p);
+    }
+    private void pull(int p) {ones[p]=ones[p*2]+ones[p*2+1];}
+    private void apply(int p,int len) {ones[p]=len-ones[p]; flip[p]=!flip[p];}
+    private void push(int p,int l,int r) {
+        if(!flip[p]) return; int m=(l+r)>>>1;
+        apply(p*2,m-l+1); apply(p*2+1,r-m); flip[p]=false;
+    }
+    private void invert(int p,int l,int r,int a,int b) {
+        if(b<l||r<a) return;
+        if(a<=l&&r<=b) {apply(p,r-l+1); return;}
+        push(p,l,r); int m=(l+r)>>>1;
+        invert(p*2,l,m,a,b); invert(p*2+1,m+1,r,a,b); pull(p);
+    }
+    public long[] handleQuery(int[] nums1,int[] nums2,int[][] queries) {
+        int n=nums1.length,count=0; ones=new int[4*n]; flip=new boolean[4*n]; build(1,0,n-1,nums1);
+        long total=0; for(int x:nums2) total+=x;
+        for(int[] q:queries) if(q[0]==3) count++;
+        long[] ans=new long[count]; int j=0;
+        for(int[] q:queries) {
+            if(q[0]==1) invert(1,0,n-1,q[1],q[2]);
+            else if(q[0]==2) total+=(long)q[1]*ones[1];
+            else ans[j++]=total;
+        }
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+Flipping a segment exchanges zero and one counts; toggling its pending flag twice cancels. Push only before descending for partial overlap. Type 2 affects the total by p times the root count; individual nums2 cells are never needed.
+
+**Time Complexity:** O(n+q+f log(n+1)), f = number of flips.
+
+**Space Complexity:** O(n) auxiliary plus O(q) output worst case; O(log n) stack.
+
+---
+
+<a id="rq10"></a>
+## Subpattern RQ10: Lazy segment-tree range addition with second moments
+
+**When to Apply:**
+
+Range increment changes both sum of values and sum of squares; maintain both aggregates algebraically. Update squared sum using the previous first moment. Add tags compose by addition. Use modular arithmetic or wider arithmetic when aggregates can exceed long.
+
+**Basic Java Code Snippet:**
+
+```java
+void applyAdd(long[] sum,long[] sq,long[] lazy,int p,int len,long d) {
+    sq[p]+=2*d*sum[p]+d*d*len;
+    sum[p]+=d*len; lazy[p]+=d;
+}
+```
+
+**Core Logic:**
+
+Update squared sum using the previous first moment. Add tags compose by addition. Use modular arithmetic or wider arithmetic when aggregates can exceed long.
+
+**Questions Covered:** 2916
+
+### LeetCode 2916
+
+**Question:**
+
+For every nonempty contiguous subarray of nums, let its distinct count be the number of different values appearing in that subarray. Return the sum of the squares of these distinct counts over all subarrays, modulo 1,000,000,007.
+
+**Examples:**
+
+[1,2,1] → 15 (three singleton squares, two length-two squares of 4, and one length-three square of 4).
+
+[2,2] → 3.
+
+[1,2,3] → 20.
+
+**Constraints:**
+
+1 ≤ n ≤ 100,000; 1 ≤ nums[i] ≤ 100,000.
+
+**Why This Subpattern Applies:**
+
+Range increment changes both sum of values and sum of squares; maintain both aggregates algebraically.  For each right endpoint update start positions after prior occurrence by +1 to represent distinct counts; segment tree stores sum and squared-sum and adds full squared sum to answer.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    private static final long MOD=1_000_000_007L;
+    private long[] sum,sq,lazy;
+    private void apply(int p,int len,long d) {
+        sq[p]=(sq[p]+2*d%MOD*sum[p]%MOD+d*d%MOD*len%MOD)%MOD;
+        sum[p]=(sum[p]+d*len)%MOD; lazy[p]=(lazy[p]+d)%MOD;
+    }
+    private void push(int p,int l,int r) {
+        if(lazy[p]==0) return; int m=(l+r)>>>1;
+        apply(p*2,m-l+1,lazy[p]); apply(p*2+1,r-m,lazy[p]); lazy[p]=0;
+    }
+    private void add(int p,int l,int r,int a,int b) {
+        if(b<l||r<a) return;
+        if(a<=l&&r<=b) {apply(p,r-l+1,1); return;}
+        push(p,l,r); int m=(l+r)>>>1;
+        add(p*2,l,m,a,b); add(p*2+1,m+1,r,a,b);
+        sum[p]=(sum[p*2]+sum[p*2+1])%MOD; sq[p]=(sq[p*2]+sq[p*2+1])%MOD;
+    }
+    public int sumCounts(int[] nums) {
+        int n=nums.length; sum=new long[4*n]; sq=new long[4*n]; lazy=new long[4*n];
+        int[] last=new int[100001]; java.util.Arrays.fill(last,-1);
+        long ans=0;
+        for(int r=0;r<n;r++) {
+            add(1,0,n-1,last[nums[r]]+1,r);
+            last[nums[r]]=r; ans=(ans+sq[1])%MOD;
+        }
+        return (int)ans;
+    }
+}
+```
+
+**Key Logic:**
+
+After processing right endpoint r, leaf l stores the distinct count of nums[l..r], or zero for l>r. A value contributes a new distinct element only for starts after its last occurrence. Range-add by one updates exactly these leaves. Expanding (x+d)^2 yields the second-moment update using the old sum, and the root square sum counts all subarrays ending at r.
+
+**Time Complexity:** O(n log(n+1)+V), V=100,001 for the last-position table.
+
+**Space Complexity:** O(n+V) auxiliary; O(log n) stack.
+
+---
+
+<a id="rq11"></a>
+## Subpattern RQ11: Segment-tree range assignment and coordinate compression
+
+**When to Apply:**
+
+Intervals replace existing heights; range maximum queries and range overwrite must coexist. An assignment replaces older pending assignments. Coordinate-compressed leaves represent elementary intervals, not just isolated coordinates.
+
+**Basic Java Code Snippet:**
+
+```java
+void assign(int[] max,int[] tag,boolean[] pending,int p,int value) {
+    max[p]=tag[p]=value; pending[p]=true;
+}
+void push(int[] max,int[] tag,boolean[] pending,int p) {
+    if(!pending[p]) return;
+    assign(max,tag,pending,p*2,tag[p]);
+    assign(max,tag,pending,p*2+1,tag[p]); pending[p]=false;
+}
+```
+
+**Core Logic:**
+
+An assignment replaces older pending assignments. Coordinate-compressed leaves represent elementary intervals, not just isolated coordinates.
+
+**Questions Covered:** 699
+
+### LeetCode 699
+
+**Question:**
+
+Squares fall one at a time onto a horizontal number line. positions[i]=[left,side] gives the left edge and side length of the next square. Each square falls vertically until its bottom meets the ground or the top of an earlier square with positive horizontal overlap. Touching only at an edge does not support it. After each drop, return the maximum height of any square so far.
+
+**Examples:**
+
+[[1,2],[2,3],[6,1]] → [2,5,5].
+
+[[100,100],[200,100]] → [100,100] (edge contact only).
+
+[[1,2],[1,2]] → [2,4].
+
+**Constraints:**
+
+1 ≤ positions.length ≤ 1000; 1 ≤ left ≤ 10^8; 1 ≤ side ≤ 10^6.
+
+**Why This Subpattern Applies:**
+
+Intervals replace existing heights; range maximum queries and range overwrite must coexist.  Compress square endpoints; query max height on occupied interval, assign all covered compressed spans to max+side, track global maximum.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    private int[] tree,tag;
+    private void apply(int p,int v) {tree[p]=tag[p]=v;}
+    private void push(int p) {if(tag[p]!=0) {apply(p*2,tag[p]); apply(p*2+1,tag[p]); tag[p]=0;}}
+    private int max(int p,int l,int r,int a,int b) {
+        if(b<l||r<a) return 0;
+        if(a<=l&&r<=b) return tree[p];
+        push(p); int m=(l+r)>>>1;
+        return Math.max(max(p*2,l,m,a,b),max(p*2+1,m+1,r,a,b));
+    }
+    private void set(int p,int l,int r,int a,int b,int v) {
+        if(b<l||r<a) return;
+        if(a<=l&&r<=b) {apply(p,v); return;}
+        push(p); int m=(l+r)>>>1;
+        set(p*2,l,m,a,b,v); set(p*2+1,m+1,r,a,b,v);
+        tree[p]=Math.max(tree[p*2],tree[p*2+1]);
+    }
+    public List<Integer> fallingSquares(int[][] positions) {
+        int n=positions.length; int[] xs=new int[2*n];
+        for(int i=0;i<n;i++) {xs[2*i]=positions[i][0]; xs[2*i+1]=positions[i][0]+positions[i][1];}
+        Arrays.sort(xs); int u=0;
+        for(int x:xs) if(u==0||xs[u-1]!=x) xs[u++]=x;
+        tree=new int[4*u]; tag=new int[4*u]; List<Integer> ans=new ArrayList<>(n);
+        for(int[] a:positions) {
+            int l=Arrays.binarySearch(xs,0,u,a[0]), r=Arrays.binarySearch(xs,0,u,a[0]+a[1])-1;
+            int height=max(1,0,u-2,l,r)+a[1]; set(1,0,u-2,l,r,height); ans.add(tree[1]);
+        }
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+Compress endpoints into elementary half-open spans. The support height is the maximum among covered spans, and the new top is that maximum plus side. The entire footprint gets the new height. Lazy assignment replaces any previous assignment; zero safely represents no pending tag because assigned heights are positive.
+
+**Time Complexity:** O(n log(n+1)).
+
+**Space Complexity:** O(n) auxiliary and O(n) output; O(log n) stack.
+
+---
+
+<a id="rq12"></a>
+## Subpattern RQ12: Mergeable run metadata in a segment tree
+
+**When to Apply:**
+
+Point edits affect the longest contiguous equal-character run, and answers must be maintained after each edit. Preserve boundary characters and runs as well as the internal optimum; this metadata is sufficient to reconstruct the parent.
+
+**Basic Java Code Snippet:**
+
+```java
+record Run(char first,char last,int len,int pref,int suff,int best) {}
+Run merge(Run a,Run b) {
+    boolean same=a.last()==b.first();
+    int cross=same?a.suff()+b.pref():0;
+    return new Run(a.first(),b.last(),a.len()+b.len(),
+        a.pref()+(same&&a.pref()==a.len()?b.pref():0),
+        b.suff()+(same&&b.suff()==b.len()?a.suff():0),
+        Math.max(cross,Math.max(a.best(),b.best())));
+}
+```
+
+**Core Logic:**
+
+Preserve boundary characters and runs as well as the internal optimum; this metadata is sufficient to reconstruct the parent.
+
+**Questions Covered:** 2213
+
+### LeetCode 2213
+
+**Question:**
+
+Given a string s and equally long queryCharacters and queryIndices, for each query i replace s[queryIndices[i]] with queryCharacters[i]. After each replacement, return the length of the longest nonempty substring consisting of one repeated character. Updates persist across queries.
+
+**Examples:**
+
+s="babacc", queryCharacters="bcb", queryIndices=[1,3,3] → [3,3,4].
+
+s="abyzz", queryCharacters="aa", queryIndices=[2,1] → [2,3].
+
+s="a", queryCharacters="bb", queryIndices=[0,0] → [1,1].
+
+**Constraints:**
+
+1 ≤ s.length, queries ≤ 100,000; all characters lowercase English; valid query indices.
+
+**Why This Subpattern Applies:**
+
+Point edits affect the longest contiguous equal-character run, and answers must be maintained after each edit.  Each node stores left/right character, prefix/suffix run lengths and longest run; merge cross-boundary equal-character streaks after point change.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    private int[] len,pref,suff,best;
+    private char[] first,last;
+    private void leaf(int p,char c) {len[p]=pref[p]=suff[p]=best[p]=1; first[p]=last[p]=c;}
+    private void pull(int p) {
+        int a=p*2,b=a+1; len[p]=len[a]+len[b]; first[p]=first[a]; last[p]=last[b];
+        pref[p]=pref[a]; suff[p]=suff[b]; best[p]=Math.max(best[a],best[b]);
+        if(last[a]==first[b]) {
+            best[p]=Math.max(best[p],suff[a]+pref[b]);
+            if(pref[a]==len[a]) pref[p]+=pref[b];
+            if(suff[b]==len[b]) suff[p]+=suff[a];
+        }
+    }
+    private void build(int p,int l,int r,String s) {
+        if(l==r) {leaf(p,s.charAt(l)); return;}
+        int m=(l+r)>>>1; build(p*2,l,m,s); build(p*2+1,m+1,r,s); pull(p);
+    }
+    private void set(int p,int l,int r,int i,char c) {
+        if(l==r) {leaf(p,c); return;}
+        int m=(l+r)>>>1;
+        if(i<=m) set(p*2,l,m,i,c); else set(p*2+1,m+1,r,i,c); pull(p);
+    }
+    public int[] longestRepeating(String s,String queryCharacters,int[] queryIndices) {
+        int n=s.length(),z=4*n;
+        len=new int[z]; pref=new int[z]; suff=new int[z]; best=new int[z]; first=new char[z]; last=new char[z];
+        build(1,0,n-1,s); int[] ans=new int[queryIndices.length];
+        for(int i=0;i<ans.length;i++) {set(1,0,n-1,queryIndices[i],queryCharacters.charAt(i)); ans[i]=best[1];}
+        return ans;
+    }
+}
+```
+
+**Key Logic:**
+
+The best run is either inside one child or crosses their boundary. A crossing run exists only when the adjacent boundary characters match. Prefix and suffix can extend across the boundary only if the corresponding child is entirely uniform. Update one leaf and recompute ancestors.
+
+**Time Complexity:** O(n+q log(n+1)).
+
+**Space Complexity:** O(n) auxiliary and O(q) output; O(log n) stack.
+
+---
+
+<a id="rq13"></a>
+## Subpattern RQ13: Segment-tree state-machine merge for nonadjacent selection
+
+**When to Apply:**
+
+After point modifications, return optimal selection under a constraint spanning adjacent positions. Each state fixes whether both segment endpoints are selected. Internal boundary states must be compatible; impossible states use negative infinity.
+
+**Basic Java Code Snippet:**
+
+```java
+long[] merge(long[] a,long[] b) {
+    long neg=Long.MIN_VALUE/4;
+    long[] c={neg,neg,neg,neg};
+    for(int l=0;l<2;l++) for(int r=0;r<2;r++)
+        for(int x=0;x<2;x++) for(int y=0;y<2;y++)
+            if(!(x==1&&y==1)&&a[2*l+x]!=neg&&b[2*y+r]!=neg)
+                c[2*l+r]=Math.max(c[2*l+r],a[2*l+x]+b[2*y+r]);
+    return c;
+}
+```
+
+**Core Logic:**
+
+Each state fixes whether both segment endpoints are selected. Internal boundary states must be compatible; impossible states use negative infinity.
+
+**Questions Covered:** 3165
+
+### LeetCode 3165
+
+**Question:**
+
+Given nums and queries [pos,x], perform each point assignment nums[pos]=x. After each assignment compute the maximum sum of a subsequence with no two chosen indices adjacent in the original array. The empty subsequence is allowed and has sum zero. Return the sum of all query answers modulo 1,000,000,007.
+
+**Examples:**
+
+nums=[3,5,9], queries=[[1,-2],[0,-3]] → 21 (12 then 9).
+
+nums=[0,-1], queries=[[0,-5]] → 0.
+
+nums=[4], queries=[[0,8],[0,-1]] → 8.
+
+**Constraints:**
+
+1 ≤ n,q ≤ 50,000; -10^5 ≤ nums[i],x ≤ 10^5; valid pos.
+
+**Why This Subpattern Applies:**
+
+After point modifications, return optimal selection under a constraint spanning adjacent positions.  Use segment-tree nodes representing a 2×2 boundary-selection DP (or max-plus transition matrices) for maximum nonadjacent subsequence sum; merge children by compatible boundary states.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class Solution {
+    private static final long NEG=Long.MIN_VALUE/4, MOD=1_000_000_007L;
+    private long[][] dp;
+    private void leaf(int p,int v) {dp[p][0]=0; dp[p][1]=dp[p][2]=NEG; dp[p][3]=v;}
+    private void pull(int p) {
+        long[] a=dp[p*2], b=dp[p*2+1], c=dp[p];
+        for(int l=0;l<2;l++) for(int r=0;r<2;r++) {
+            long best=NEG;
+            for(int x=0;x<2;x++) for(int y=0;y<2;y++) {
+                if(x==1&&y==1) continue;
+                long u=a[2*l+x],v=b[2*y+r];
+                if(u!=NEG&&v!=NEG) best=Math.max(best,u+v);
+            }
+            c[2*l+r]=best;
+        }
+    }
+    private void build(int p,int l,int r,int[] nums) {
+        if(l==r) {leaf(p,nums[l]); return;}
+        int m=(l+r)>>>1; build(p*2,l,m,nums); build(p*2+1,m+1,r,nums); pull(p);
+    }
+    private void set(int p,int l,int r,int i,int v) {
+        if(l==r) {leaf(p,v); return;}
+        int m=(l+r)>>>1;
+        if(i<=m) set(p*2,l,m,i,v); else set(p*2+1,m+1,r,i,v); pull(p);
+    }
+    public int maximumSumSubsequence(int[] nums,int[][] queries) {
+        int n=nums.length; dp=new long[4*n][4]; build(1,0,n-1,nums); long ans=0;
+        for(int[] q:queries) {
+            set(1,0,n-1,q[0],q[1]); long best=0;
+            for(long v:dp[1]) best=Math.max(best,v);
+            ans=(ans+best)%MOD;
+        }
+        return (int)ans;
+    }
+}
+```
+
+**Key Logic:**
+
+State 2*l+r records the maximum sum when the outermost positions are selected exactly as l and r indicate. A singleton has only states 00 and 11. Merge all internal boundary choices except selecting both adjacent boundary positions. Invalid states cannot participate. The root maximum includes the empty choice; use long for unmodded maxima and apply modulo only when accumulating answers.
+
+**Time Complexity:** O(n+q log(n+1)), with constant-size state merges.
+
+**Space Complexity:** O(n) auxiliary; O(log n) stack.
+
+---
+
+<a id="rq14"></a>
+## Subpattern RQ14: Sweep line with covered-length segment tree
+
+**When to Apply:**
+
+Continuous geometric union area from overlapping rectangles requires maintaining total covered y-length as x changes. A full-cover count dominates child coverage. Otherwise total union length is the sum of disjoint child lengths. Multiply root length by the next sweep distance.
+
+**Basic Java Code Snippet:**
+
+```java
+void pull(int[] ys,int[] cover,long[] len,int p,int lo,int hi) {
+    if(cover[p]>0) len[p]=(long)ys[hi]-ys[lo];
+    else if(hi-lo==1) len[p]=0;
+    else len[p]=len[p*2]+len[p*2+1];
+}
+```
+
+**Core Logic:**
+
+A full-cover count dominates child coverage. Otherwise total union length is the sum of disjoint child lengths. Multiply root length by the next sweep distance.
+
+**Questions Covered:** 850
+
+### LeetCode 850
+
+**Question:**
+
+Given axis-aligned rectangles [x1,y1,x2,y2], compute the area of their union. Count any overlapping region only once. Return the exact integer union area modulo 1,000,000,007.
+
+**Examples:**
+
+[[0,0,2,2],[1,0,2,3],[1,0,3,1]] → 6.
+
+[[0,0,1000000000,1000000000]] → 49.
+
+[[0,0,1,1],[1,0,2,1]] → 2.
+
+**Constraints:**
+
+1 ≤ rectangles.length ≤ 200; coordinates between 0 and 10^9; x1 ≤ x2 and y1 ≤ y2 (zero-area rectangles can be ignored).
+
+**Why This Subpattern Applies:**
+
+Continuous geometric union area from overlapping rectangles requires maintaining total covered y-length as x changes.  Sweep sorted x-events for rectangle starts/ends; segment tree stores cover count and covered y-length over compressed coordinates, accumulate deltaX*coveredLength modulo 1e9+7.
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+import java.util.*;
+class Solution {
+    private int[] ys,cover;
+    private long[] length;
+    private void change(int p,int l,int r,int a,int b,int d) {
+        if(b<=l||r<=a) return;
+        if(a<=l&&r<=b) cover[p]+=d;
+        else {
+            int m=(l+r)>>>1;
+            change(p*2,l,m,a,b,d); change(p*2+1,m,r,a,b,d);
+        }
+        if(cover[p]>0) length[p]=(long)ys[r]-ys[l];
+        else if(r-l==1) length[p]=0;
+        else length[p]=length[p*2]+length[p*2+1];
+    }
+    public int rectangleArea(int[][] rectangles) {
+        List<int[]> events=new ArrayList<>(); ys=new int[2*rectangles.length]; int u=0;
+        for(int[] a:rectangles) {
+            if(a[0]==a[2]||a[1]==a[3]) continue;
+            ys[u++]=a[1]; ys[u++]=a[3];
+            events.add(new int[]{a[0],a[1],a[3],1}); events.add(new int[]{a[2],a[1],a[3],-1});
+        }
+        if(u==0) return 0;
+        Arrays.sort(ys,0,u); int v=0;
+        for(int i=0;i<u;i++) if(v==0||ys[v-1]!=ys[i]) ys[v++]=ys[i];
+        cover=new int[4*v]; length=new long[4*v];
+        events.sort(Comparator.comparingInt(e->e[0]));
+        long ans=0; int prev=events.get(0)[0];
+        for(int[] e:events) {
+            ans=(ans+(long)(e[0]-prev)*length[1])%1_000_000_007L;
+            int a=Arrays.binarySearch(ys,0,v,e[1]), b=Arrays.binarySearch(ys,0,v,e[2]);
+            change(1,0,v-1,a,b,e[3]); prev=e[0];
+        }
+        return (int)ans;
+    }
+}
+```
+
+**Key Logic:**
+
+Between successive x events the active rectangle set is constant, so area is width times covered y-length. A positive cover count means the whole node span is covered; otherwise combine child lengths. Counts represent full-cover contributions at that node, not lazy assignments, and children retain their own partial cover state. Same-x events have zero intervening area.
+
+**Time Complexity:** O(n log(n+1)).
+
+**Space Complexity:** O(n) auxiliary; O(log n) stack.
+
+---
+
+<a id="rq15"></a>
+## Subpattern RQ15: Static occurrence-index queries and majority-candidate augmentation
+
+**When to Apply:**
+
+Many range questions about exact values can exploit sorted occurrence positions; majority adds a composable candidate. Build occurrence lists in original index order. Binary search both bounds; a majority candidate can be verified using the same count primitive.
+
+**Basic Java Code Snippet:**
+
+```java
+int lowerBound(java.util.List<Integer> indices,int x) {
+    int l=0,r=indices.size();
+    while(l<r) {int m=(l+r)>>>1; if(indices.get(m)<x) l=m+1; else r=m;}
+    return l;
+}
+int count(java.util.List<Integer> indices,int l,int r) {
+    return lowerBound(indices,r+1)-lowerBound(indices,l);
+}
+```
+
+**Core Logic:**
+
+Build occurrence lists in original index order. Binary search both bounds; a majority candidate can be verified using the same count primitive.
+
+**Questions Covered:** 2080, 1157
+
+### LeetCode 2080
+
+**Question:**
+
+Design RangeFreqQuery for a fixed integer array. query(left,right,value) returns the number of occurrences of value at indices in the inclusive interval [left,right]. The original array is never updated.
+
+**Examples:**
+
+arr=[12,33,4,56,22,2,34,33,22,12,34,56]: query(1,2,4) → 1; query(0,11,33) → 2.
+
+arr=[7,7,1]: query(0,1,7) → 2; query(1,2,8) → 0.
+
+**Constraints:**
+
+1 ≤ n ≤ 100,000; 1 ≤ arr[i],value ≤ 10,000; 0 ≤ left ≤ right < n; at most 100,000 queries.
+
+**Why This Subpattern Applies:**
+
+Many range questions about exact values can exploit sorted occurrence positions; majority adds a composable candidate.  Map each value to sorted occurrence indices; answer count within [left,right] using upperBound(right)-lowerBound(left).
+
+**Connection to Previous Solution:**
+
+Foundation of this subpattern.
+
+**Java Solution:**
+
+```java
+class RangeFreqQuery {
+    private final java.util.Map<Integer,java.util.List<Integer>> positions=new java.util.HashMap<>();
+    private void index(int[] arr) {
+        for(int i=0;i<arr.length;i++) positions.computeIfAbsent(arr[i],k->new java.util.ArrayList<>()).add(i);
+    }
+    private int lower(java.util.List<Integer> list,int target) {
+        int l=0,r=list.size();
+        while(l<r) {int m=(l+r)>>>1; if(list.get(m)<target) l=m+1; else r=m;}
+        return l;
+    }
+    private int frequency(int value,int left,int right) {
+        var list=positions.get(value);
+        return list==null?0:lower(list,right+1)-lower(list,left);
+    }
+    public RangeFreqQuery(int[] arr) {index(arr);}
+    public int query(int left,int right,int value) {return frequency(value,left,right);}
+}
+```
+
+**Key Logic:**
+
+Appending indices during a forward scan creates a sorted occurrence list for every value. Two lower-bound searches find the half-open slice of indices from left through right. A missing value returns zero without searching.
+
+**Time Complexity:** O(n) expected construction; O(log(f+1)) per query with expected O(1) map lookup, f = total occurrences of value.
+
+**Space Complexity:** O(n) storage; O(1) auxiliary per query.
+
+---
+
+### LeetCode 1157
+
+**Question:**
+
+Design MajorityChecker for a fixed integer array. query(left,right,threshold) returns an element occurring at least threshold times within the inclusive range, or -1 if none exists. Each query guarantees threshold is strictly greater than half the length of its range, so at most one value can satisfy it.
+
+**Examples:**
+
+arr=[1,1,2,2,1,1]: query(0,5,4) → 1; query(0,3,3) → -1; query(2,3,2) → 2.
+
+arr=[5,6,5]: query(0,2,3) → -1; query(0,2,2) → 5.
+
+**Constraints:**
+
+1 ≤ n ≤ 20,000; 1 ≤ arr[i] ≤ 20,000; 0 ≤ left ≤ right < n; 1 ≤ threshold ≤ right-left+1; 2*threshold > right-left+1; at most 10,000 queries.
+
+**Why This Subpattern Applies:**
+
+Many range questions about exact values can exploit sorted occurrence positions; majority adds a composable candidate.  Maintain Boyer–Moore candidate/count summaries in a segment tree; merge cancellation summaries for a range, verify candidate frequency using the occurrence index lists. Threshold exceeds half of range length.
+
+**Connection to Previous Solution:**
+
+Reuse static per-value occurrence lists for verification; add segment-tree candidate/count merging to identify a possible majority before checking its count.
+
+**Java Solution:**
+
+```java
+class MajorityChecker {
+    private final java.util.Map<Integer,java.util.List<Integer>> positions=new java.util.HashMap<>();
+    private void index(int[] arr) {
+        for(int i=0;i<arr.length;i++) positions.computeIfAbsent(arr[i],k->new java.util.ArrayList<>()).add(i);
+    }
+    private int lower(java.util.List<Integer> list,int target) {
+        int l=0,r=list.size();
+        while(l<r) {int m=(l+r)>>>1; if(list.get(m)<target) l=m+1; else r=m;}
+        return l;
+    }
+    private int frequency(int value,int left,int right) {
+        var list=positions.get(value);
+        return list==null?0:lower(list,right+1)-lower(list,left);
+    }
+    private record Vote(int value,int count) {}
+    private static final Vote EMPTY=new Vote(0,0);
+    private final Vote[] tree;
+    private final int n;
+    private Vote merge(Vote a,Vote b) {
+        if(a.count()==0) return b;
+        if(b.count()==0) return a;
+        if(a.value()==b.value()) return new Vote(a.value(),a.count()+b.count());
+        if(a.count()==b.count()) return EMPTY;
+        return a.count()>b.count()?new Vote(a.value(),a.count()-b.count()):new Vote(b.value(),b.count()-a.count());
+    }
+    public MajorityChecker(int[] arr) {
+        index(arr); n=arr.length; tree=new Vote[4*n]; build(1,0,n-1,arr);
+    }
+    private void build(int p,int l,int r,int[] arr) {
+        if(l==r) {tree[p]=new Vote(arr[l],1); return;}
+        int m=(l+r)>>>1; build(p*2,l,m,arr); build(p*2+1,m+1,r,arr); tree[p]=merge(tree[p*2],tree[p*2+1]);
+    }
+    private Vote candidate(int p,int l,int r,int a,int b) {
+        if(b<l||r<a) return EMPTY;
+        if(a<=l&&r<=b) return tree[p];
+        int m=(l+r)>>>1;
+        return merge(candidate(p*2,l,m,a,b),candidate(p*2+1,m+1,r,a,b));
+    }
+    public int query(int left,int right,int threshold) {
+        Vote v=candidate(1,0,n-1,left,right);
+        return v.count()>0&&frequency(v.value(),left,right)>=threshold?v.value():-1;
+    }
+}
+```
+
+**Key Logic:**
+
+Cancel pairs of different values. A strict majority cannot be eliminated by any sequence of such cancellations, so the candidate obtained by merging segment summaries must be that majority if one exists. The residual vote count is not its actual frequency; use the previous solution’s binary searches to verify the exact threshold. Cancellation summaries need not be strictly associative when no majority exists, but any merge grouping preserves a true majority.
+
+**Time Complexity:** O(n) expected construction; O(log n) range candidate and O(log n) verification per query.
+
+**Space Complexity:** O(n) storage; O(log n) query stack and temporary vote records.
+
+---
+
+## Final question registry
+
+| Sequence | LeetCode | Family | Java 21 compilation |
+
+|---:|---:|---|---|
+
+| 1 | 307 | RQ1 | Passed |
+
+| 2 | 308 | RQ1 | Passed |
+
+| 3 | 1649 | RQ2 | Passed |
+
+| 4 | 2179 | RQ2 | Passed |
+
+| 5 | 2031 | RQ2 | Passed |
+
+| 6 | 2659 | RQ3 | Passed |
+
+| 7 | 1505 | RQ3 | Passed |
+
+| 8 | 3187 | RQ4 | Passed |
+
+| 9 | 2926 | RQ5 | Passed |
+
+| 10 | 2407 | RQ6 | Passed |
+
+| 11 | 2736 | RQ6 | Passed |
+
+| 12 | 2940 | RQ7 | Passed |
+
+| 13 | 2286 | RQ8 | Passed |
+
+| 14 | 2569 | RQ9 | Passed |
+
+| 15 | 2916 | RQ10 | Passed |
+
+| 16 | 699 | RQ11 | Passed |
+
+| 17 | 2213 | RQ12 | Passed |
+
+| 18 | 3165 | RQ13 | Passed |
+
+| 19 | 850 | RQ14 | Passed |
+
+| 20 | 2080 | RQ15 | Passed |
+
+| 21 | 1157 | RQ15 | Passed |
+
+**Verification:** 21/21 distinct IDs in exact master order; 15/15 families with templates; 21/21 submissions compiled individually using Java 21. Runtime tests have not yet been performed. No practice status or master curriculum changed.

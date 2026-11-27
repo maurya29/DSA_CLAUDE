@@ -1,0 +1,1801 @@
+# T25 — Dynamic Programming | Volume 1 of 3
+
+**Locked sequence:** 01–30 of 89 · **Families:** DP1–DP11 · **Language:** Java 21
+
+Source: `MASTER_DSA_CURRICULUM.md`, section C25. Family names, recognition cues and implementation evolution follow the locked registry. Problem statements, examples, constraints and implementations are author-prepared supplements; constraints have not been independently checked against live LeetCode pages.
+
+**Volume plan:** Volume 1: 1–30; Volume 2: 31–60; Volume 3: 61–89. Families are not split.
+
+## How to study
+
+Define the state, base cases, transition and dependency order before reading the implementation. Compare each solution with its predecessor in the same family. For rolling arrays, identify which values still represent the previous layer. All examples below were executed locally; this does not constitute LeetCode acceptance.
+
+## Contents
+
+- [DP1 — Linear recurrence and rolling state](#dp1)
+  - [01. 509](#lc-509)
+  - [02. 70](#lc-70)
+  - [03. 746](#lc-746)
+  - [04. 1137](#lc-1137)
+- [DP2 — Nonadjacent selection and local action DP](#dp2)
+  - [05. 198](#lc-198)
+  - [06. 213](#lc-213)
+  - [07. 740](#lc-740)
+  - [08. 2140](#lc-2140)
+- [DP3 — Grid path count and minimum cost](#dp3)
+  - [09. 62](#lc-62)
+  - [10. 63](#lc-63)
+  - [11. 64](#lc-64)
+- [DP4 — Row-to-row movement DP](#dp4)
+  - [12. 120](#lc-120)
+  - [13. 931](#lc-931)
+  - [14. 1289](#lc-1289)
+- [DP5 — Two-agent synchronized grid DP](#dp5)
+  - [15. 1463](#lc-1463)
+  - [16. 741](#lc-741)
+- [DP6 — 0/1 subset feasibility and counting](#dp6)
+  - [17. 416](#lc-416)
+  - [18. 494](#lc-494)
+  - [19. 1049](#lc-1049)
+- [DP7 — Multidimensional resource knapsack](#dp7)
+  - [20. 474](#lc-474)
+  - [21. 879](#lc-879)
+- [DP8 — Unbounded coins and ordered compositions](#dp8)
+  - [22. 322](#lc-322)
+  - [23. 279](#lc-279)
+  - [24. 518](#lc-518)
+  - [25. 377](#lc-377)
+- [DP9 — Dice and bounded multiplicity counts](#dp9)
+  - [26. 1155](#lc-1155)
+- [DP10 — Longest increasing subsequence and ordering](#dp10)
+  - [27. 300](#lc-300)
+  - [28. 354](#lc-354)
+  - [29. 1964](#lc-1964)
+- [DP11 — Counting increasing subsequences](#dp11)
+  - [30. 673](#lc-673)
+
+- [Final registry](#final-registry)
+
+<a id="dp1"></a>
+## DP1 — Linear recurrence and rolling state
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** The answer at n combines a fixed number of earlier indexed answers; use memoization first, then a forward recurrence and rolling variables.
+
+**Ordered questions:** 509, 70, 746, 1137
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+long prev2 = 0, prev1 = 1;
+for (int i = 2; i <= n; i++) {
+    long curr = prev1 + prev2; // replace recurrence
+    prev2 = prev1;
+    prev1 = curr;
+}
+```
+
+<a id="lc-509"></a>
+### 01. LeetCode 509
+
+**Problem**
+
+Return F(n), where F(0)=0, F(1)=1 and F(n)=F(n−1)+F(n−2).
+
+**Examples**
+
+- n=2 → 1
+- n=4 → 3
+- n=0 → 0
+
+**Constraints**
+
+0 ≤ n ≤ 30
+
+**Why this approach / key logic**
+
+Keep the two most recent Fibonacci values. Each iteration computes the next before shifting both states.
+
+**Locked strategy:** Iterative two-state Fibonacci; O(n) time and O(1) space.
+
+**Evolution from previous solution:** BASE: combine two preceding states.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int fib(int n)  {
+        int a=0,b=1;
+        for(int i=0;i<n;i++) {
+            int c=a+b;
+            a=b;
+            b=c;
+        }
+        return a;
+    }
+}
+```
+
+**Complexity:** O(n) time, O(1) space.
+
+---
+
+<a id="lc-70"></a>
+### 02. LeetCode 70
+
+**Problem**
+
+Count distinct sequences of one-step and two-step moves that reach stair n from stair 0.
+
+**Examples**
+
+- n=2 → 2
+- n=3 → 3
+- n=5 → 8
+
+**Constraints**
+
+1 ≤ n ≤ 45
+
+**Why this approach / key logic**
+
+The last move comes from n−1 or n−2. The empty path has one way, so initialize both first states to 1.
+
+**Locked strategy:** Retain two rolling counts with ways[i]=ways[i-1]+ways[i-2].
+
+**Evolution from previous solution:** Change state meaning from Fibonacci value to ways to reach a step; adjust base cases.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int climbStairs(int n) {
+        int a=1,b=1;
+        for(int i=2;i<=n;i++) {
+            int c=a+b;
+            a=b;
+            b=c;
+        }
+        return b;
+    }
+}
+```
+
+**Complexity:** O(n) time, O(1) space.
+
+---
+
+<a id="lc-746"></a>
+### 03. LeetCode 746
+
+**Problem**
+
+Each stair has a cost paid when stepping on it. Start at index 0 or 1, move one or two stairs, and minimize cost to reach the top beyond the array.
+
+**Examples**
+
+- cost=[10,15,20] → 15
+- [1,100,1,1,1,100,1,1,100,1] → 6
+
+**Constraints**
+
+2 ≤ n ≤ 1000; 0 ≤ cost[i] ≤ 999
+
+**Why this approach / key logic**
+
+Define dp[i] as cost to reach index i before paying its cost. The final move pays the cost of its starting stair.
+
+**Locked strategy:** Rolling min-cost-to-reach transition using min(previous one/two) plus step cost.
+
+**Evolution from previous solution:** Replace addition of counts with min-plus optimization; incorporate step costs and top boundary.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int minCostClimbingStairs(int[] cost) {
+        int a=0,b=0;
+        for(int i=2;i<=cost.length;i++) {
+            int c=Math.min(b+cost[i-1],a+cost[i-2]);
+            a=b;
+            b=c;
+        }
+        return b;
+    }
+}
+```
+
+**Complexity:** O(n) time, O(1) space.
+
+---
+
+<a id="lc-1137"></a>
+### 04. LeetCode 1137
+
+**Problem**
+
+Return T(n), with T(0)=0, T(1)=T(2)=1 and T(n)=T(n−1)+T(n−2)+T(n−3).
+
+**Examples**
+
+- n=4 → 4
+- n=0 → 0
+- n=25 → 1389537
+
+**Constraints**
+
+0 ≤ n ≤ 37
+
+**Why this approach / key logic**
+
+Preserve three preceding values instead of two; shift only after calculating their sum.
+
+**Locked strategy:** Keep three rolling states and sum the previous three values.
+
+**Evolution from previous solution:** Extend dependency width from two previous states to three; shift triple each iteration.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int tribonacci(int n) {
+        if(n<3)return n==0?0:1;
+        int a=0,b=1,c=1;
+        for(int i=3;i<=n;i++) {
+            int d=a+b+c;
+            a=b;
+            b=c;
+            c=d;
+        }
+        return c;
+    }
+}
+```
+
+**Complexity:** O(n) time, O(1) space.
+
+---
+
+<a id="dp2"></a>
+## DP2 — Nonadjacent selection and local action DP
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Choosing an item prevents nearby choices or changes the value of the next index.
+
+**Ordered questions:** 198, 213, 740, 2140
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+long skip = 0, take = Long.MIN_VALUE / 4;
+for (int value : a) {
+    long nextTake = skip + value;
+    long nextSkip = Math.max(skip, take);
+    take = nextTake; skip = nextSkip;
+}
+```
+
+<a id="lc-198"></a>
+### 05. LeetCode 198
+
+**Problem**
+
+Given money in houses along a line, maximize the amount collected without selecting adjacent houses.
+
+**Examples**
+
+- [1,2,3,1] → 4
+- [2,7,9,3,1] → 12
+
+**Constraints**
+
+1 ≤ n ≤ 100; 0 ≤ nums[i] ≤ 400
+
+**Why this approach / key logic**
+
+At each house either skip it (previous optimum) or take it with the optimum two positions back.
+
+**Locked strategy:** Rolling take/skip or dp[i]=max(dp[i-1],dp[i-2]+value).
+
+**Evolution from previous solution:** BASE: take versus skip with adjacency exclusion.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int rob(int[] nums) {
+        int a=0,b=0;
+        for(int x:nums) {
+            int c=Math.max(b,a+x);
+            a=b;
+            b=c;
+        }
+        return b;
+    }
+}
+```
+
+**Complexity:** O(n) time, O(1) space.
+
+---
+
+<a id="lc-213"></a>
+### 06. LeetCode 213
+
+**Problem**
+
+Maximize nonadjacent house rewards when the houses form a circle, so the first and last are also adjacent.
+
+**Examples**
+
+- [2,3,2] → 3
+- [1,2,3,1] → 4
+- [1] → 1
+
+**Constraints**
+
+1 ≤ n ≤ 100; 0 ≤ nums[i] ≤ 1000
+
+**Why this approach / key logic**
+
+Every valid selection excludes at least one endpoint. Run the linear recurrence on each endpoint-excluding range.
+
+**Locked strategy:** Run same linear house DP on [0,n-2] and [1,n-1], take maximum.
+
+**Evolution from previous solution:** Exclude one of the two adjacent circle endpoints; solve two linear cases.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int rob(int[] nums) {
+        if(nums.length==1)return nums[0];
+        return Math.max(linear(nums,0,nums.length-2),linear(nums,1,nums.length-1));
+    }
+    private int linear(int[] a,int l,int r) {
+        int p=0,q=0;
+        for(int i=l;i<=r;i++) {
+            int t=Math.max(q,p+a[i]);
+            p=q;
+            q=t;
+        }
+        return q;
+    }
+}
+```
+
+**Complexity:** O(n) time, O(1) space.
+
+---
+
+<a id="lc-740"></a>
+### 07. LeetCode 740
+
+**Problem**
+
+Select a value to earn its points and remove that occurrence plus all occurrences of its neighboring values x−1 and x+1. Repeat to maximize points.
+
+**Examples**
+
+- [3,4,2] → 6
+- [2,2,3,3,3,4] → 9
+
+**Constraints**
+
+1 ≤ n ≤ 20000; 1 ≤ nums[i] ≤ 10000
+
+**Why this approach / key logic**
+
+Aggregate all occurrences of each value into a reward bucket; adjacent buckets conflict exactly like houses.
+
+**Locked strategy:** Aggregate value*frequency into value-indexed rewards, then run nonadjacent DP over values.
+
+**Evolution from previous solution:** Replace physical adjacency with numeric-value adjacency by building reward buckets first.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int deleteAndEarn(int[] nums) {
+        int m=0;
+        for(int x:nums)m=Math.max(m,x);
+        int[] gain=new int[m+1];
+        for(int x:nums)gain[x]+=x;
+        int a=0,b=0;
+        for(int x:gain) {
+            int c=Math.max(b,a+x);
+            a=b;
+            b=c;
+        }
+        return b;
+    }
+}
+```
+
+**Complexity:** O(n+M) time, O(M) space, M=max value.
+
+---
+
+<a id="lc-2140"></a>
+### 08. LeetCode 2140
+
+**Problem**
+
+Each question has points and a brainpower value. Solving question i earns its points but forces skipping the next brainpower[i] questions; skipping i has no penalty. Maximize total points.
+
+**Examples**
+
+- [[3,2],[4,3],[4,4],[2,5]] → 5
+- [[1,1],[2,2],[3,3],[4,4],[5,5]] → 7
+
+**Constraints**
+
+1 ≤ n ≤ 100000; 1 ≤ points, brainpower ≤ 100000
+
+**Why this approach / key logic**
+
+Process backward so both skip and jump destinations are solved. Use long for accumulated points.
+
+**Locked strategy:** Reverse iterate dp[i]=max(dp[i+1], reward[i]+dp[min(n,i+skip+1)]).
+
+**Evolution from previous solution:** Replace fixed skip of one neighboring position with position-dependent forward jump.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public long mostPoints(int[][] questions) {
+        int n=questions.length;
+        long[] dp=new long[n+1];
+        for(int i=n-1;i>=0;i--)dp[i]=Math.max(dp[i+1],questions[i][0]+dp[Math.min(n,i+questions[i][1]+1)]);
+        return dp[0];
+    }
+}
+```
+
+**Complexity:** O(n) time, O(n) space.
+
+---
+
+<a id="dp3"></a>
+## DP3 — Grid path count and minimum cost
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Movement along a directed grid makes each cell depend on predecessor cells; choose sum of ways or min of costs.
+
+**Ordered questions:** 62, 63, 64
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+long[] dp = new long[cols];
+dp[0] = 1;
+for (int r = 0; r < rows; r++)
+    for (int c = 0; c < cols; c++) {
+        if (c > 0) dp[c] += dp[c - 1];
+    }
+```
+
+<a id="lc-62"></a>
+### 09. LeetCode 62
+
+**Problem**
+
+Count paths from the upper-left to lower-right cell of an m×n grid, moving only right or down.
+
+**Examples**
+
+- m=3,n=7 → 28
+- m=3,n=2 → 3
+
+**Constraints**
+
+1 ≤ m,n ≤ 100; answer ≤ 2×10^9
+
+**Why this approach / key logic**
+
+Before updating, dp[c] represents paths from above; dp[c−1] already represents paths from the left.
+
+**Locked strategy:** 1D dp[c]+=dp[c-1] with initial top-left 1.
+
+**Evolution from previous solution:** BASE: accumulate ways arriving from up and left.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int uniquePaths(int m,int n) {
+        int[] dp=new int[n];
+        dp[0]=1;
+        for(int r=0;r<m;r++)for(int c=1;c<n;c++)dp[c]+=dp[c-1];
+        return dp[n-1];
+    }
+}
+```
+
+**Complexity:** O(mn) time, O(n) space.
+
+---
+
+<a id="lc-63"></a>
+### 10. LeetCode 63
+
+**Problem**
+
+Count right/down paths through a binary obstacle grid. Cells equal to 1 cannot be visited.
+
+**Examples**
+
+- [[0,0,0],[0,1,0],[0,0,0]] → 2
+- [[0,1],[0,0]] → 1
+- [[1]] → 0
+
+**Constraints**
+
+1 ≤ m,n ≤ 100; cells 0 or 1; answer ≤ 2×10^9
+
+**Why this approach / key logic**
+
+Clear dp[c] at blocked cells so paths cannot pass through them; otherwise accumulate from left and above.
+
+**Locked strategy:** Reuse 1D ways; set dp[c]=0 on obstacles before considering predecessor.
+
+**Evolution from previous solution:** Introduce obstacle invalidation; otherwise preserve same recurrence.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int uniquePathsWithObstacles(int[][] g) {
+        int n=g[0].length;
+        int[] dp=new int[n];
+        dp[0]=1;
+        for(int[] row:g)for(int c=0;c<n;c++) {
+            if(row[c]==1)dp[c]=0;
+            else if(c>0)dp[c]+=dp[c-1];
+        }
+        return dp[n-1];
+    }
+}
+```
+
+**Complexity:** O(mn) time, O(n) space.
+
+---
+
+<a id="lc-64"></a>
+### 11. LeetCode 64
+
+**Problem**
+
+Find the minimum sum of cell values on a path from top-left to bottom-right, moving right or down and including both endpoints.
+
+**Examples**
+
+- [[1,3,1],[1,5,1],[4,2,1]] → 7
+- [[1,2,3],[4,5,6]] → 12
+
+**Constraints**
+
+1 ≤ m,n ≤ 200; 0 ≤ grid[i][j] ≤ 200
+
+**Why this approach / key logic**
+
+Use min instead of addition across predecessors; initialize the top-left through a virtual zero-cost predecessor.
+
+**Locked strategy:** dp[c]=grid[r][c]+min(dp[c],dp[c-1]) with boundary sentinels.
+
+**Evolution from previous solution:** Replace sum-of-ways semiring with min-plus cost transition and initialize unreachable boundaries.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int minPathSum(int[][] grid) {
+        int n=grid[0].length;
+        int[] dp=new int[n];
+        Arrays.fill(dp,Integer.MAX_VALUE);
+        dp[0]=0;
+        for(int[] row:grid)for(int c=0;c<n;c++)dp[c]=row[c]+Math.min(dp[c],c==0?Integer.MAX_VALUE:dp[c-1]);
+        return dp[n-1];
+    }
+}
+```
+
+**Complexity:** O(mn) time, O(n) space.
+
+---
+
+<a id="dp4"></a>
+## DP4 — Row-to-row movement DP
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Each next row depends only on a small neighborhood in the previous row.
+
+**Ordered questions:** 120, 931, 1289
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+int[] prev = firstRow.clone();
+for (int r = 1; r < rows; r++) {
+    int[] next = new int[cols];
+    for (int c = 0; c < cols; c++) {
+        // next[c] = cell[r][c] + best eligible prev column
+    }
+    prev = next;
+}
+```
+
+<a id="lc-120"></a>
+### 12. LeetCode 120
+
+**Problem**
+
+Starting at the triangle apex, move to index j or j+1 in the next row. Return the minimum sum to any bottom-row cell.
+
+**Examples**
+
+- [[2],[3,4],[6,5,7],[4,1,8,3]] → 11
+- [[-10]] → -10
+
+**Constraints**
+
+1 ≤ rows ≤ 200; row i has i+1 entries; |value| ≤ 10000
+
+**Why this approach / key logic**
+
+Work upward from the bottom, combining each value with its cheaper child. Left-to-right updates preserve the next child.
+
+**Locked strategy:** Bottom-up or row-rolling minimum of two parent/child states.
+
+**Evolution from previous solution:** BASE: select minimum among adjacent reachable positions.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int minimumTotal(List<List<Integer>> triangle) {
+        int n=triangle.size();
+        int[] dp=new int[n+1];
+        for(int r=n-1;r>=0;r--)for(int c=0;c<=r;c++)dp[c]=triangle.get(r).get(c)+Math.min(dp[c],dp[c+1]);
+        return dp[0];
+    }
+}
+```
+
+**Complexity:** O(n²) time, O(n) space, n=rows.
+
+---
+
+<a id="lc-931"></a>
+### 13. LeetCode 931
+
+**Problem**
+
+Start in any first-row cell of a square matrix. Each move goes down, down-left or down-right. Minimize the sum of a path ending in the last row.
+
+**Examples**
+
+- [[2,1,3],[6,5,4],[7,8,9]] → 13
+- [[-19,57],[-40,-5]] → -59
+
+**Constraints**
+
+1 ≤ n ≤ 100; |matrix[i][j]| ≤ 100
+
+**Why this approach / key logic**
+
+Each cell consults up to three preceding columns. Use separate row arrays to prevent overwriting dependencies.
+
+**Locked strategy:** Use previous-row columns c-1,c,c+1, compute minimum path for each cell.
+
+**Evolution from previous solution:** Generalize two triangle neighbors into three grid predecessors and all starting columns.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int minFallingPathSum(int[][] matrix) {
+        int n=matrix.length;
+        int[] prev=matrix[0].clone();
+        for(int r=1;r<n;r++) {
+            int[] next=new int[n];
+            for(int c=0;c<n;c++) {
+                int best=prev[c];
+                if(c>0)best=Math.min(best,prev[c-1]);
+                if(c+1<n)best=Math.min(best,prev[c+1]);
+                next[c]=matrix[r][c]+best;
+            }
+            prev=next;
+        }
+        return Arrays.stream(prev).min().getAsInt();
+    }
+}
+```
+
+**Complexity:** O(n²) time, O(n) space.
+
+---
+
+<a id="lc-1289"></a>
+### 14. LeetCode 1289
+
+**Problem**
+
+Choose one cell in every row of a square grid, with consecutive choices in different columns. Minimize the total.
+
+**Examples**
+
+- [[1,2,3],[4,5,6],[7,8,9]] → 13
+- [[7]] → 7
+
+**Constraints**
+
+1 ≤ n ≤ 200; |grid[i][j]| ≤ 99
+
+**Why this approach / key logic**
+
+Maintain the smallest and second-smallest previous-row costs with distinct indices; only the minimum index needs the second minimum. Equal costs are allowed.
+
+**Locked strategy:** Keep smallest and second-smallest prior-row DP values and index; exclude same column in O(n²).
+
+**Evolution from previous solution:** Replace three local predecessor choices with global minimum excluding current column, optimized by two minima.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int minFallingPathSum(int[][] grid) {
+        int n=grid.length;
+        int[] prev=grid[0].clone();
+        for(int r=1;r<n;r++) {
+            int a=Integer.MAX_VALUE,b=Integer.MAX_VALUE,idx=-1;
+            for(int c=0;c<n;c++) {
+                if(prev[c]<a) {
+                    b=a;
+                    a=prev[c];
+                    idx=c;
+                }
+                else if(prev[c]<b)b=prev[c];
+            }
+            for(int c=0;c<n;c++)prev[c]=grid[r][c]+(c==idx?b:a);
+        }
+        return Arrays.stream(prev).min().getAsInt();
+    }
+}
+```
+
+**Complexity:** O(n²) time, O(n) space.
+
+---
+
+<a id="dp5"></a>
+## DP5 — Two-agent synchronized grid DP
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Two positions progress one row simultaneously and share the same step index; maximize collected reward over paired columns.
+
+**Ordered questions:** 1463, 741
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+int[][] dp = new int[cols][cols]; // invalid states use strong negative sentinel
+for (int row = rows - 1; row >= 0; row--) {
+    int[][] next = new int[cols][cols];
+    // each (c1,c2) considers 9 next-row column pairs
+    dp = next;
+}
+```
+
+<a id="lc-1463"></a>
+### 15. LeetCode 1463
+
+**Problem**
+
+Two robots start at opposite corners of the top row. Each moves down one row and shifts column by −1, 0 or 1, collecting cherries. A cell visited by both contributes once. Maximize total.
+
+**Examples**
+
+- [[3,1,1],[2,5,1],[1,5,5],[2,1,1]] → 24
+- [[1,2],[3,4]] → 10
+
+**Constraints**
+
+2 ≤ rows,cols ≤ 70; 0 ≤ grid[i][j] ≤ 100
+
+**Why this approach / key logic**
+
+The pair of columns determines the current reward and nine possible next moves. Work backward using two layers.
+
+**Locked strategy:** 3D (row,c1,c2) or rolling 2D DP; try 9 paired next moves, count shared cell once.
+
+**Evolution from previous solution:** BASE: synchronize two walkers; state tracks both columns.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int cherryPickup(int[][] grid) {
+        int m=grid.length,n=grid[0].length;
+        int[][] dp=new int[n][n];
+        for(int r=m-1;r>=0;r--) {
+            int[][] next=new int[n][n];
+            for(int a=0;a<n;a++)for(int b=0;b<n;b++) {
+                int best=0;
+                for(int x=Math.max(0,a-1);x<=Math.min(n-1,a+1);x++)for(int y=Math.max(0,b-1);y<=Math.min(n-1,b+1);y++)best=Math.max(best,dp[x][y]);
+                next[a][b]=best+grid[r][a]+(a==b?0:grid[r][b]);
+            }
+            dp=next;
+        }
+        return dp[0][n-1];
+    }
+}
+```
+
+**Complexity:** O(rows×cols²) time, O(cols²) space.
+
+---
+
+<a id="lc-741"></a>
+### 16. LeetCode 741
+
+**Problem**
+
+Travel from top-left to bottom-right and back on a square grid; outward moves are right/down and return moves left/up. Cells −1 are blocked, 1 contains a cherry collected at most once, 0 is empty. Return maximum cherries or 0 if impossible.
+
+**Examples**
+
+- [[0,1,-1],[1,0,-1],[1,1,1]] → 5
+- [[1,1,-1],[1,-1,1],[-1,1,1]] → 0
+
+**Constraints**
+
+1 ≤ n ≤ 50; cells −1,0,1; endpoints not blocked
+
+**Why this approach / key logic**
+
+Reverse the return path to form two synchronized outward walkers. At step t, columns are t−row; four predecessor pairs and a negative sentinel handle unreachable states.
+
+**Locked strategy:** Rewrite round-trip as two agents advancing together by step t, positions (r1,r2), columns t-r; block obstacles, count shared cell once.
+
+**Evolution from previous solution:** Replace fixed next-row simultaneous moves with step-indexed monotone right/down pairs; account for blocked cells and unreachable states.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int cherryPickup(int[][] grid) {
+        int n=grid.length,neg=-1000000;
+        int[][] dp=new int[n][n];
+        for(int[] row:dp)Arrays.fill(row,neg);
+        dp[0][0]=grid[0][0];
+        for(int t=1;t<=2*n-2;t++) {
+            int[][] next=new int[n][n];
+            for(int[] row:next)Arrays.fill(row,neg);
+            for(int a=Math.max(0,t-n+1);a<=Math.min(n-1,t);a++)for(int b=Math.max(0,t-n+1);b<=Math.min(n-1,t);b++) {
+                int c=t-a,d=t-b;
+                if(grid[a][c]==-1||grid[b][d]==-1)continue;
+                int best=dp[a][b];
+                if(a>0)best=Math.max(best,dp[a-1][b]);
+                if(b>0)best=Math.max(best,dp[a][b-1]);
+                if(a>0&&b>0)best=Math.max(best,dp[a-1][b-1]);
+                if(best!=neg)next[a][b]=best+grid[a][c]+(a==b?0:grid[b][d]);
+            }
+            dp=next;
+        }
+        return Math.max(0,dp[n-1][n-1]);
+    }
+}
+```
+
+**Complexity:** O(n³) time, O(n²) space.
+
+---
+
+<a id="dp6"></a>
+## DP6 — 0/1 subset feasibility and counting
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Each item can be used zero or one time; descending capacities prevent reuse in the same iteration.
+
+**Ordered questions:** 416, 494, 1049
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+boolean[] reachable = new boolean[target + 1];
+reachable[0] = true;
+for (int value : a)
+    for (int sum = target; sum >= value; sum--)
+        reachable[sum] |= reachable[sum - value];
+```
+
+<a id="lc-416"></a>
+### 17. LeetCode 416
+
+**Problem**
+
+Determine whether all positive integers can be divided into two subsets with equal sums.
+
+**Examples**
+
+- [1,5,11,5] → true
+- [1,2,3,5] → false
+
+**Constraints**
+
+1 ≤ n ≤ 200; 1 ≤ nums[i] ≤ 100
+
+**Why this approach / key logic**
+
+Odd totals are impossible. For even totals, descending capacity updates ensure each item is used once.
+
+**Locked strategy:** One-dimensional descending 0/1 boolean subset-sum DP to total/2.
+
+**Evolution from previous solution:** BASE: each number can contribute once to a reachable sum.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean canPartition(int[] nums) {
+        int total=Arrays.stream(nums).sum();
+        if(total%2!=0)return false;
+        int t=total/2;
+        boolean[] dp=new boolean[t+1];
+        dp[0]=true;
+        for(int x:nums)for(int s=t;s>=x;s--)dp[s]|=dp[s-x];
+        return dp[t];
+    }
+}
+```
+
+**Complexity:** O(nS) time, O(S) space, S=half total.
+
+---
+
+<a id="lc-494"></a>
+### 18. LeetCode 494
+
+**Problem**
+
+Assign either + or − to every element of nums. Count distinct sign assignments whose expression equals target, including different signs assigned to zero.
+
+**Examples**
+
+- [1,1,1,1,1], target=3 → 5
+- [0,1], target=1 → 2
+
+**Constraints**
+
+1 ≤ n ≤ 20; 0 ≤ nums[i] ≤ 1000; total ≤ 1000; |target| ≤ 1000
+
+**Why this approach / key logic**
+
+Positive subset sum P satisfies 2P=total+target. Reject impossible parity/range and count subsets in descending order; zero doubles counts.
+
+**Locked strategy:** Transform to subset-count target (total+target)/2; descending dp[sum]+=dp[sum-value].
+
+**Evolution from previous solution:** Replace reachability booleans with number-of-ways counts and derive target algebraically.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int findTargetSumWays(int[] nums,int target) {
+        int total=Arrays.stream(nums).sum();
+        if(Math.abs(target)>total||(total+target)%2!=0)return 0;
+        int t=(total+target)/2;
+        int[] dp=new int[t+1];
+        dp[0]=1;
+        for(int x:nums)for(int s=t;s>=x;s--)dp[s]+=dp[s-x];
+        return dp[t];
+    }
+}
+```
+
+**Complexity:** O(nS) time, O(S) space, S=(total+target)/2 for feasible inputs.
+
+---
+
+<a id="lc-1049"></a>
+### 19. LeetCode 1049
+
+**Problem**
+
+Repeatedly smash two stones; equal weights vanish, unequal weights leave their difference. Choose the order to minimize the last remaining weight (zero if none).
+
+**Examples**
+
+- [2,7,4,1,8,1] → 1
+- [31,26,33,21,40] → 5
+
+**Constraints**
+
+1 ≤ n ≤ 30; 1 ≤ stones[i] ≤ 100
+
+**Why this approach / key logic**
+
+The minimum residual is the smallest achievable partition difference. Find the largest reachable sum no greater than half the total.
+
+**Locked strategy:** Reuse 0/1 reachable states up to total/2; choose largest feasible sum and return total-2*sum.
+
+**Evolution from previous solution:** Replace counting objective with closest achievable half-total and final difference.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int lastStoneWeightII(int[] stones) {
+        int total=Arrays.stream(stones).sum(),t=total/2;
+        boolean[] dp=new boolean[t+1];
+        dp[0]=true;
+        for(int x:stones)for(int s=t;s>=x;s--)dp[s]|=dp[s-x];
+        while(!dp[t])t--;
+        return total-2*t;
+    }
+}
+```
+
+**Complexity:** O(nS) time, O(S) space, S=half total.
+
+---
+
+<a id="dp7"></a>
+## DP7 — Multidimensional resource knapsack
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Selecting an item consumes multiple limited resources and contributes to an optimal score.
+
+**Ordered questions:** 474, 879
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+int[][] dp = new int[capA + 1][capB + 1];
+for (int[] item : items)
+    for (int a = capA; a >= item[0]; a--)
+        for (int b = capB; b >= item[1]; b--)
+            dp[a][b] = Math.max(dp[a][b], 1 + dp[a-item[0]][b-item[1]]);
+```
+
+<a id="lc-474"></a>
+### 20. LeetCode 474
+
+**Problem**
+
+Select the largest subset of binary strings containing at most m zeros and n ones in total. Each input string can be selected once.
+
+**Examples**
+
+- ["10","0001","111001","1","0"], m=5,n=3 → 4
+- ["10","0","1"], m=1,n=1 → 2
+
+**Constraints**
+
+1 ≤ strs.length ≤ 600; 1 ≤ string length ≤ 100; 1 ≤ m,n ≤ 100
+
+**Why this approach / key logic**
+
+Count zeros and ones per string; traverse both resource budgets downward to preserve 0/1 semantics.
+
+**Locked strategy:** 2D descending 0/1 knapsack over zero and one budgets.
+
+**Evolution from previous solution:** BASE: two resource dimensions and one-time item selection.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int findMaxForm(String[] strs,int m,int n) {
+        int[][] dp=new int[m+1][n+1];
+        for(String s:strs) {
+            int z=0;
+            for(char c:s.toCharArray())if(c=='0')z++;
+            int o=s.length()-z;
+            for(int a=m;a>=z;a--)for(int b=n;b>=o;b--)dp[a][b]=Math.max(dp[a][b],1+dp[a-z][b-o]);
+        }
+        return dp[m][n];
+    }
+}
+```
+
+**Complexity:** O(L+qmn) time, O(mn) space, q=number of strings, L=total characters.
+
+---
+
+<a id="lc-879"></a>
+### 21. LeetCode 879
+
+**Problem**
+
+Each crime requires group[i] people and yields profit[i]. Count subsets of crimes using at most n people and earning at least minProfit. Return modulo 1,000,000,007.
+
+**Examples**
+
+- n=5,minProfit=3,group=[2,2],profit=[2,3] → 2
+- n=10,minProfit=5,group=[2,3,5],profit=[6,7,8] → 7
+
+**Constraints**
+
+1 ≤ n, crime count ≤ 100; 0 ≤ minProfit,profit[i] ≤ 100; 1 ≤ group[i] ≤ 100
+
+**Why this approach / key logic**
+
+Use exact workers and capped profit. Descending worker count ensures distinct crime selection even when profit is zero or capped. Sum all worker counts at the required profit.
+
+**Locked strategy:** 2D DP for workers and capped profit; count subsets modulo 1e9+7 with descending worker and profit indices.
+
+**Evolution from previous solution:** Replace maximize-selected-count objective with modular ways; clamp profit dimension at required threshold.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int profitableSchemes(int n,int minProfit,int[] group,int[] profit) {
+        int mod=1000000007;
+        int[][] dp=new int[n+1][minProfit+1];
+        dp[0][0]=1;
+        for(int i=0;i<group.length;i++)for(int w=n;w>=group[i];w--)for(int p=minProfit;p>=0;p--) {
+            int t=Math.min(minProfit,p+profit[i]);
+            dp[w][t]=(dp[w][t]+dp[w-group[i]][p])%mod;
+        }
+        int ans=0;
+        for(int w=0;w<=n;w++)ans=(ans+dp[w][minProfit])%mod;
+        return ans;
+    }
+}
+```
+
+**Complexity:** O(qnP) time, O(nP) space, P=minProfit+1.
+
+---
+
+<a id="dp8"></a>
+## DP8 — Unbounded coins and ordered compositions
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Unlimited use of denominations; iteration order decides whether combinations or ordered sequences are counted.
+
+**Ordered questions:** 322, 279, 518, 377
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+long[] dp = new long[target + 1];
+dp[0] = 1;
+for (int coin : coins)
+    for (int sum = coin; sum <= target; sum++)
+        dp[sum] += dp[sum - coin];
+```
+
+<a id="lc-322"></a>
+### 22. LeetCode 322
+
+**Problem**
+
+Given positive coin denominations with unlimited supply, find the fewest coins whose sum is amount, or −1 if no combination exists.
+
+**Examples**
+
+- coins=[1,2,5],amount=11 → 3
+- [2],amount=3 → -1
+- [1],amount=0 → 0
+
+**Constraints**
+
+1 ≤ coins.length ≤ 12; 1 ≤ coin ≤ 2^31−1; 0 ≤ amount ≤ 10000
+
+**Why this approach / key logic**
+
+Initialize unreachable amounts to amount+1. Ascending sums allow reusing the same denomination; take the minimum count.
+
+**Locked strategy:** Unbounded min-plus DP, dp[sum]=min(dp[sum],dp[sum-coin]+1).
+
+**Evolution from previous solution:** BASE: reuse denomination by increasing amount and minimize item count.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int coinChange(int[] coins,int amount) {
+        int[] dp=new int[amount+1];
+        Arrays.fill(dp,amount+1);
+        dp[0]=0;
+        for(int c:coins)for(int s=c;s<=amount;s++)dp[s]=Math.min(dp[s],dp[s-c]+1);
+        return dp[amount]>amount?-1:dp[amount];
+    }
+}
+```
+
+**Complexity:** O(qA) time, O(A) space.
+
+---
+
+<a id="lc-279"></a>
+### 23. LeetCode 279
+
+**Problem**
+
+Return the minimum number of positive perfect squares whose sum equals n. A square may be repeated.
+
+**Examples**
+
+- n=12 → 3 (4+4+4)
+- n=13 → 2 (4+9)
+
+**Constraints**
+
+1 ≤ n ≤ 10000
+
+**Why this approach / key logic**
+
+Generate square denominations and apply the unbounded minimum-count recurrence. Number-theory methods can be faster, but this is the locked DP strategy.
+
+**Locked strategy:** Reuse unbounded min-cost DP, generating denominations as 1²,2²,...<=n.
+
+**Evolution from previous solution:** Replace explicit coin values with computed square denominations; keep min-plus reuse.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int numSquares(int n) {
+        int[] dp=new int[n+1];
+        Arrays.fill(dp,n+1);
+        dp[0]=0;
+        for(int i=1;i*i<=n;i++) {
+            int c=i*i;
+            for(int s=c;s<=n;s++)dp[s]=Math.min(dp[s],dp[s-c]+1);
+        }
+        return dp[n];
+    }
+}
+```
+
+**Complexity:** O(n√n) time, O(n) space.
+
+---
+
+<a id="lc-518"></a>
+### 24. LeetCode 518
+
+**Problem**
+
+Count unordered combinations of unlimited coins that sum to amount. Different orderings of the same multiset count once.
+
+**Examples**
+
+- amount=5,coins=[1,2,5] → 4
+- amount=3,coins=[2] → 0
+- amount=0,coins=[1] → 1
+
+**Constraints**
+
+0 ≤ amount ≤ 5000; 1 ≤ coins.length ≤ 300; distinct denominations 1..5000; answer fits signed int
+
+**Why this approach / key logic**
+
+Use denomination outer loop, ascending sum inner loop, so each combination is introduced only once.
+
+**Locked strategy:** Unbounded ways dp[0]=1; outer coin loop, inner ascending amount.
+
+**Evolution from previous solution:** Change optimal min-count state into additive ways; retain coin-outer order to avoid ordering permutations.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int change(int amount,int[] coins) {
+        int[] dp=new int[amount+1];
+        dp[0]=1;
+        for(int c:coins)for(int s=c;s<=amount;s++)dp[s]+=dp[s-c];
+        return dp[amount];
+    }
+}
+```
+
+**Complexity:** O(qA) time, O(A) space.
+
+---
+
+<a id="lc-377"></a>
+### 25. LeetCode 377
+
+**Problem**
+
+Count ordered sequences of positive distinct numbers whose sum equals target, with unlimited reuse. Different orderings count separately.
+
+**Examples**
+
+- nums=[1,2,3],target=4 → 7
+- [9],target=3 → 0
+
+**Constraints**
+
+1 ≤ nums.length ≤ 200; distinct values 1..1000; 1 ≤ target ≤ 1000; answer fits signed int
+
+**Why this approach / key logic**
+
+Reverse loop nesting: for each sum, choose the last number. This counts each ordered sequence by its final element.
+
+**Locked strategy:** Outer loop over sums, inner loop over available steps; accumulate dp[sum-step].
+
+**Evolution from previous solution:** Swap loop order to distinguish different orderings of the same items.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int combinationSum4(int[] nums,int target) {
+        int[] dp=new int[target+1];
+        dp[0]=1;
+        for(int s=1;s<=target;s++)for(int x:nums)if(x<=s)dp[s]+=dp[s-x];
+        return dp[target];
+    }
+}
+```
+
+**Complexity:** O(qT) time, O(T) space.
+
+---
+
+<a id="dp9"></a>
+## DP9 — Dice and bounded multiplicity counts
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Each of several labeled choices contributes a bounded numeric amount to a total.
+
+**Ordered questions:** 1155
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+long[] ways = new long[target + 1];
+ways[0] = 1;
+for (int used = 0; used < diceCount; used++) {
+    long[] next = new long[target + 1];
+    for (int sum = 0; sum <= target; sum++)
+        for (int face = 1; face <= faces && sum + face <= target; face++)
+            next[sum + face] += ways[sum];
+    ways = next;
+}
+```
+
+<a id="lc-1155"></a>
+### 26. LeetCode 1155
+
+**Problem**
+
+Roll n distinguishable dice, each with faces 1 through k. Count sequences of outcomes summing to target, modulo 1,000,000,007.
+
+**Examples**
+
+- n=1,k=6,target=3 → 1
+- n=2,k=6,target=7 → 6
+- n=2,k=2,target=5 → 0
+
+**Constraints**
+
+1 ≤ n,k ≤ 30; 1 ≤ target ≤ 1000
+
+**Why this approach / key logic**
+
+Each new layer uses exactly one additional die. The sum of the previous k states can be maintained as a sliding window, avoiding an inner face loop.
+
+**Locked strategy:** 2D count DP or rolling rows over dice count and sum, modulo 1e9+7.
+
+**Evolution from previous solution:** BASE: number of processed dice plus current total; each face adds a transition.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int numRollsToTarget(int n,int k,int target) {
+        int mod=1000000007;
+        int[] dp=new int[target+1];
+        dp[0]=1;
+        for(int i=0;i<n;i++) {
+            int[] next=new int[target+1];
+            long window=0;
+            for(int s=1;s<=target;s++) {
+                window+=dp[s-1];
+                if(s-k-1>=0)window-=dp[s-k-1];
+                window=(window+mod)%mod;
+                next[s]=(int)window;
+            }
+            dp=next;
+        }
+        return dp[target];
+    }
+}
+```
+
+**Complexity:** O(nT) time, O(T) space.
+
+---
+
+<a id="dp10"></a>
+## DP10 — Longest increasing subsequence and ordering
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Keep best increasing subsequence length or count ending at a value, and optimize lengths via patience tails.
+
+**Ordered questions:** 300, 354, 1964
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+int[] tails = new int[a.length];
+int len = 0;
+for (int value : a) {
+    int pos = lowerBound(tails, 0, len, value);
+    tails[pos] = value;
+    if (pos == len) len++;
+}
+```
+
+<a id="lc-300"></a>
+### 27. LeetCode 300
+
+**Problem**
+
+Return the length of the longest strictly increasing subsequence, preserving original index order but not requiring contiguity.
+
+**Examples**
+
+- [10,9,2,5,3,7,101,18] → 4
+- [7,7,7] → 1
+
+**Constraints**
+
+1 ≤ n ≤ 2500; |nums[i]| ≤ 10000
+
+**Why this approach / key logic**
+
+tails[i] is the smallest possible final value of a subsequence of length i+1. Replace the first tail ≥ x; append when no such tail exists.
+
+**Locked strategy:** Patience tails + binary lowerBound, O(n log n); also explain O(n²) DP baseline.
+
+**Evolution from previous solution:** BASE: minimal tail value for each achievable increasing length.
+
+**Quadratic baseline:** `dp[i]=1+max(dp[j])` for earlier `j` with `nums[j]<nums[i]`; initialize to 1 and take the maximum. Patience tails avoids scanning every predecessor.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int lengthOfLIS(int[] nums) {
+        int[] tails=new int[nums.length];
+        int len=0;
+        for(int x:nums) {
+            int l=0,r=len;
+            while(l<r) {
+                int m=(l+r)/2;
+                if(tails[m]<x)l=m+1;
+                else r=m;
+            }
+            tails[l]=x;
+            if(l==len)len++;
+        }
+        return len;
+    }
+}
+```
+
+**Complexity:** O(n log n) time, O(n) space.
+
+---
+
+<a id="lc-354"></a>
+### 28. LeetCode 354
+
+**Problem**
+
+Given envelopes with width and height, find the maximum nesting chain where both dimensions strictly increase. Rotation is not allowed.
+
+**Examples**
+
+- [[5,4],[6,4],[6,7],[2,3]] → 3
+- [[1,1],[1,1],[1,1]] → 1
+
+**Constraints**
+
+1 ≤ n ≤ 100000; 1 ≤ width,height ≤ 100000
+
+**Why this approach / key logic**
+
+Sort widths ascending and equal-width heights descending, then run strict LIS over heights. Descending ties prevent illegal equal-width nesting.
+
+**Locked strategy:** Sort first dimension ascending and second descending for ties; LIS strictly increasing on second dimension.
+
+**Evolution from previous solution:** Reuse LIS tails; add two-key sort preventing equal-first nesting.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int maxEnvelopes(int[][] envelopes) {
+        Arrays.sort(envelopes,(a,b)->a[0]==b[0]?Integer.compare(b[1],a[1]):Integer.compare(a[0],b[0]));
+        int[] tails=new int[envelopes.length];
+        int len=0;
+        for(int[] e:envelopes) {
+            int x=e[1],l=0,r=len;
+            while(l<r) {
+                int m=(l+r)/2;
+                if(tails[m]<x)l=m+1;
+                else r=m;
+            }
+            tails[l]=x;
+            if(l==len)len++;
+        }
+        return len;
+    }
+}
+```
+
+**Complexity:** O(n log n) time, O(n) space.
+
+---
+
+<a id="lc-1964"></a>
+### 29. LeetCode 1964
+
+**Problem**
+
+For each obstacle position, find the longest nondecreasing subsequence ending at that exact position using only obstacles up to it.
+
+**Examples**
+
+- [1,2,3,2] → [1,2,3,3]
+- [2,2,1] → [1,2,1]
+
+**Constraints**
+
+1 ≤ n ≤ 100000; 1 ≤ obstacles[i] ≤ 10000000
+
+**Why this approach / key logic**
+
+Change lower bound to upper bound (first tail > x), permitting equal heights. The replacement index +1 gives the answer ending at the current element.
+
+**Locked strategy:** Adapt patience tails to upperBound for equal values; emit current tails length per prefix.
+
+**Evolution from previous solution:** Switch strict lowerBound to upperBound and produce per-index lengths.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[] longestObstacleCourseAtEachPosition(int[] obstacles) {
+        int n=obstacles.length,len=0;
+        int[] tails=new int[n],ans=new int[n];
+        for(int i=0;i<n;i++) {
+            int x=obstacles[i],l=0,r=len;
+            while(l<r) {
+                int m=(l+r)/2;
+                if(tails[m]<=x)l=m+1;
+                else r=m;
+            }
+            tails[l]=x;
+            if(l==len)len++;
+            ans[i]=l+1;
+        }
+        return ans;
+    }
+}
+```
+
+**Complexity:** O(n log n) time, O(n) space including output.
+
+---
+
+<a id="dp11"></a>
+## DP11 — Counting increasing subsequences
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Need number of optimal LIS, not only the length; predecessor contributions must be combined.
+
+**Ordered questions:** 673
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+
+int[] len = new int[n], count = new int[n];
+java.util.Arrays.fill(len, 1);
+java.util.Arrays.fill(count, 1);
+for (int i = 0; i < n; i++)
+    for (int j = 0; j < i; j++) {
+        if (a[j] < a[i]) {
+            // update longest length and corresponding number of ways at i
+        }
+    }
+```
+
+<a id="lc-673"></a>
+### 30. LeetCode 673
+
+**Problem**
+
+Count the number of longest strictly increasing subsequences, distinguishing different index selections even when values coincide.
+
+**Examples**
+
+- [1,3,5,4,7] → 2
+- [2,2,2,2,2] → 5
+
+**Constraints**
+
+1 ≤ n ≤ 2000; |nums[i]| ≤ 1000000; answer fits signed int
+
+**Why this approach / key logic**
+
+Track best length and number of ways ending at each index. A longer predecessor resets the count, an equally long predecessor adds its count. Sum counts of global maximum-length endpoints.
+
+**Locked strategy:** O(n²) DP of length and count ending at each index; sum counts of global max length.
+
+**Evolution from previous solution:** BASE: for every prior smaller value, update both best length and number of attaining subsequences; independent of patience tails.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int findNumberOfLIS(int[] nums) {
+        int n=nums.length,best=0,ans=0;
+        int[] len=new int[n],count=new int[n];
+        Arrays.fill(len,1);
+        Arrays.fill(count,1);
+        for(int i=0;i<n;i++) {
+            for(int j=0;j<i;j++)if(nums[j]<nums[i]) {
+                if(len[j]+1>len[i]) {
+                    len[i]=len[j]+1;
+                    count[i]=count[j];
+                }
+                else if(len[j]+1==len[i])count[i]+=count[j];
+            }
+            if(len[i]>best) {
+                best=len[i];
+                ans=count[i];
+            }
+            else if(len[i]==best)ans+=count[i];
+        }
+        return ans;
+    }
+}
+```
+
+**Complexity:** O(n²) time, O(n) space.
+
+---
+
+## Final registry
+
+| Sequence | LeetCode | Family | Local examples |
+|---:|---:|---|---:|
+| 01 | 509 | DP1 | 3 passed |
+| 02 | 70 | DP1 | 3 passed |
+| 03 | 746 | DP1 | 2 passed |
+| 04 | 1137 | DP1 | 3 passed |
+| 05 | 198 | DP2 | 2 passed |
+| 06 | 213 | DP2 | 3 passed |
+| 07 | 740 | DP2 | 2 passed |
+| 08 | 2140 | DP2 | 2 passed |
+| 09 | 62 | DP3 | 2 passed |
+| 10 | 63 | DP3 | 3 passed |
+| 11 | 64 | DP3 | 2 passed |
+| 12 | 120 | DP4 | 2 passed |
+| 13 | 931 | DP4 | 2 passed |
+| 14 | 1289 | DP4 | 2 passed |
+| 15 | 1463 | DP5 | 2 passed |
+| 16 | 741 | DP5 | 2 passed |
+| 17 | 416 | DP6 | 2 passed |
+| 18 | 494 | DP6 | 2 passed |
+| 19 | 1049 | DP6 | 2 passed |
+| 20 | 474 | DP7 | 2 passed |
+| 21 | 879 | DP7 | 2 passed |
+| 22 | 322 | DP8 | 3 passed |
+| 23 | 279 | DP8 | 2 passed |
+| 24 | 518 | DP8 | 3 passed |
+| 25 | 377 | DP8 | 2 passed |
+| 26 | 1155 | DP9 | 3 passed |
+| 27 | 300 | DP10 | 2 passed |
+| 28 | 354 | DP10 | 2 passed |
+| 29 | 1964 | DP10 | 2 passed |
+| 30 | 673 | DP11 | 2 passed |
+
+**Audit:** 30 distinct IDs, exact locked order, 11 complete families. All 30 solution bodies compiled with Java 21 and 68 example checks passed. No online judge submission, stress testing, or exhaustive verification was performed. Master curriculum and learning progress are unchanged.

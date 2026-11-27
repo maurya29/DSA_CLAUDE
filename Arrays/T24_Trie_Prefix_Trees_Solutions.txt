@@ -1,0 +1,2223 @@
+# T24 — Trie & Prefix Trees
+
+**Complete solution-based progressive workbook | Java 21 | 27 questions · 19 families**
+
+Source: `MASTER_DSA_CURRICULUM.md`, section C24 (locked registry and family templates). Problem descriptions, examples, constraints and implementations are independently prepared; constraints have not been independently checked against live judge pages. This export does not record practice completion.
+
+**Progress:** 0/27 | **Next:** 208 | **Status:** LOCKED
+
+## How to use this workbook
+
+Study each family template first. For each later question, focus on the implementation change rather than memorizing a new solution. Each code block is standalone and should be submitted separately. Design questions use the judge-required class name. `S` = total input or inserted characters, `L` = maximum relevant word length, `B` = number of bit levels, `Q` = query characters or count as indicated, `K` = number of output pairs. Space includes trie storage and excludes output unless explicitly stated. Family templates are sketches, not standalone compilable code.
+
+## Table of contents
+
+- [TR1 — Mutable prefix dictionary and reference counts: NEW ALGORITHM FAMILY** ||||
+| 01 | **208** | **TR1**: Exact word and prefix queries over a dynamic lowercase dictionary; fixed-26-child nodes, terminal flag. **Recognition:** mutable prefix dictionary and reference counts is the primary repeated-prefix/repeated-bit invariant. | BASE: walk or create one node per character; terminal distinguishes words from prefixes. |
+| 02 | **1804** | **TR1**: Dictionary with repeated inserts, prefix counts, and erasure; node passCount/endCount with safe decrement. **Recognition:** mutable prefix dictionary and reference counts is the primary repeated-prefix/repeated-bit invariant. | Extend terminal boolean into terminal and prefix multiplicities; add erase path with decrement after confirmed existence. |
+| **TR2 — Wildcard and constrained mismatches: NEW ALGORITHM FAMILY** ||||
+| 03 | **211** | **TR2**: Dictionary lookup where query dots match any one character; DFS forks on wildcard. **Recognition:** wildcard and constrained mismatches is the primary repeated-prefix/repeated-bit invariant. | BASE: traverse one matching edge for a literal; branch over children for wildcard. |
+| 04 | **676** | **TR2**: Dictionary search requiring exactly one character substitution; DFS tracks mismatch budget and matches only at depth end. **Recognition:** wildcard and constrained mismatches is the primary repeated-prefix/repeated-bit invariant. | Replace arbitrary wildcard branching with choosing matching/nonmatching edges under exactly-one mismatch counter; require count==1 at terminal. |
+| **TR3 — Shortest-root prefix replacement: NEW ALGORITHM FAMILY** ||||
+| 05 | **648** | **TR3**: Replace every sentence word with shortest matching dictionary root; insert roots in trie, stop lookup at first terminal. **Recognition:** shortest-root prefix replacement is the primary repeated-prefix/repeated-bit invariant. | BASE: greedy earliest terminal encountered on word prefix; otherwise preserve original word. |
+| **TR4 — All-prefix terminal-chain verification: NEW ALGORITHM FAMILY** ||||
+| 06 | **720** | **TR4**: Select longest word whose every prefix is a complete dictionary word; insert all, DFS only through terminal children with lexicographic tie. **Recognition:** all-prefix terminal-chain verification is the primary repeated-prefix/repeated-bit invariant. | BASE: unlike shortest-root replacement, demand every traversed prefix terminate at a word and maximize valid depth. |
+| **TR5 — Prefix subtree aggregates: NEW ALGORITHM FAMILY** ||||
+| 07 | **677** | **TR5**: Map string keys to mutable integer values; prefix sum maintained at trie nodes using delta from previous key value. **Recognition:** prefix subtree aggregates is the primary repeated-prefix/repeated-bit invariant. | BASE: each prefix node stores sum of weights of full keys beneath it; overwrite by delta. |
+| 08 | **2416** | **TR5**: For each word sum counts of all its prefixes; store visit counts per trie node and sum along word path. **Recognition:** prefix subtree aggregates is the primary repeated-prefix/repeated-bit invariant. | Retain node-level prefix aggregates; replace mutable weighted delta updates with insertion counts and sum node counts along each query path. |
+| **TR6 — Prefix search with bounded suggestion lists: NEW ALGORITHM FAMILY** ||||
+| 09 | **1268** | **TR6**: For each incremental prefix return up to three lexicographically smallest matching items; sort products, insert into trie while retaining first three suggestions per node. **Recognition:** prefix search with bounded suggestion lists is the primary repeated-prefix/repeated-bit invariant. | BASE: store limited lexicographically ordered candidate indices at each prefix node; stop when prefix path missing. |
+| **TR7 — Trie-pruned board traversal: NEW ALGORITHM FAMILY** ||||
+| 10 | **212** | **TR7**: Find multiple dictionary words in one letter board; shared trie, grid DFS, visited marking, stop branches absent from trie and deduplicate terminals. **Recognition:** trie-pruned board traversal is the primary repeated-prefix/repeated-bit invariant. | BASE: coordinate DFS advances dictionary trie state and board path together; prune by absent child. |
+| **TR8 — Online suffix dictionary matching: NEW ALGORITHM FAMILY** ||||
+| 11 | **1032** | **TR8**: Answer whether any inserted word is a suffix of a character stream; reverse dictionary words, traverse bounded stream history backward. **Recognition:** online suffix dictionary matching is the primary repeated-prefix/repeated-bit invariant. | BASE: reverse direction of dictionary paths; each query checks newest characters first, at most max dictionary length. |
+| **TR9 — Reversed trie for suffix sharing and suffix-match queries: NEW ALGORITHM FAMILY** ||||
+| 12 | **820** | **TR9**: Minimize total reference-string encoding length by sharing existing word suffixes; reverse words, total contributions only at terminal leaves. **Recognition:** reversed trie for suffix sharing and suffix-match queries is the primary repeated-prefix/repeated-bit invariant. | BASE: reverse words so original suffixes share paths; count leaf words of length+1. |
+| 13 | **3093** | **TR9**: For each query choose dictionary word with longest common suffix, tie by shortest word then earliest index; reversed trie stores best fallback candidate per node. **Recognition:** reversed trie for suffix sharing and suffix-match queries is the primary repeated-prefix/repeated-bit invariant. | Keep reversed trie traversal; replace leaf-only encoding length with best index metadata on every visited prefix node and fall back at deepest matching node. |
+| **TR10 — Numeric-digit prefix overlap: NEW ALGORITHM FAMILY** ||||
+| 14 | **3043** | **TR10**: Find maximum shared decimal-prefix length across two integer arrays; build digit trie from first array and probe second. **Recognition:** numeric-digit prefix overlap is the primary repeated-prefix/repeated-bit invariant. | BASE: convert integers into decimal digit sequences and count matched prefix depth; no character-word termination required. |
+| **TR11 — Hierarchical folder trie and structural deduplication: NEW ALGORITHM FAMILY** ||||
+| 15 | **1233** | **TR11**: Remove child folders when an ancestor is in the input; split paths into components, use trie terminal check or sorted-prefix exclusion. **Recognition:** hierarchical folder trie and structural deduplication is the primary repeated-prefix/repeated-bit invariant. | BASE: folder component trie, ancestor terminal means descendants must be discarded. |
+| 16 | **1948** | **TR11**: Detect duplicate folder subtrees by identical child-name/substructure signatures; postorder intern canonical child signatures, mark repeated nonempty subtrees, then emit undeleted paths. **Recognition:** hierarchical folder trie and structural deduplication is the primary repeated-prefix/repeated-bit invariant. | Retain folder-component trie; add postorder structural signatures and duplicate-frequency map, then prune entire repeated subtrees rather than ancestor-selected paths. |
+| **TR12 — Dictionary segmentation by trie walks: NEW ALGORITHM FAMILY** ||||
+| 17 | **472** | **TR12**: Identify dictionary words expressible as concatenation of at least two shorter dictionary words; trie endpoint enumeration plus memoized segmentation count/position. **Recognition:** dictionary segmentation by trie walks is the primary repeated-prefix/repeated-bit invariant. | BASE: trie walks enumerate dictionary-boundary transitions; DP/memo avoids repeated suffix checks and enforces >=2 pieces. |
+| **TR13 — Maximum-XOR binary trie and membership restrictions: NEW ALGORITHM FAMILY** ||||
+| 18 | **421** | **TR13**: Maximum XOR of any two values; insert bit paths, greedily follow opposite bit to maximize XOR. **Recognition:** maximum-xor binary trie and membership restrictions is the primary repeated-prefix/repeated-bit invariant. | BASE: MSB-to-LSB binary trie; choose opposite child when available. |
+| 19 | **1707** | **TR13**: For each query maximize XOR against only values <= given bound; sort values and queries by limit, insert eligible values incrementally. **Recognition:** maximum-xor binary trie and membership restrictions is the primary repeated-prefix/repeated-bit invariant. | Keep max-XOR traversal; replace one static trie with offline monotonic insertion by bound, including empty-trie result -1. |
+| 20 | **1938** | **TR13**: Max XOR with an ancestor node ID in a rooted tree; DFS activates current root-to-node path in counted binary trie and removes it on return. **Recognition:** maximum-xor binary trie and membership restrictions is the primary repeated-prefix/repeated-bit invariant. | Retain max-XOR query, replace offline monotonic insertion with DFS-scoped insert/remove and query batches at active nodes. |
+| **TR14 — Bitwise trie pair counting with threshold: NEW ALGORITHM FAMILY** ||||
+| 21 | **1803** | **TR14**: Count pairs with XOR in inclusive [low,high]; for each number query prior trie for XOR < high+1 minus XOR < low, then insert. **Recognition:** bitwise trie pair counting with threshold is the primary repeated-prefix/repeated-bit invariant. | BASE: trie subtree counts support countLessThanXor(value,limit), not greedy maximum XOR. |
+| **TR15 — Constrained-window maximum XOR trie: NEW ALGORITHM FAMILY** ||||
+| 22 | **2935** | **TR15**: Maximize strong-pair XOR when max <= 2*min; sort values, keep eligible sliding numeric window in counted bitwise trie, query greedy max XOR. **Recognition:** constrained-window maximum xor trie is the primary repeated-prefix/repeated-bit invariant. | BASE: unlike TR14 count-of-pairs thresholds, use greedy maximum-XOR querying with deletable trie and sorted multiplicative window. |
+| **TR16 — Two-sided prefix and suffix query index: NEW ALGORITHM FAMILY** ||||
+| 23 | **745** | **TR16**: Find maximum word index matching a prefix and suffix; build combined suffix+separator+word trie with max index or equivalent indexed trie scheme. **Recognition:** two-sided prefix and suffix query index is the primary repeated-prefix/repeated-bit invariant. | BASE: combine two independent string constraints into one searchable trie key, update maximum index at visited nodes. |
+| **TR17 — Paired endpoint characters in a trie: NEW ALGORITHM FAMILY** ||||
+| 24 | **3045** | **TR17**: Count pairs where earlier word is both prefix and suffix of later word; insert paired (frontChar,backChar) symbols and query terminal counts while reading current word. **Recognition:** paired endpoint characters in a trie is the primary repeated-prefix/repeated-bit invariant. | BASE: trie alphabet is a pair of symmetric characters; count earlier terminal keys along current path before insertion. |
+| **TR18 — Implicit decimal trie and lexicographic rank: NEW ALGORITHM FAMILY** ||||
+| 25 | **386** | **TR18**: Enumerate integers 1..n in lexicographic order by implicit 10-ary trie preorder, avoiding string sorting. **Recognition:** implicit decimal trie and lexicographic rank is the primary repeated-prefix/repeated-bit invariant. | BASE: visit digit-prefix node, descend to first child when feasible, otherwise advance next sibling/ancestor. |
+| 26 | **440** | **TR18**: Find kth lexicographic integer without enumerating all predecessors; count numbers in each implicit prefix subtree and either skip entire subtree or descend. **Recognition:** implicit decimal trie and lexicographic rank is the primary repeated-prefix/repeated-bit invariant. | Keep implicit digit-prefix hierarchy; replace visit-every-node traversal with prefix-subtree counts and rank subtraction. |
+| **TR19 — Palindrome-aware reverse-word matching: NEW ALGORITHM FAMILY** ||||
+| 27 | **336** | **TR19**: Find all ordered word pairs forming a palindrome; reverse-word trie stores terminals and remaining palindrome-prefix candidates, check suffix/prefix palindromes during traversal. **Recognition:** palindrome-aware reverse-word matching is the primary repeated-prefix/repeated-bit invariant. | BASE: trie paths on reversed words with palindrome metadata; report both completed-word and remaining-palindrome cases, not merely suffix equality. |
+
+### T24 family recognition and BASIC Java 21 templates
+
+Each fragment is deliberately incomplete where a problem-specific query/return rule is required. Show before the first problem in its family only. `Node` and `BitNode` represent family-local structures, not one universal class.
+
+**TR1 — Mutable prefix dictionary and reference counts](#tr1) — [208](#lc-208), [1804](#lc-1804)
+
+- [TR2 — Wildcard and constrained mismatches](#tr2) — [211](#lc-211), [676](#lc-676)
+
+- [TR3 — Shortest-root prefix replacement](#tr3) — [648](#lc-648)
+
+- [TR4 — All-prefix terminal-chain verification](#tr4) — [720](#lc-720)
+
+- [TR5 — Prefix subtree aggregates](#tr5) — [677](#lc-677), [2416](#lc-2416)
+
+- [TR6 — Prefix search with bounded suggestion lists](#tr6) — [1268](#lc-1268)
+
+- [TR7 — Trie-pruned board traversal](#tr7) — [212](#lc-212)
+
+- [TR8 — Online suffix dictionary matching](#tr8) — [1032](#lc-1032)
+
+- [TR9 — Reversed trie for suffix sharing and suffix-match queries](#tr9) — [820](#lc-820), [3093](#lc-3093)
+
+- [TR10 — Numeric-digit prefix overlap](#tr10) — [3043](#lc-3043)
+
+- [TR11 — Hierarchical folder trie and structural deduplication](#tr11) — [1233](#lc-1233), [1948](#lc-1948)
+
+- [TR12 — Dictionary segmentation by trie walks](#tr12) — [472](#lc-472)
+
+- [TR13 — Maximum-XOR binary trie and membership restrictions](#tr13) — [421](#lc-421), [1707](#lc-1707), [1938](#lc-1938)
+
+- [TR14 — Bitwise trie pair counting with threshold](#tr14) — [1803](#lc-1803)
+
+- [TR15 — Constrained-window maximum XOR trie](#tr15) — [2935](#lc-2935)
+
+- [TR16 — Two-sided prefix and suffix query index](#tr16) — [745](#lc-745)
+
+- [TR17 — Paired endpoint characters in a trie](#tr17) — [3045](#lc-3045)
+
+- [TR18 — Implicit decimal trie and lexicographic rank](#tr18) — [386](#lc-386), [440](#lc-440)
+
+- [TR19 — Palindrome-aware reverse-word matching](#tr19) — [336](#lc-336)
+
+- [Final registry and verification](#final-registry)
+
+---
+
+<a id="tr1"></a>
+
+## TR1 — Mutable prefix dictionary and reference counts: NEW ALGORITHM FAMILY** ||||
+| 01 | **208** | **TR1**: Exact word and prefix queries over a dynamic lowercase dictionary; fixed-26-child nodes, terminal flag. **Recognition:** mutable prefix dictionary and reference counts is the primary repeated-prefix/repeated-bit invariant. | BASE: walk or create one node per character; terminal distinguishes words from prefixes. |
+| 02 | **1804** | **TR1**: Dictionary with repeated inserts, prefix counts, and erasure; node passCount/endCount with safe decrement. **Recognition:** mutable prefix dictionary and reference counts is the primary repeated-prefix/repeated-bit invariant. | Extend terminal boolean into terminal and prefix multiplicities; add erase path with decrement after confirmed existence. |
+| **TR2 — Wildcard and constrained mismatches: NEW ALGORITHM FAMILY** ||||
+| 03 | **211** | **TR2**: Dictionary lookup where query dots match any one character; DFS forks on wildcard. **Recognition:** wildcard and constrained mismatches is the primary repeated-prefix/repeated-bit invariant. | BASE: traverse one matching edge for a literal; branch over children for wildcard. |
+| 04 | **676** | **TR2**: Dictionary search requiring exactly one character substitution; DFS tracks mismatch budget and matches only at depth end. **Recognition:** wildcard and constrained mismatches is the primary repeated-prefix/repeated-bit invariant. | Replace arbitrary wildcard branching with choosing matching/nonmatching edges under exactly-one mismatch counter; require count==1 at terminal. |
+| **TR3 — Shortest-root prefix replacement: NEW ALGORITHM FAMILY** ||||
+| 05 | **648** | **TR3**: Replace every sentence word with shortest matching dictionary root; insert roots in trie, stop lookup at first terminal. **Recognition:** shortest-root prefix replacement is the primary repeated-prefix/repeated-bit invariant. | BASE: greedy earliest terminal encountered on word prefix; otherwise preserve original word. |
+| **TR4 — All-prefix terminal-chain verification: NEW ALGORITHM FAMILY** ||||
+| 06 | **720** | **TR4**: Select longest word whose every prefix is a complete dictionary word; insert all, DFS only through terminal children with lexicographic tie. **Recognition:** all-prefix terminal-chain verification is the primary repeated-prefix/repeated-bit invariant. | BASE: unlike shortest-root replacement, demand every traversed prefix terminate at a word and maximize valid depth. |
+| **TR5 — Prefix subtree aggregates: NEW ALGORITHM FAMILY** ||||
+| 07 | **677** | **TR5**: Map string keys to mutable integer values; prefix sum maintained at trie nodes using delta from previous key value. **Recognition:** prefix subtree aggregates is the primary repeated-prefix/repeated-bit invariant. | BASE: each prefix node stores sum of weights of full keys beneath it; overwrite by delta. |
+| 08 | **2416** | **TR5**: For each word sum counts of all its prefixes; store visit counts per trie node and sum along word path. **Recognition:** prefix subtree aggregates is the primary repeated-prefix/repeated-bit invariant. | Retain node-level prefix aggregates; replace mutable weighted delta updates with insertion counts and sum node counts along each query path. |
+| **TR6 — Prefix search with bounded suggestion lists: NEW ALGORITHM FAMILY** ||||
+| 09 | **1268** | **TR6**: For each incremental prefix return up to three lexicographically smallest matching items; sort products, insert into trie while retaining first three suggestions per node. **Recognition:** prefix search with bounded suggestion lists is the primary repeated-prefix/repeated-bit invariant. | BASE: store limited lexicographically ordered candidate indices at each prefix node; stop when prefix path missing. |
+| **TR7 — Trie-pruned board traversal: NEW ALGORITHM FAMILY** ||||
+| 10 | **212** | **TR7**: Find multiple dictionary words in one letter board; shared trie, grid DFS, visited marking, stop branches absent from trie and deduplicate terminals. **Recognition:** trie-pruned board traversal is the primary repeated-prefix/repeated-bit invariant. | BASE: coordinate DFS advances dictionary trie state and board path together; prune by absent child. |
+| **TR8 — Online suffix dictionary matching: NEW ALGORITHM FAMILY** ||||
+| 11 | **1032** | **TR8**: Answer whether any inserted word is a suffix of a character stream; reverse dictionary words, traverse bounded stream history backward. **Recognition:** online suffix dictionary matching is the primary repeated-prefix/repeated-bit invariant. | BASE: reverse direction of dictionary paths; each query checks newest characters first, at most max dictionary length. |
+| **TR9 — Reversed trie for suffix sharing and suffix-match queries: NEW ALGORITHM FAMILY** ||||
+| 12 | **820** | **TR9**: Minimize total reference-string encoding length by sharing existing word suffixes; reverse words, total contributions only at terminal leaves. **Recognition:** reversed trie for suffix sharing and suffix-match queries is the primary repeated-prefix/repeated-bit invariant. | BASE: reverse words so original suffixes share paths; count leaf words of length+1. |
+| 13 | **3093** | **TR9**: For each query choose dictionary word with longest common suffix, tie by shortest word then earliest index; reversed trie stores best fallback candidate per node. **Recognition:** reversed trie for suffix sharing and suffix-match queries is the primary repeated-prefix/repeated-bit invariant. | Keep reversed trie traversal; replace leaf-only encoding length with best index metadata on every visited prefix node and fall back at deepest matching node. |
+| **TR10 — Numeric-digit prefix overlap: NEW ALGORITHM FAMILY** ||||
+| 14 | **3043** | **TR10**: Find maximum shared decimal-prefix length across two integer arrays; build digit trie from first array and probe second. **Recognition:** numeric-digit prefix overlap is the primary repeated-prefix/repeated-bit invariant. | BASE: convert integers into decimal digit sequences and count matched prefix depth; no character-word termination required. |
+| **TR11 — Hierarchical folder trie and structural deduplication: NEW ALGORITHM FAMILY** ||||
+| 15 | **1233** | **TR11**: Remove child folders when an ancestor is in the input; split paths into components, use trie terminal check or sorted-prefix exclusion. **Recognition:** hierarchical folder trie and structural deduplication is the primary repeated-prefix/repeated-bit invariant. | BASE: folder component trie, ancestor terminal means descendants must be discarded. |
+| 16 | **1948** | **TR11**: Detect duplicate folder subtrees by identical child-name/substructure signatures; postorder intern canonical child signatures, mark repeated nonempty subtrees, then emit undeleted paths. **Recognition:** hierarchical folder trie and structural deduplication is the primary repeated-prefix/repeated-bit invariant. | Retain folder-component trie; add postorder structural signatures and duplicate-frequency map, then prune entire repeated subtrees rather than ancestor-selected paths. |
+| **TR12 — Dictionary segmentation by trie walks: NEW ALGORITHM FAMILY** ||||
+| 17 | **472** | **TR12**: Identify dictionary words expressible as concatenation of at least two shorter dictionary words; trie endpoint enumeration plus memoized segmentation count/position. **Recognition:** dictionary segmentation by trie walks is the primary repeated-prefix/repeated-bit invariant. | BASE: trie walks enumerate dictionary-boundary transitions; DP/memo avoids repeated suffix checks and enforces >=2 pieces. |
+| **TR13 — Maximum-XOR binary trie and membership restrictions: NEW ALGORITHM FAMILY** ||||
+| 18 | **421** | **TR13**: Maximum XOR of any two values; insert bit paths, greedily follow opposite bit to maximize XOR. **Recognition:** maximum-xor binary trie and membership restrictions is the primary repeated-prefix/repeated-bit invariant. | BASE: MSB-to-LSB binary trie; choose opposite child when available. |
+| 19 | **1707** | **TR13**: For each query maximize XOR against only values <= given bound; sort values and queries by limit, insert eligible values incrementally. **Recognition:** maximum-xor binary trie and membership restrictions is the primary repeated-prefix/repeated-bit invariant. | Keep max-XOR traversal; replace one static trie with offline monotonic insertion by bound, including empty-trie result -1. |
+| 20 | **1938** | **TR13**: Max XOR with an ancestor node ID in a rooted tree; DFS activates current root-to-node path in counted binary trie and removes it on return. **Recognition:** maximum-xor binary trie and membership restrictions is the primary repeated-prefix/repeated-bit invariant. | Retain max-XOR query, replace offline monotonic insertion with DFS-scoped insert/remove and query batches at active nodes. |
+| **TR14 — Bitwise trie pair counting with threshold: NEW ALGORITHM FAMILY** ||||
+| 21 | **1803** | **TR14**: Count pairs with XOR in inclusive [low,high]; for each number query prior trie for XOR < high+1 minus XOR < low, then insert. **Recognition:** bitwise trie pair counting with threshold is the primary repeated-prefix/repeated-bit invariant. | BASE: trie subtree counts support countLessThanXor(value,limit), not greedy maximum XOR. |
+| **TR15 — Constrained-window maximum XOR trie: NEW ALGORITHM FAMILY** ||||
+| 22 | **2935** | **TR15**: Maximize strong-pair XOR when max <= 2*min; sort values, keep eligible sliding numeric window in counted bitwise trie, query greedy max XOR. **Recognition:** constrained-window maximum xor trie is the primary repeated-prefix/repeated-bit invariant. | BASE: unlike TR14 count-of-pairs thresholds, use greedy maximum-XOR querying with deletable trie and sorted multiplicative window. |
+| **TR16 — Two-sided prefix and suffix query index: NEW ALGORITHM FAMILY** ||||
+| 23 | **745** | **TR16**: Find maximum word index matching a prefix and suffix; build combined suffix+separator+word trie with max index or equivalent indexed trie scheme. **Recognition:** two-sided prefix and suffix query index is the primary repeated-prefix/repeated-bit invariant. | BASE: combine two independent string constraints into one searchable trie key, update maximum index at visited nodes. |
+| **TR17 — Paired endpoint characters in a trie: NEW ALGORITHM FAMILY** ||||
+| 24 | **3045** | **TR17**: Count pairs where earlier word is both prefix and suffix of later word; insert paired (frontChar,backChar) symbols and query terminal counts while reading current word. **Recognition:** paired endpoint characters in a trie is the primary repeated-prefix/repeated-bit invariant. | BASE: trie alphabet is a pair of symmetric characters; count earlier terminal keys along current path before insertion. |
+| **TR18 — Implicit decimal trie and lexicographic rank: NEW ALGORITHM FAMILY** ||||
+| 25 | **386** | **TR18**: Enumerate integers 1..n in lexicographic order by implicit 10-ary trie preorder, avoiding string sorting. **Recognition:** implicit decimal trie and lexicographic rank is the primary repeated-prefix/repeated-bit invariant. | BASE: visit digit-prefix node, descend to first child when feasible, otherwise advance next sibling/ancestor. |
+| 26 | **440** | **TR18**: Find kth lexicographic integer without enumerating all predecessors; count numbers in each implicit prefix subtree and either skip entire subtree or descend. **Recognition:** implicit decimal trie and lexicographic rank is the primary repeated-prefix/repeated-bit invariant. | Keep implicit digit-prefix hierarchy; replace visit-every-node traversal with prefix-subtree counts and rank subtraction. |
+| **TR19 — Palindrome-aware reverse-word matching: NEW ALGORITHM FAMILY** ||||
+| 27 | **336** | **TR19**: Find all ordered word pairs forming a palindrome; reverse-word trie stores terminals and remaining palindrome-prefix candidates, check suffix/prefix palindromes during traversal. **Recognition:** palindrome-aware reverse-word matching is the primary repeated-prefix/repeated-bit invariant. | BASE: trie paths on reversed words with palindrome metadata; report both completed-word and remaining-palindrome cases, not merely suffix equality. |
+
+### T24 family recognition and BASIC Java 21 templates
+
+Each fragment is deliberately incomplete where a problem-specific query/return rule is required. Show before the first problem in its family only. `Node` and `BitNode` represent family-local structures, not one universal class.
+
+**TR1 — Mutable prefix dictionary and reference counts
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Repeated insert/search/prefix and delete operations on a mutable dictionary.
+
+**Questions:** 208, 1804
+
+### Basic Java 21 template
+
+```java
+class Node { Node[] next = new Node[26]; int pass, end; }
+Node root = new Node();
+for (char ch : word.toCharArray()) {
+    int c = ch - 'a';
+    if (root.next[c] == null) root.next[c] = new Node();
+    root = root.next[c]; root.pass++;
+}
+root.end++; // for deletion: first verify existence, then decrement path counts
+```
+
+**Core invariant:** Follow one edge per letter; only the final node marks a complete word.
+
+<a id="lc-208"></a>
+
+### 208 · Question 01/27
+
+#### Problem statement
+
+Implement a dictionary supporting insertion, exact word search and checking whether any stored word starts with a given prefix.
+
+#### Examples
+
+- insert("apple"); search("apple") → true; search("app") → false; startsWith("app") → true
+- insert("app"); search("app") → true
+
+#### Constraints
+
+Lowercase English letters; word/prefix length 1–2000; at most 30,000 calls.
+
+#### Why this approach
+
+Exact word and prefix queries over a dynamic lowercase dictionary; fixed-26-child nodes, terminal flag.
+
+#### Solution progression
+
+Foundation of a new algorithm family. walk or create one node per character; terminal distinguishes words from prefixes.
+
+#### Complete Java 21 solution
+
+```java
+class Trie {
+    static class Node { Node[] next = new Node[26]; boolean end; }
+    private final Node root = new Node();
+    public Trie() {}
+    public void insert(String word) {
+        Node p = root;
+        for (char c : word.toCharArray()) {
+            int i = c - 'a';
+            if (p.next[i] == null) p.next[i] = new Node();
+            p = p.next[i];
+        }
+        p.end = true;
+    }
+    private Node walk(String s) {
+        Node p = root;
+        for (char c : s.toCharArray()) {
+            p = p.next[c - 'a'];
+            if (p == null) return null;
+        }
+        return p;
+    }
+    public boolean search(String word) { Node p = walk(word); return p != null && p.end; }
+    public boolean startsWith(String prefix) { return walk(prefix) != null; }
+}
+```
+
+#### Key logic
+
+Follow one edge per letter; only the final node marks a complete word.
+
+#### Complexity
+
+- **Time:** O(L) per operation
+- **Space:** O(S) nodes for S inserted characters
+
+**Local validation:** PASS
+
+<a id="lc-1804"></a>
+
+### 1804 · Question 02/27
+
+#### Problem statement
+
+Implement a multiset dictionary with insert, countWordsEqualTo, countWordsStartingWith and erase (one occurrence). Erase is called only for an existing word.
+
+#### Examples
+
+- insert("apple") twice; countWordsEqualTo("apple") → 2; erase("apple"); countWordsEqualTo("apple") → 1
+- insert("app"); countWordsStartingWith("app") → 2
+
+#### Constraints
+
+Lowercase letters; length 1–2000; at most 30,000 operations.
+
+#### Why this approach
+
+Dictionary with repeated inserts, prefix counts, and erasure; node passCount/endCount with safe decrement.
+
+#### Solution progression
+
+Extend terminal boolean into terminal and prefix multiplicities; add erase path with decrement after confirmed existence.
+
+#### Complete Java 21 solution
+
+```java
+class Trie {
+    static class Node { Node[] next = new Node[26]; int pass, end; }
+    private final Node root = new Node();
+    public Trie() {}
+    public void insert(String word) {
+        Node p = root;
+        for (char c : word.toCharArray()) {
+            int i = c - 'a';
+            if (p.next[i] == null) p.next[i] = new Node();
+            p = p.next[i]; p.pass++;
+        }
+        p.end++;
+    }
+    private Node walk(String s) {
+        Node p = root;
+        for (char c : s.toCharArray()) { p = p.next[c-'a']; if (p == null) return null; }
+        return p;
+    }
+    public int countWordsEqualTo(String word) { Node p = walk(word); return p == null ? 0 : p.end; }
+    public int countWordsStartingWith(String prefix) { Node p = walk(prefix); return p == null ? 0 : p.pass; }
+    public void erase(String word) {
+        if (countWordsEqualTo(word) == 0) return;
+        Node p = root;
+        for (char c : word.toCharArray()) { p = p.next[c-'a']; p.pass--; }
+        p.end--;
+    }
+}
+```
+
+#### Key logic
+
+Increment pass counts on each traversed node and end count at the terminal; erase reverses these updates.
+
+#### Complexity
+
+- **Time:** O(L) per operation
+- **Space:** O(S) nodes
+
+**Local validation:** PASS
+
+---
+
+<a id="tr2"></a>
+
+## TR2 — Wildcard and constrained mismatches
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Query may match many possible child edges, but mismatch budget is small.
+
+**Questions:** 211, 676
+
+### Basic Java 21 template
+
+```java
+boolean match(Node node, String s, int pos, int changed) {
+    if (pos == s.length()) return node.end > 0 && changed == 1;
+    for (int c = 0; c < 26; c++) {
+        Node child = node.next[c];
+        int nextChanged = changed + (c != s.charAt(pos) - 'a' ? 1 : 0);
+        if (child != null && nextChanged <= 1
+                && match(child, s, pos + 1, nextChanged)) return true;
+    }
+    return false;
+}
+// For wildcard, branch for dot without incrementing mismatch.
+```
+
+**Core invariant:** DFS branches only at dots, and accepts only terminal nodes at query end.
+
+<a id="lc-211"></a>
+
+### 211 · Question 03/27
+
+#### Problem statement
+
+Design a dictionary with addWord and search. A dot in a query matches any single letter; the entire query must match a stored word.
+
+#### Examples
+
+- addWord("bad"); addWord("dad"); search(".ad") → true; search("b..") → true
+- search("pad") → false; search("ba") → false
+
+#### Constraints
+
+Lowercase words; length 1–25; at most two dots per search; at most 10,000 calls.
+
+#### Why this approach
+
+Dictionary lookup where query dots match any one character; DFS forks on wildcard.
+
+#### Solution progression
+
+Foundation of a new algorithm family. traverse one matching edge for a literal; branch over children for wildcard.
+
+#### Complete Java 21 solution
+
+```java
+class WordDictionary {
+    static class Node { Node[] next = new Node[26]; boolean end; }
+    private final Node root = new Node();
+    public WordDictionary() {}
+    public void addWord(String word) {
+        Node p = root;
+        for (char c : word.toCharArray()) {
+            int i = c-'a'; if (p.next[i] == null) p.next[i] = new Node(); p = p.next[i];
+        }
+        p.end = true;
+    }
+    public boolean search(String word) { return dfs(root, word, 0); }
+    private boolean dfs(Node p, String s, int i) {
+        if (p == null) return false;
+        if (i == s.length()) return p.end;
+        char c = s.charAt(i);
+        if (c != '.') return dfs(p.next[c-'a'], s, i+1);
+        for (Node q : p.next) if (q != null && dfs(q,s,i+1)) return true;
+        return false;
+    }
+}
+```
+
+#### Key logic
+
+DFS branches only at dots, and accepts only terminal nodes at query end.
+
+#### Complexity
+
+- **Time:** O(L) insert; O(L·26^d) worst-case search, d dots
+- **Space:** O(S) trie; O(L) recursion
+
+**Local validation:** PASS
+
+<a id="lc-676"></a>
+
+### 676 · Question 04/27
+
+#### Problem statement
+
+Build a dictionary of distinct words. Search returns true exactly when replacing one character of the query produces a dictionary word; insertion and deletion are not allowed.
+
+#### Examples
+
+- buildDict(["hello","leetcode"]); search("hhllo") → true; search("hello") → false
+- search("hell") → false
+
+#### Constraints
+
+At most 100 dictionary words and search calls; lowercase words of length 1–100; build once.
+
+#### Why this approach
+
+Dictionary search requiring exactly one character substitution; DFS tracks mismatch budget and matches only at depth end.
+
+#### Solution progression
+
+Replace arbitrary wildcard branching with choosing matching/nonmatching edges under exactly-one mismatch counter; require count==1 at terminal.
+
+#### Complete Java 21 solution
+
+```java
+class MagicDictionary {
+    static class Node { Node[] next = new Node[26]; boolean end; }
+    private final Node root = new Node();
+    public MagicDictionary() {}
+    public void buildDict(String[] dictionary) {
+        for (String s : dictionary) {
+            Node p = root;
+            for (char c : s.toCharArray()) {
+                int i=c-'a'; if (p.next[i]==null) p.next[i]=new Node(); p=p.next[i];
+            }
+            p.end=true;
+        }
+    }
+    public boolean search(String searchWord) { return dfs(root,searchWord,0,false); }
+    private boolean dfs(Node p,String s,int i,boolean used) {
+        if (p==null) return false;
+        if (i==s.length()) return used && p.end;
+        int c=s.charAt(i)-'a';
+        if (dfs(p.next[c],s,i+1,used)) return true;
+        if (!used) for (int j=0;j<26;j++) if(j!=c && p.next[j]!=null && dfs(p.next[j],s,i+1,true)) return true;
+        return false;
+    }
+}
+```
+
+#### Key logic
+
+Use mismatch state 0 or 1; after one mismatch only the literal edge is legal.
+
+#### Complexity
+
+- **Time:** O(S) build; O(26L²) worst-case search
+- **Space:** O(S) trie; O(L) stack
+
+**Local validation:** PASS
+
+---
+
+<a id="tr3"></a>
+
+## TR3 — Shortest-root prefix replacement
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Find the shortest dictionary prefix of each word.
+
+**Questions:** 648
+
+### Basic Java 21 template
+
+```java
+Node cur = root; int stop = -1;
+for (int i = 0; i < word.length(); i++) {
+    cur = cur.next[word.charAt(i) - 'a'];
+    if (cur == null) break;
+    if (cur.end > 0) { stop = i + 1; break; }
+}
+// use word.substring(0, stop) if stop >= 0.
+```
+
+**Core invariant:** First terminal on a trie walk is necessarily the shortest root.
+
+<a id="lc-648"></a>
+
+### 648 · Question 05/27
+
+#### Problem statement
+
+Given dictionary roots and a space-separated sentence, replace each word by its shortest dictionary prefix if one exists; otherwise leave it unchanged.
+
+#### Examples
+
+- ["cat","bat","rat"], "the cattle was rattled by the battery" → "the cat was rat by the bat"
+- ["a","ab"], "abc dog" → "a dog"
+
+#### Constraints
+
+Dictionary size 1–1000; root length 1–100; sentence length 1–1,000,000; lowercase and single spaces.
+
+#### Why this approach
+
+Replace every sentence word with shortest matching dictionary root; insert roots in trie, stop lookup at first terminal.
+
+#### Solution progression
+
+Foundation of a new algorithm family. greedy earliest terminal encountered on word prefix; otherwise preserve original word.
+
+#### Complete Java 21 solution
+
+```java
+class Solution {
+    static class Node { Node[] next=new Node[26]; String rootWord; }
+    public String replaceWords(java.util.List<String> dictionary,String sentence) {
+        Node root=new Node();
+        for(String s:dictionary){ Node p=root; for(char c:s.toCharArray()){ int i=c-'a'; if(p.next[i]==null)p.next[i]=new Node(); p=p.next[i]; } p.rootWord=s; }
+        String[] words=sentence.split(" ");
+        for(int j=0;j<words.length;j++){
+            Node p=root;
+            for(int i=0;i<words[j].length();i++){
+                p=p.next[words[j].charAt(i)-'a']; if(p==null)break;
+                if(p.rootWord!=null){words[j]=p.rootWord;break;}
+            }
+        }
+        return String.join(" ",words);
+    }
+}
+```
+
+#### Key logic
+
+First terminal on a trie walk is necessarily the shortest root.
+
+#### Complexity
+
+- **Time:** O(S+T) for dictionary and sentence characters
+- **Space:** O(S+T) including split/output
+
+**Local validation:** PASS
+
+---
+
+<a id="tr4"></a>
+
+## TR4 — All-prefix terminal-chain verification
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** A candidate is valid only when every prefix is also a complete word.
+
+**Questions:** 720
+
+### Basic Java 21 template
+
+```java
+void visit(Node node, StringBuilder path) {
+    for (int c = 0; c < 26; c++) {
+        Node child = node.next[c];
+        if (child == null || child.end == 0) continue;
+        path.append((char)('a' + c));
+        // update longest valid word, lexicographic tie
+        visit(child, path);
+        path.setLength(path.length() - 1);
+    }
+}
+```
+
+**Core invariant:** DFS only through terminal children; alphabetical traversal makes first equal-length candidate lexicographically smallest.
+
+<a id="lc-720"></a>
+
+### 720 · Question 06/27
+
+#### Problem statement
+
+Return the longest word that can be built by adding one character at a time, with every intermediate prefix present in the dictionary. Break ties by lexicographically smallest word; return empty if none.
+
+#### Examples
+
+- ["w","wo","wor","worl","world"] → "world"
+- ["a","ap","app","appl","apple","apply"] → "apple"
+
+#### Constraints
+
+1–1000 words; lowercase; length 1–30.
+
+#### Why this approach
+
+Select longest word whose every prefix is a complete dictionary word; insert all, DFS only through terminal children with lexicographic tie.
+
+#### Solution progression
+
+Foundation of a new algorithm family. unlike shortest-root replacement, demand every traversed prefix terminate at a word and maximize valid depth.
+
+#### Complete Java 21 solution
+
+```java
+class Solution {
+    static class Node { Node[] next=new Node[26]; String word; }
+    private String best;
+    public String longestWord(String[] words){
+        Node root=new Node(); best="";
+        for(String s:words){Node p=root;for(char c:s.toCharArray()){int i=c-'a';if(p.next[i]==null)p.next[i]=new Node();p=p.next[i];}p.word=s;}
+        dfs(root);return best;
+    }
+    private void dfs(Node p){
+        if(p.word!=null && p.word.length()>best.length())best=p.word;
+        for(Node q:p.next)if(q!=null && q.word!=null)dfs(q);
+    }
+}
+```
+
+#### Key logic
+
+DFS only through terminal children; alphabetical traversal makes first equal-length candidate lexicographically smallest.
+
+#### Complexity
+
+- **Time:** O(S) for fixed alphabet
+- **Space:** O(S) trie; O(L) stack
+
+**Local validation:** PASS
+
+---
+
+<a id="tr5"></a>
+
+## TR5 — Prefix subtree aggregates
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Many key updates and queries ask for subtree prefix aggregates.
+
+**Questions:** 677, 2416
+
+### Basic Java 21 template
+
+```java
+class Node { Node[] next = new Node[26]; long aggregate; }
+// on update(key,newValue), let delta = newValue - oldValue
+Node node = root;
+for (char ch : key.toCharArray()) {
+    node = node.next[ch - 'a']; // create child when absent
+    node.aggregate += delta;
+}
+// query(prefix): traverse its path, return final aggregate.
+```
+
+**Core invariant:** Maintain prior values in a map; add only the difference at each prefix node.
+
+<a id="lc-677"></a>
+
+### 677 · Question 07/27
+
+#### Problem statement
+
+Implement insert(key,val) with overwrite semantics and sum(prefix), which returns the sum of values for keys beginning with prefix.
+
+#### Examples
+
+- insert("apple",3); sum("ap") → 3; insert("app",2); sum("ap") → 5
+- insert("apple",1); sum("ap") → 3
+
+#### Constraints
+
+Lowercase keys/prefixes length 1–50; values 1–1000; at most 50 calls.
+
+#### Why this approach
+
+Map string keys to mutable integer values; prefix sum maintained at trie nodes using delta from previous key value.
+
+#### Solution progression
+
+Foundation of a new algorithm family. each prefix node stores sum of weights of full keys beneath it; overwrite by delta.
+
+#### Complete Java 21 solution
+
+```java
+class MapSum {
+    static class Node { Node[] next=new Node[26]; int sum; }
+    private final Node root=new Node();
+    private final java.util.Map<String,Integer> values=new java.util.HashMap<>();
+    public MapSum(){}
+    public void insert(String key,int val){
+        int delta=val-values.getOrDefault(key,0); values.put(key,val);
+        Node p=root; p.sum+=delta;
+        for(char c:key.toCharArray()){int i=c-'a';if(p.next[i]==null)p.next[i]=new Node();p=p.next[i];p.sum+=delta;}
+    }
+    public int sum(String prefix){Node p=root;for(char c:prefix.toCharArray()){p=p.next[c-'a'];if(p==null)return 0;}return p.sum;}
+}
+```
+
+#### Key logic
+
+Maintain prior values in a map; add only the difference at each prefix node.
+
+#### Complexity
+
+- **Time:** O(L) per operation expected
+- **Space:** O(S) trie and key map
+
+**Local validation:** PASS
+
+<a id="lc-2416"></a>
+
+### 2416 · Question 08/27
+
+#### Problem statement
+
+For each input word, sum the number of input words that begin with each of its nonempty prefixes. Return scores in input order, counting duplicate words separately.
+
+#### Examples
+
+- ["abc","ab","bc","b"] → [5,4,3,2]
+- ["a","a"] → [2,2]
+
+#### Constraints
+
+1–1000 words; length 1–1000; lowercase.
+
+#### Why this approach
+
+For each word sum counts of all its prefixes; store visit counts per trie node and sum along word path.
+
+#### Solution progression
+
+Retain node-level prefix aggregates; replace mutable weighted delta updates with insertion counts and sum node counts along each query path.
+
+#### Complete Java 21 solution
+
+```java
+class Solution {
+    static class Node { Node[] next=new Node[26]; int count; }
+    public int[] sumPrefixScores(String[] words){
+        Node root=new Node();
+        for(String s:words){Node p=root;for(char c:s.toCharArray()){int i=c-'a';if(p.next[i]==null)p.next[i]=new Node();p=p.next[i];p.count++;}}
+        int[] ans=new int[words.length];
+        for(int i=0;i<words.length;i++){Node p=root;for(char c:words[i].toCharArray()){p=p.next[c-'a'];ans[i]+=p.count;}}
+        return ans;
+    }
+}
+```
+
+#### Key logic
+
+Insert every word and increment prefix count, then accumulate counts on each word path.
+
+#### Complexity
+
+- **Time:** O(S)
+- **Space:** O(S) trie; O(n) output
+
+**Local validation:** PASS
+
+---
+
+<a id="tr6"></a>
+
+## TR6 — Prefix search with bounded suggestion lists
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Return a tiny, ordered list of likely completions for every prefix.
+
+**Questions:** 1268
+
+### Basic Java 21 template
+
+```java
+// Sort products lexicographically before insertion.
+Node node = root;
+for (char ch : product.toCharArray()) {
+    node = ensure(node, ch);
+    if (node.top.size() < 3) node.top.add(product);
+}
+// Query each typed prefix and read node.top or [].
+```
+
+**Core invariant:** Sort before insertion; each node retains only its first three products.
+
+<a id="lc-1268"></a>
+
+### 1268 · Question 09/27
+
+#### Problem statement
+
+After each character of searchWord is typed, return up to three lexicographically smallest distinct product names starting with the typed prefix.
+
+#### Examples
+
+- ["mobile","mouse","moneypot","monitor","mousepad"], "mouse" → [["mobile","moneypot","monitor"],["mobile","moneypot","monitor"],["mouse","mousepad"],["mouse","mousepad"],["mouse","mousepad"]]
+- ["abc"], "az" → [["abc"],[]]
+
+#### Constraints
+
+1–1000 distinct products; total product characters ≤20,000; search length 1–1000; lowercase.
+
+#### Why this approach
+
+For each incremental prefix return up to three lexicographically smallest matching items; sort products, insert into trie while retaining first three suggestions per node.
+
+#### Solution progression
+
+Foundation of a new algorithm family. store limited lexicographically ordered candidate indices at each prefix node; stop when prefix path missing.
+
+#### Complete Java 21 solution
+
+```java
+import java.util.*;
+class Solution {
+    static class Node { Node[] next=new Node[26]; List<String> top=new ArrayList<>(3); }
+    public List<List<String>> suggestedProducts(String[] products,String searchWord){
+        Arrays.sort(products); Node root=new Node();
+        for(String s:products){Node p=root;for(char c:s.toCharArray()){int i=c-'a';if(p.next[i]==null)p.next[i]=new Node();p=p.next[i];if(p.top.size()<3)p.top.add(s);}}
+        List<List<String>> ans=new ArrayList<>();Node p=root;
+        for(char c:searchWord.toCharArray()){if(p!=null)p=p.next[c-'a'];ans.add(p==null?List.of():new ArrayList<>(p.top));}
+        return ans;
+    }
+}
+```
+
+#### Key logic
+
+Sort before insertion; each node retains only its first three products.
+
+#### Complexity
+
+- **Time:** O(n log n · L + S + Q) worst-case
+- **Space:** O(S+Q) including output
+
+**Local validation:** PASS
+
+---
+
+<a id="tr7"></a>
+
+## TR7 — Trie-pruned board traversal
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Many candidate words share prefixes and must be found on the same board.
+
+**Questions:** 212
+
+### Basic Java 21 template
+
+```java
+void dfs(int r, int c, Node node) {
+    if (outOfBounds(r,c) || visited(r,c)) return;
+    Node child = node.next[board[r][c] - 'a'];
+    if (child == null) return;
+    mark(r,c);
+    if (child.word != null) { found.add(child.word); child.word = null; }
+    for (int[] d : DIRS) dfs(r + d[0], c + d[1], child);
+    unmark(r,c);
+}
+```
+
+**Core invariant:** Advance board and trie together; mark visited, restore after recursion, clear found terminal and prune exhausted leaves.
+
+<a id="lc-212"></a>
+
+### 212 · Question 10/27
+
+#### Problem statement
+
+Find all distinct dictionary words that can be formed on a letter grid by moving horizontally or vertically between adjacent cells without reusing a cell in a single word.
+
+#### Examples
+
+- [["a","b"],["c","d"]], ["ab","ac","abd","aba"] → ["ab","ac","abd"] (any order)
+- [["a"]], ["a","aa"] → ["a"]
+
+#### Constraints
+
+Grid dimensions 1–12; up to 30,000 distinct words; word length 1–10; lowercase.
+
+#### Why this approach
+
+Find multiple dictionary words in one letter board; shared trie, grid DFS, visited marking, stop branches absent from trie and deduplicate terminals.
+
+#### Solution progression
+
+Foundation of a new algorithm family. coordinate DFS advances dictionary trie state and board path together; prune by absent child.
+
+#### Complete Java 21 solution
+
+```java
+import java.util.*;
+class Solution {
+    static class Node { Node[] next=new Node[26]; String word; int children; }
+    private final List<String> ans=new ArrayList<>();
+    public List<String> findWords(char[][] board,String[] words){
+        ans.clear();Node root=new Node();
+        for(String s:words){Node p=root;for(char c:s.toCharArray()){int i=c-'a';if(p.next[i]==null){p.next[i]=new Node();p.children++;}p=p.next[i];}p.word=s;}
+        for(int r=0;r<board.length;r++)for(int c=0;c<board[0].length;c++)dfs(board,r,c,root);
+        return new ArrayList<>(ans);
+    }
+    private void dfs(char[][] b,int r,int c,Node p){
+        if(r<0||c<0||r>=b.length||c>=b[0].length||b[r][c]=='#')return;
+        char ch=b[r][c];int i=ch-'a';Node q=p.next[i];if(q==null)return;
+        if(q.word!=null){ans.add(q.word);q.word=null;}
+        b[r][c]='#';dfs(b,r+1,c,q);dfs(b,r-1,c,q);dfs(b,r,c+1,q);dfs(b,r,c-1,q);b[r][c]=ch;
+        if(q.children==0&&q.word==null){p.next[i]=null;p.children--;}
+    }
+}
+```
+
+#### Key logic
+
+Advance board and trie together; mark visited, restore after recursion, clear found terminal and prune exhausted leaves.
+
+#### Complexity
+
+- **Time:** O(S+mn·4·3^(L-1)) worst-case
+- **Space:** O(S+L) excluding output
+
+**Local validation:** PASS
+
+---
+
+<a id="tr8"></a>
+
+## TR8 — Online suffix dictionary matching
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Queries arrive as characters and test suffixes of the total stream.
+
+**Questions:** 1032
+
+### Basic Java 21 template
+
+```java
+// Insert each dictionary word in reverse into trie.
+stream.append(ch);
+Node node = root;
+for (int i = stream.length() - 1; i >= 0 && i >= stream.length() - maxLen; i--) {
+    node = node.next[stream.charAt(i) - 'a'];
+    if (node == null) break;
+    if (node.end > 0) { /* suffix matched */ }
+}
+```
+
+**Core invariant:** Reverse words; maintain a circular buffer of the longest word length and scan newest to oldest.
+
+<a id="lc-1032"></a>
+
+### 1032 · Question 11/27
+
+#### Problem statement
+
+Initialize with dictionary words. Each query appends one character to a stream and returns whether any dictionary word is a suffix of the stream so far.
+
+#### Examples
+
+- words=["cd","f","kl"]; queries a,b,c,d,e,f → [false,false,false,true,false,true]
+- words=["ab"]; queries a,a,b → [false,false,true]
+
+#### Constraints
+
+1–2000 words; length 1–200; at most 40,000 lowercase character queries.
+
+#### Why this approach
+
+Answer whether any inserted word is a suffix of a character stream; reverse dictionary words, traverse bounded stream history backward.
+
+#### Solution progression
+
+Foundation of a new algorithm family. reverse direction of dictionary paths; each query checks newest characters first, at most max dictionary length.
+
+#### Complete Java 21 solution
+
+```java
+class StreamChecker {
+    static class Node { Node[] next=new Node[26]; boolean end; }
+    private final Node root=new Node();
+    private final char[] buffer;
+    private int pos,size;
+    public StreamChecker(String[] words){
+        int max=0;
+        for(String s:words){max=Math.max(max,s.length());Node p=root;for(int i=s.length()-1;i>=0;i--){int c=s.charAt(i)-'a';if(p.next[c]==null)p.next[c]=new Node();p=p.next[c];}p.end=true;}
+        buffer=new char[max];
+    }
+    public boolean query(char letter){
+        buffer[pos]=letter;pos=(pos+1)%buffer.length;size=Math.min(size+1,buffer.length);
+        Node p=root;
+        for(int j=1;j<=size;j++){p=p.next[buffer[(pos-j+buffer.length)%buffer.length]-'a'];if(p==null)return false;if(p.end)return true;}
+        return false;
+    }
+}
+```
+
+#### Key logic
+
+Reverse words; maintain a circular buffer of the longest word length and scan newest to oldest.
+
+#### Complexity
+
+- **Time:** O(S) build; O(L) query
+- **Space:** O(S+L)
+
+**Local validation:** PASS
+
+---
+
+<a id="tr9"></a>
+
+## TR9 — Reversed trie for suffix sharing and suffix-match queries
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Common suffixes are common prefixes after reversing the keys.
+
+**Questions:** 820, 3093
+
+### Basic Java 21 template
+
+```java
+Node node = root;
+for (int i = word.length() - 1; i >= 0; i--) {
+    node = ensure(node, word.charAt(i));
+    // terminal/leaf or best-available suffix candidate metadata
+}
+// After insertion, reversed-trie leaf counts or query deepest matching node.
+```
+
+**Core invariant:** Reverse insertion merges shared suffixes; only leaves contribute depth+1.
+
+<a id="lc-820"></a>
+
+### 820 · Question 12/27
+
+#### Problem statement
+
+Find the minimum length of a reference string ending each encoded word with #, such that each input word is recoverable from some index through the next #. Words may share suffixes.
+
+#### Examples
+
+- ["time","me","bell"] → 10 ("time#bell#")
+- ["t","t"] → 2
+
+#### Constraints
+
+1–2000 lowercase words, length 1–7.
+
+#### Why this approach
+
+Minimize total reference-string encoding length by sharing existing word suffixes; reverse words, total contributions only at terminal leaves.
+
+#### Solution progression
+
+Foundation of a new algorithm family. reverse words so original suffixes share paths; count leaf words of length+1.
+
+#### Complete Java 21 solution
+
+```java
+class Solution {
+    static class Node { Node[] next=new Node[26]; boolean hasChild; }
+    public int minimumLengthEncoding(String[] words){
+        Node root=new Node();
+        for(String s:words){Node p=root;for(int i=s.length()-1;i>=0;i--){int c=s.charAt(i)-'a';if(p.next[c]==null)p.next[c]=new Node();p.hasChild=true;p=p.next[c];}}
+        return dfs(root,0);
+    }
+    private int dfs(Node p,int depth){if(!p.hasChild)return depth+1;int ans=0;for(Node q:p.next)if(q!=null)ans+=dfs(q,depth+1);return ans;}
+}
+```
+
+#### Key logic
+
+Reverse insertion merges shared suffixes; only leaves contribute depth+1.
+
+#### Complexity
+
+- **Time:** O(S)
+- **Space:** O(S) trie; O(L) stack
+
+**Local validation:** PASS
+
+<a id="lc-3093"></a>
+
+### 3093 · Question 13/27
+
+#### Problem statement
+
+For each query word, return the index of the container word with longest common suffix. Ties favor shorter container word, then smaller original index. A zero-length suffix is allowed.
+
+#### Examples
+
+- ["abcd","bcd","xbcd"], ["cd","bcd","xyz"] → [1,1,1]
+- ["ab","cb"], ["b","ab"] → [0,0]
+
+#### Constraints
+
+Each array has 1–10,000 words; word length 1–5000; total characters per array ≤500,000; lowercase.
+
+#### Why this approach
+
+For each query choose dictionary word with longest common suffix, tie by shortest word then earliest index; reversed trie stores best fallback candidate per node.
+
+#### Solution progression
+
+Keep reversed trie traversal; replace leaf-only encoding length with best index metadata on every visited prefix node and fall back at deepest matching node.
+
+#### Complete Java 21 solution
+
+```java
+class Solution {
+    static class Node { Node[] next=new Node[26]; int best=-1; }
+    private void update(Node p,int i,String[] w){if(p.best<0||w[i].length()<w[p.best].length())p.best=i;}
+    public int[] stringIndices(String[] wordsContainer,String[] wordsQuery){
+        Node root=new Node();
+        for(int i=0;i<wordsContainer.length;i++){String s=wordsContainer[i];Node p=root;update(p,i,wordsContainer);for(int j=s.length()-1;j>=0;j--){int c=s.charAt(j)-'a';if(p.next[c]==null)p.next[c]=new Node();p=p.next[c];update(p,i,wordsContainer);}}
+        int[] ans=new int[wordsQuery.length];
+        for(int i=0;i<ans.length;i++){Node p=root;String s=wordsQuery[i];for(int j=s.length()-1;j>=0;j--){Node q=p.next[s.charAt(j)-'a'];if(q==null)break;p=q;}ans[i]=p.best;}
+        return ans;
+    }
+}
+```
+
+#### Key logic
+
+Store best candidate at root and every reversed-prefix node. Deepest reachable node resolves the suffix criterion.
+
+#### Complexity
+
+- **Time:** O(S+Q)
+- **Space:** O(S) trie plus output
+
+**Local validation:** PASS
+
+---
+
+<a id="tr10"></a>
+
+## TR10 — Numeric-digit prefix overlap
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Integers must match by leading decimal digits, not numeric proximity.
+
+**Questions:** 3043
+
+### Basic Java 21 template
+
+```java
+Node node = root;
+for (char digit : Integer.toString(value).toCharArray()) {
+    node = ensure(node, digit - '0');
+}
+// For queries, count traversed matching digit edges.
+```
+
+**Core invariant:** Insert decimal strings from first array; count matched edges for each second-array value.
+
+<a id="lc-3043"></a>
+
+### 3043 · Question 14/27
+
+#### Problem statement
+
+Return the maximum length of a common leading decimal digit sequence between any integer in arr1 and any integer in arr2. Return zero if no leading digit matches.
+
+#### Examples
+
+- [1,10,100], [1000] → 3
+- [1,2,3], [4,5,6] → 0
+
+#### Constraints
+
+Each array length 1–50,000; values 1–10^8.
+
+#### Why this approach
+
+Find maximum shared decimal-prefix length across two integer arrays; build digit trie from first array and probe second.
+
+#### Solution progression
+
+Foundation of a new algorithm family. convert integers into decimal digit sequences and count matched prefix depth; no character-word termination required.
+
+#### Complete Java 21 solution
+
+```java
+class Solution {
+    static class Node { Node[] next=new Node[10]; }
+    public int longestCommonPrefix(int[] arr1,int[] arr2){
+        Node root=new Node();
+        for(int x:arr1){Node p=root;for(char c:Integer.toString(x).toCharArray()){int i=c-'0';if(p.next[i]==null)p.next[i]=new Node();p=p.next[i];}}
+        int best=0;
+        for(int x:arr2){Node p=root;int len=0;for(char c:Integer.toString(x).toCharArray()){p=p.next[c-'0'];if(p==null)break;len++;}best=Math.max(best,len);}
+        return best;
+    }
+}
+```
+
+#### Key logic
+
+Insert decimal strings from first array; count matched edges for each second-array value.
+
+#### Complexity
+
+- **Time:** O((n+m)D)
+- **Space:** O(nD)
+
+**Local validation:** PASS
+
+---
+
+<a id="tr11"></a>
+
+## TR11 — Hierarchical folder trie and structural deduplication
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Slash-separated paths define ancestor/descendant nodes.
+
+**Questions:** 1233, 1948
+
+### Basic Java 21 template
+
+```java
+class Node { Map<String, Node> child = new HashMap<>(); boolean terminal; }
+// insert path components in trie
+// TR11 foundation: stop if an ancestor is terminal
+// TR11 extension: postorder canonical signatures of child-name + child-signature pairs.
+```
+
+**Core invariant:** Insert component paths, store original path at terminal; when collecting, stop at first terminal.
+
+<a id="lc-1233"></a>
+
+### 1233 · Question 15/27
+
+#### Problem statement
+
+Given distinct absolute folder paths, return those that are not descendants of another listed folder. An ancestor must match entire slash-delimited components.
+
+#### Examples
+
+- ["/a","/a/b","/c/d","/c/d/e","/c/f"] → ["/a","/c/d","/c/f"]
+- ["/a/b","/a/bc"] → ["/a/b","/a/bc"]
+
+#### Constraints
+
+1–40,000 paths; length 2–100; lowercase folder names and slash separators.
+
+#### Why this approach
+
+Remove child folders when an ancestor is in the input; split paths into components, use trie terminal check or sorted-prefix exclusion.
+
+#### Solution progression
+
+Foundation of a new algorithm family. folder component trie, ancestor terminal means descendants must be discarded.
+
+#### Complete Java 21 solution
+
+```java
+import java.util.*;
+class Solution {
+    static class Node { Map<String,Node> next=new HashMap<>();String path; }
+    public List<String> removeSubfolders(String[] folder){
+        Node root=new Node();
+        for(String s:folder){Node p=root;for(String part:s.substring(1).split("/"))p=p.next.computeIfAbsent(part,k->new Node());p.path=s;}
+        List<String> ans=new ArrayList<>();collect(root,ans);return ans;
+    }
+    private void collect(Node p,List<String> ans){if(p.path!=null){ans.add(p.path);return;}for(Node q:p.next.values())collect(q,ans);}
+}
+```
+
+#### Key logic
+
+Insert component paths, store original path at terminal; when collecting, stop at first terminal.
+
+#### Complexity
+
+- **Time:** O(S) expected
+- **Space:** O(S) trie and O(D) stack
+
+**Local validation:** PASS
+
+<a id="lc-1948"></a>
+
+### 1948 · Question 16/27
+
+#### Problem statement
+
+Given paths of folders in a filesystem, simultaneously delete every folder whose nonempty set of child names and recursively nested structures matches that of another folder. Delete descendants too, then return all surviving paths. Do not repeat the deletion pass.
+
+#### Examples
+
+- [["a"],["c"],["d"],["a","b"],["c","b"],["d","a"]] → [["d"],["d","a"]]
+- [["a"],["b"]] → [["a"],["b"]] (empty folders are not duplicates)
+
+#### Constraints
+
+1–20,000 paths; depth 1–500; component length 1–10; total component characters ≤200,000; parents listed.
+
+#### Why this approach
+
+Detect duplicate folder subtrees by identical child-name/substructure signatures; postorder intern canonical child signatures, mark repeated nonempty subtrees, then emit undeleted paths.
+
+#### Solution progression
+
+Retain folder-component trie; add postorder structural signatures and duplicate-frequency map, then prune entire repeated subtrees rather than ancestor-selected paths.
+
+#### Complete Java 21 solution
+
+```java
+import java.util.*;
+class Solution {
+    static class Node { Map<String,Node> next=new TreeMap<>(); int id; }
+    record Edge(String name,int id) {}
+    private final Map<List<Edge>,Integer> ids=new HashMap<>();
+    private final Map<Integer,Integer> freq=new HashMap<>();
+    public List<List<String>> deleteDuplicateFolder(List<List<String>> paths){
+        ids.clear();freq.clear();Node root=new Node();
+        for(List<String> path:paths){Node p=root;for(String s:path)p=p.next.computeIfAbsent(s,k->new Node());}
+        signature(root,false);List<List<String>> ans=new ArrayList<>();collect(root,new ArrayList<>(),ans);return ans;
+    }
+    private int signature(Node p,boolean real){
+        if(p.next.isEmpty())return 0;
+        List<Edge> key=new ArrayList<>();for(var e:p.next.entrySet())key.add(new Edge(e.getKey(),signature(e.getValue(),true)));
+        p.id=ids.computeIfAbsent(key,k->ids.size()+1);if(real)freq.merge(p.id,1,Integer::sum);return p.id;
+    }
+    private void collect(Node p,List<String> path,List<List<String>> ans){
+        for(var e:p.next.entrySet()){Node q=e.getValue();if(q.id!=0&&freq.getOrDefault(q.id,0)>1)continue;path.add(e.getKey());ans.add(new ArrayList<>(path));collect(q,path,ans);path.remove(path.size()-1);}
+    }
+}
+```
+
+#### Key logic
+
+Postorder intern sorted lists of (child name, child signature ID); mark all repeated nonempty signatures, then collect without deleted subtrees.
+
+#### Complexity
+
+- **Time:** O(S+Σ d log d) expected, d child count
+- **Space:** O(S) including signature keys and output path storage O(P)
+
+**Local validation:** PASS
+
+---
+
+<a id="tr12"></a>
+
+## TR12 — Dictionary segmentation by trie walks
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** A candidate may split into multiple dictionary words at several cut positions.
+
+**Questions:** 472
+
+### Basic Java 21 template
+
+```java
+boolean canSplit(String s, int start, int pieces) {
+    if (start == s.length()) return pieces >= 2;
+    Node node = root;
+    for (int i = start; i < s.length(); i++) {
+        node = node.next[s.charAt(i) - 'a'];
+        if (node == null) break;
+        if (node.end > 0 && canSplit(s, i + 1, pieces + 1)) return true;
+    }
+    return false;
+}
+// Memoize a sufficient segmentation state; avoid using word as its sole component.
+```
+
+**Core invariant:** Sort by length; trie contains only earlier words, so a successful segmentation of a new distinct word needs at least two pieces. DP enumerates reachable boundaries.
+
+<a id="lc-472"></a>
+
+### 472 · Question 17/27
+
+#### Problem statement
+
+Return every dictionary word that consists entirely of at least two shorter dictionary words concatenated together. Components may be reused.
+
+#### Examples
+
+- ["cat","cats","dog","catsdog"] → ["catsdog"]
+- ["a","aa","aaa"] → ["aa","aaa"]
+
+#### Constraints
+
+1–10,000 distinct lowercase words; length 1–30; total length ≤100,000.
+
+#### Why this approach
+
+Identify dictionary words expressible as concatenation of at least two shorter dictionary words; trie endpoint enumeration plus memoized segmentation count/position.
+
+#### Solution progression
+
+Foundation of a new algorithm family. trie walks enumerate dictionary-boundary transitions; DP/memo avoids repeated suffix checks and enforces >=2 pieces.
+
+#### Complete Java 21 solution
+
+```java
+import java.util.*;
+class Solution {
+    static class Node { Node[] next=new Node[26];boolean end; }
+    public List<String> findAllConcatenatedWordsInADict(String[] words){
+        Arrays.sort(words,Comparator.comparingInt(String::length));Node root=new Node();List<String> ans=new ArrayList<>();
+        for(String s:words){if(s.isEmpty())continue;if(split(root,s))ans.add(s);Node p=root;for(char c:s.toCharArray()){int i=c-'a';if(p.next[i]==null)p.next[i]=new Node();p=p.next[i];}p.end=true;}
+        return ans;
+    }
+    private boolean split(Node root,String s){
+        boolean[] dp=new boolean[s.length()+1];dp[0]=true;
+        for(int i=0;i<s.length();i++)if(dp[i]){Node p=root;for(int j=i;j<s.length();j++){p=p.next[s.charAt(j)-'a'];if(p==null)break;if(p.end)dp[j+1]=true;}}
+        return dp[s.length()];
+    }
+}
+```
+
+#### Key logic
+
+Sort by length; trie contains only earlier words, so a successful segmentation of a new distinct word needs at least two pieces. DP enumerates reachable boundaries.
+
+#### Complexity
+
+- **Time:** O(n log n + Σ L²)
+- **Space:** O(S+L) excluding output
+
+**Local validation:** PASS
+
+---
+
+<a id="tr13"></a>
+
+## TR13 — Maximum-XOR binary trie and membership restrictions
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Maximize XOR against a dynamic eligible set of integers.
+
+**Questions:** 421, 1707, 1938
+
+### Basic Java 21 template
+
+```java
+class BitNode { BitNode[] next = new BitNode[2]; int count; }
+BitNode node = root; int ans = 0;
+for (int bit = 30; bit >= 0; bit--) {
+    int b = (value >>> bit) & 1, prefer = b ^ 1;
+    if (node.next[prefer] != null && node.next[prefer].count > 0) {
+        ans |= 1 << bit; node = node.next[prefer];
+    } else node = node.next[b];
+}
+// maintain counts for insert/remove; use signed/unsigned bit width per constraints.
+```
+
+**Core invariant:** Greedily select opposite bit from MSB to LSB; a higher set bit dominates all lower bits.
+
+<a id="lc-421"></a>
+
+### 421 · Question 18/27
+
+#### Problem statement
+
+Find the maximum XOR of two entries of a nonnegative integer array. The same index may be used twice.
+
+#### Examples
+
+- [3,10,5,25,2,8] → 28
+- [0] → 0
+
+#### Constraints
+
+1–200,000 values; 0 ≤ value ≤ 2^31−1.
+
+#### Why this approach
+
+Maximum XOR of any two values; insert bit paths, greedily follow opposite bit to maximize XOR.
+
+#### Solution progression
+
+Foundation of a new algorithm family. MSB-to-LSB binary trie; choose opposite child when available.
+
+#### Complete Java 21 solution
+
+```java
+class Solution {
+    private static final int B=30;
+    static class Node { Node[] next=new Node[2]; int count; }
+    private final Node root=new Node();
+    private void change(int x,int delta){Node p=root;p.count+=delta;for(int b=B;b>=0;b--){int i=(x>>>b)&1;if(p.next[i]==null)p.next[i]=new Node();p=p.next[i];p.count+=delta;}}
+    private int maxXor(int x){if(root.count==0)return -1;Node p=root;int ans=0;for(int b=B;b>=0;b--){int i=(x>>>b)&1;Node q=p.next[i^1];if(q!=null&&q.count>0){ans|=1<<b;p=q;}else p=p.next[i];}return ans;}
+    public int findMaximumXOR(int[] nums){int ans=0;for(int x:nums){change(x,1);ans=Math.max(ans,maxXor(x));}return ans;}
+}
+```
+
+#### Key logic
+
+Greedily select opposite bit from MSB to LSB; a higher set bit dominates all lower bits.
+
+#### Complexity
+
+- **Time:** O(nB), B=31
+- **Space:** O(nB)
+
+**Local validation:** PASS
+
+<a id="lc-1707"></a>
+
+### 1707 · Question 19/27
+
+#### Problem statement
+
+For each query [x,m], return maximum x XOR v over array values v ≤ m, or −1 if no such value exists. Preserve query order.
+
+#### Examples
+
+- [0,1,2,3,4], [[3,1],[1,3],[5,6]] → [3,3,7]
+- [5], [[1,4]] → [-1]
+
+#### Constraints
+
+1–100,000 values and queries; values, x and m in 0–10^9.
+
+#### Why this approach
+
+For each query maximize XOR against only values <= given bound; sort values and queries by limit, insert eligible values incrementally.
+
+#### Solution progression
+
+Keep max-XOR traversal; replace one static trie with offline monotonic insertion by bound, including empty-trie result -1.
+
+#### Complete Java 21 solution
+
+```java
+import java.util.*;
+class Solution {
+    private static final int B=29;
+    static class Node { Node[] next=new Node[2]; int count; }
+    private final Node root=new Node();
+    private void change(int x,int delta){Node p=root;p.count+=delta;for(int b=B;b>=0;b--){int i=(x>>>b)&1;if(p.next[i]==null)p.next[i]=new Node();p=p.next[i];p.count+=delta;}}
+    private int maxXor(int x){if(root.count==0)return -1;Node p=root;int ans=0;for(int b=B;b>=0;b--){int i=(x>>>b)&1;Node q=p.next[i^1];if(q!=null&&q.count>0){ans|=1<<b;p=q;}else p=p.next[i];}return ans;}
+    public int[] maximizeXor(int[] nums,int[][] queries){
+        Arrays.sort(nums);Integer[] order=new Integer[queries.length];for(int i=0;i<order.length;i++)order[i]=i;Arrays.sort(order,Comparator.comparingInt(i->queries[i][1]));
+        int[] ans=new int[order.length];int j=0;
+        for(int i:order){while(j<nums.length&&nums[j]<=queries[i][1])change(nums[j++],1);ans[i]=maxXor(queries[i][0]);}return ans;
+    }
+}
+```
+
+#### Key logic
+
+Sort values and query indices by m; insert newly eligible values once, query same greedy trie.
+
+#### Complexity
+
+- **Time:** O(n log n+q log q+(n+q)B)
+- **Space:** O(nB+q)
+
+**Local validation:** PASS
+
+<a id="lc-1938"></a>
+
+### 1938 · Question 20/27
+
+#### Problem statement
+
+A rooted tree is given by parents, with −1 for the root and node labels equal to indices. For each [node,val], maximize val XOR ancestorLabel over node itself and all its ancestors.
+
+#### Examples
+
+- parents=[-1,0,1,1], queries=[[2,3],[3,2]] → [3,3]
+- parents=[-1,0], queries=[[0,7]] → [7]
+
+#### Constraints
+
+2–100,000 nodes; up to 30,000 queries; val 0–200,000; valid rooted tree.
+
+#### Why this approach
+
+Max XOR with an ancestor node ID in a rooted tree; DFS activates current root-to-node path in counted binary trie and removes it on return.
+
+#### Solution progression
+
+Retain max-XOR query, replace offline monotonic insertion with DFS-scoped insert/remove and query batches at active nodes.
+
+#### Complete Java 21 solution
+
+```java
+import java.util.*;
+class Solution {
+    private static final int B=17;
+    static class Node { Node[] next=new Node[2]; int count; }
+    private final Node root=new Node();
+    private void change(int x,int delta){Node p=root;p.count+=delta;for(int b=B;b>=0;b--){int i=(x>>>b)&1;if(p.next[i]==null)p.next[i]=new Node();p=p.next[i];p.count+=delta;}}
+    private int maxXor(int x){if(root.count==0)return -1;Node p=root;int ans=0;for(int b=B;b>=0;b--){int i=(x>>>b)&1;Node q=p.next[i^1];if(q!=null&&q.count>0){ans|=1<<b;p=q;}else p=p.next[i];}return ans;}
+    public int[] maxGeneticDifference(int[] parents,int[][] queries){
+        int n=parents.length,r=0;List<List<Integer>> children=new ArrayList<>(),at=new ArrayList<>();
+        for(int i=0;i<n;i++){children.add(new ArrayList<>());at.add(new ArrayList<>());}
+        for(int i=0;i<n;i++)if(parents[i]<0)r=i;else children.get(parents[i]).add(i);
+        for(int i=0;i<queries.length;i++)at.get(queries[i][0]).add(i);
+        int[] ans=new int[queries.length];Deque<Integer> stack=new ArrayDeque<>();stack.push(r);
+        while(!stack.isEmpty()){int u=stack.pop();if(u<0){change(~u,-1);continue;}change(u,1);for(int i:at.get(u))ans[i]=maxXor(queries[i][1]);stack.push(~u);for(int v:children.get(u))stack.push(v);}
+        return ans;
+    }
+}
+```
+
+#### Key logic
+
+Iterative DFS enter/exit events insert and remove labels. Query only while the root-to-node path is active.
+
+#### Complexity
+
+- **Time:** O((n+q)B)
+- **Space:** O(nB+n+q)
+
+**Local validation:** PASS
+
+---
+
+<a id="tr14"></a>
+
+## TR14 — Bitwise trie pair counting with threshold
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Count, rather than maximize, previous values with XOR below a limit.
+
+**Questions:** 1803
+
+### Basic Java 21 template
+
+```java
+long countLess(BitNode node, int value, int limit) {
+    long count = 0;
+    for (int bit = 30; bit >= 0 && node != null; bit--) {
+        int x = (value >>> bit) & 1, k = (limit >>> bit) & 1;
+        if (k == 1) {
+            if (node.next[x] != null) count += node.next[x].count;
+            node = node.next[x ^ 1];
+        } else node = node.next[x];
+    }
+    return count;
+}
+// count inclusive [lo,hi] via less(hi+1)-less(lo).
+```
+
+**Core invariant:** Count prior values with XOR strictly below a threshold. At a threshold bit 1, the equal-input-bit subtree is fully accepted; continue down opposite edge.
+
+<a id="lc-1803"></a>
+
+### 1803 · Question 21/27
+
+#### Problem statement
+
+Count index pairs i < j whose XOR lies in inclusive range [low,high].
+
+#### Examples
+
+- [1,4,2,7], low=2, high=6 → 6
+- [1,1], low=1, high=2 → 0
+
+#### Constraints
+
+1–20,000 values; values and bounds 1–20,000; low ≤ high.
+
+#### Why this approach
+
+Count pairs with XOR in inclusive [low,high]; for each number query prior trie for XOR < high+1 minus XOR < low, then insert.
+
+#### Solution progression
+
+Foundation of a new algorithm family. trie subtree counts support countLessThanXor(value,limit), not greedy maximum XOR.
+
+#### Complete Java 21 solution
+
+```java
+class Solution {
+    static class Node {Node[] next=new Node[2];int count;}
+    private final Node root=new Node();
+    private void insert(int x){Node p=root;for(int b=14;b>=0;b--){int i=(x>>>b)&1;if(p.next[i]==null)p.next[i]=new Node();p=p.next[i];p.count++;}}
+    private int less(int x,int limit){Node p=root;int ans=0;for(int b=14;b>=0&&p!=null;b--){int i=(x>>>b)&1;if(((limit>>>b)&1)==1){if(p.next[i]!=null)ans+=p.next[i].count;p=p.next[i^1];}else p=p.next[i];}return ans;}
+    public int countPairs(int[] nums,int low,int high){int ans=0;for(int x:nums){ans+=less(x,high+1)-less(x,low);insert(x);}return ans;}
+}
+```
+
+#### Key logic
+
+Count prior values with XOR strictly below a threshold. At a threshold bit 1, the equal-input-bit subtree is fully accepted; continue down opposite edge.
+
+#### Complexity
+
+- **Time:** O(nB), B=15
+- **Space:** O(nB)
+
+**Local validation:** PASS
+
+---
+
+<a id="tr15"></a>
+
+## TR15 — Constrained-window maximum XOR trie
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Maximize XOR subject to a numeric pair restriction.
+
+**Questions:** 2935
+
+### Basic Java 21 template
+
+```java
+Arrays.sort(a);
+int left = 0;
+for (int right = 0; right < a.length; right++) {
+    insert(a[right]);
+    while ((long)a[left] * 2 < a[right]) remove(a[left++]);
+    int bestWithRight = maxXor(a[right]);
+    // update global best
+}
+// bit-trie nodes keep multiplicities for removal.
+```
+
+**Core invariant:** After sorting, for each right endpoint keep all prior values with 2·value ≥ current. Remove smaller values and query active trie.
+
+<a id="lc-2935"></a>
+
+### 2935 · Question 22/27
+
+#### Problem statement
+
+A pair (x,y) is strong if |x−y| ≤ min(x,y). Return the largest XOR of any strong pair from nums; using the same entry twice is allowed.
+
+#### Examples
+
+- [1,2,3,4,5] → 7
+- [10,100] → 0
+
+#### Constraints
+
+1–50,000 positive values; values ≤ 2^20−1.
+
+#### Why this approach
+
+Maximize strong-pair XOR when max <= 2*min; sort values, keep eligible sliding numeric window in counted bitwise trie, query greedy max XOR.
+
+#### Solution progression
+
+Foundation of a new algorithm family. unlike TR14 count-of-pairs thresholds, use greedy maximum-XOR querying with deletable trie and sorted multiplicative window.
+
+#### Complete Java 21 solution
+
+```java
+import java.util.*;
+class Solution {
+    private static final int B=19;
+    static class Node { Node[] next=new Node[2]; int count; }
+    private final Node root=new Node();
+    private void change(int x,int delta){Node p=root;p.count+=delta;for(int b=B;b>=0;b--){int i=(x>>>b)&1;if(p.next[i]==null)p.next[i]=new Node();p=p.next[i];p.count+=delta;}}
+    private int maxXor(int x){if(root.count==0)return -1;Node p=root;int ans=0;for(int b=B;b>=0;b--){int i=(x>>>b)&1;Node q=p.next[i^1];if(q!=null&&q.count>0){ans|=1<<b;p=q;}else p=p.next[i];}return ans;}
+    public int maximumStrongPairXor(int[] nums){Arrays.sort(nums);int left=0,ans=0;for(int right=0;right<nums.length;right++){change(nums[right],1);while(2L*nums[left]<nums[right])change(nums[left++],-1);ans=Math.max(ans,maxXor(nums[right]));}return ans;}
+}
+```
+
+#### Key logic
+
+After sorting, for each right endpoint keep all prior values with 2·value ≥ current. Remove smaller values and query active trie.
+
+#### Complexity
+
+- **Time:** O(n log n+nB)
+- **Space:** O(nB)
+
+**Local validation:** PASS
+
+---
+
+<a id="tr16"></a>
+
+## TR16 — Two-sided prefix and suffix query index
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Search constraints involve a word prefix and a word suffix together.
+
+**Questions:** 745
+
+### Basic Java 21 template
+
+```java
+for (int i = 0; i <= word.length(); i++) {
+    String key = word.substring(i) + "{" + word;
+    // insert key; maintain maximum original word index on path
+}
+// query suffix + "{" + prefix, return max index at node.
+```
+
+**Core invariant:** Insert each suffix + separator + full word; update latest index on each visited node. Query suffix + separator + prefix.
+
+<a id="lc-745"></a>
+
+### 745 · Question 23/27
+
+#### Problem statement
+
+Build a word filter; f(pref,suff) returns the largest original index of a word starting with pref and ending with suff, or −1 if absent.
+
+#### Examples
+
+- words=["apple"]; f("a","e") → 0; f("b","e") → -1
+- words=["apple","ape"]; f("a","e") → 1
+
+#### Constraints
+
+1–10,000 lowercase words; word, prefix and suffix lengths 1–7; up to 10,000 queries.
+
+#### Why this approach
+
+Find maximum word index matching a prefix and suffix; build combined suffix+separator+word trie with max index or equivalent indexed trie scheme.
+
+#### Solution progression
+
+Foundation of a new algorithm family. combine two independent string constraints into one searchable trie key, update maximum index at visited nodes.
+
+#### Complete Java 21 solution
+
+```java
+class WordFilter {
+    static class Node { Node[] next=new Node[27];int index=-1; }
+    private final Node root=new Node();
+    public WordFilter(String[] words){for(int i=0;i<words.length;i++){String w=words[i];for(int j=0;j<=w.length();j++){String key=w.substring(j)+"{"+w;Node p=root;for(char c:key.toCharArray()){int k=c-'a';if(p.next[k]==null)p.next[k]=new Node();p=p.next[k];p.index=i;}}}}
+    public int f(String pref,String suff){Node p=root;for(char c:(suff+"{"+pref).toCharArray()){p=p.next[c-'a'];if(p==null)return -1;}return p.index;}
+}
+```
+
+#### Key logic
+
+Insert each suffix + separator + full word; update latest index on each visited node. Query suffix + separator + prefix.
+
+#### Complexity
+
+- **Time:** O(nL²) build; O(P+Q) query
+- **Space:** O(nL²) nodes
+
+**Local validation:** PASS
+
+---
+
+<a id="tr17"></a>
+
+## TR17 — Paired endpoint characters in a trie
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** An earlier word must match both the start and end of a later word.
+
+**Questions:** 3045
+
+### Basic Java 21 template
+
+```java
+Node node = root;
+for (int i = 0; i < word.length(); i++) {
+    int front = word.charAt(i) - 'a';
+    int back = word.charAt(word.length() - 1 - i) - 'a';
+    int pairKey = front * 26 + back;
+    node = ensure(node, pairKey);
+    matches += node.end; // previously inserted shorter or equal words
+}
+node.end++; // process words in original order
+```
+
+**Core invariant:** Encode symmetric front/back characters as a single edge. Count earlier terminal nodes on current path, then increment current terminal.
+
+<a id="lc-3045"></a>
+
+### 3045 · Question 24/27
+
+#### Problem statement
+
+Count ordered index pairs i < j for which words[i] is simultaneously a prefix and suffix of words[j].
+
+#### Examples
+
+- ["a","aba","ababa","aa"] → 4
+- ["pa","papa","ma","mama"] → 2
+
+#### Constraints
+
+1–100,000 lowercase words; each length 1–100,000; total length ≤500,000.
+
+#### Why this approach
+
+Count pairs where earlier word is both prefix and suffix of later word; insert paired (frontChar,backChar) symbols and query terminal counts while reading current word.
+
+#### Solution progression
+
+Foundation of a new algorithm family. trie alphabet is a pair of symmetric characters; count earlier terminal keys along current path before insertion.
+
+#### Complete Java 21 solution
+
+```java
+import java.util.*;
+class Solution {
+    static class Node {Map<Integer,Node> next=new HashMap<>();int end;}
+    public long countPrefixSuffixPairs(String[] words){Node root=new Node();long ans=0;for(String s:words){Node p=root;for(int i=0;i<s.length();i++){int key=(s.charAt(i)-'a')*26+s.charAt(s.length()-1-i)-'a';p=p.next.computeIfAbsent(key,k->new Node());ans+=p.end;}p.end++;}return ans;}
+}
+```
+
+#### Key logic
+
+Encode symmetric front/back characters as a single edge. Count earlier terminal nodes on current path, then increment current terminal.
+
+#### Complexity
+
+- **Time:** O(S) expected
+- **Space:** O(S)
+
+**Local validation:** PASS
+
+---
+
+<a id="tr18"></a>
+
+## TR18 — Implicit decimal trie and lexicographic rank
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Lexicographic order over integers corresponds to preorder over digit prefixes.
+
+**Questions:** 386, 440
+
+### Basic Java 21 template
+
+```java
+long steps(long prefix, long next, long n) {
+    long count = 0;
+    while (prefix <= n) {
+        count += Math.min(n + 1, next) - prefix;
+        prefix *= 10; next *= 10;
+    }
+    return count;
+}
+// Visit implicit trie for enumeration, or skip steps(prefix,prefix+1,n) for kth.
+```
+
+**Core invariant:** Preorder implicit digit trie: descend by multiplying by ten, otherwise climb until a valid next sibling exists.
+
+<a id="lc-386"></a>
+
+### 386 · Question 25/27
+
+#### Problem statement
+
+Return all integers from 1 through n in lexicographic (decimal string) order, using linear time and constant auxiliary space apart from output.
+
+#### Examples
+
+- n=13 → [1,10,11,12,13,2,3,4,5,6,7,8,9]
+- n=2 → [1,2]
+
+#### Constraints
+
+1 ≤ n ≤ 50,000.
+
+#### Why this approach
+
+Enumerate integers 1..n in lexicographic order by implicit 10-ary trie preorder, avoiding string sorting.
+
+#### Solution progression
+
+Foundation of a new algorithm family. visit digit-prefix node, descend to first child when feasible, otherwise advance next sibling/ancestor.
+
+#### Complete Java 21 solution
+
+```java
+import java.util.*;
+class Solution {
+    public List<Integer> lexicalOrder(int n){List<Integer> ans=new ArrayList<>(n);int cur=1;for(int i=0;i<n;i++){ans.add(cur);if(i==n-1)break;if(cur<=n/10)cur*=10;else{while(cur%10==9||cur+1>n)cur/=10;cur++;}}return ans;}
+}
+```
+
+#### Key logic
+
+Preorder implicit digit trie: descend by multiplying by ten, otherwise climb until a valid next sibling exists.
+
+#### Complexity
+
+- **Time:** O(n) amortized
+- **Space:** O(1) auxiliary; O(n) output
+
+**Local validation:** PASS
+
+<a id="lc-440"></a>
+
+### 440 · Question 26/27
+
+#### Problem statement
+
+Return the kth integer in lexicographic order among 1 through n, with k one-based.
+
+#### Examples
+
+- n=13,k=2 → 10
+- n=1,k=1 → 1
+
+#### Constraints
+
+1 ≤ k ≤ n ≤ 10^9.
+
+#### Why this approach
+
+Find kth lexicographic integer without enumerating all predecessors; count numbers in each implicit prefix subtree and either skip entire subtree or descend.
+
+#### Solution progression
+
+Keep implicit digit-prefix hierarchy; replace visit-every-node traversal with prefix-subtree counts and rank subtraction.
+
+#### Complete Java 21 solution
+
+```java
+class Solution {
+    public int findKthNumber(int n,int k){long p=1;k--;while(k>0){long count=steps(p,p+1,n);if(count<=k){p++;k-=count;}else{p*=10;k--;}}return (int)p;}
+    private long steps(long p,long next,long n){long count=0;while(p<=n){count+=Math.min(n+1,next)-p;p*=10;next*=10;}return count;}
+}
+```
+
+#### Key logic
+
+Count the integers in prefix interval [p,p+1) at every depth; skip entire subtree if rank lies beyond it, otherwise descend.
+
+#### Complexity
+
+- **Time:** O(log² n) for fixed decimal alphabet
+- **Space:** O(1)
+
+**Local validation:** PASS
+
+---
+
+<a id="tr19"></a>
+
+## TR19 — Palindrome-aware reverse-word matching
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** A pair of words is valid only when concatenation is palindromic.
+
+**Questions:** 336
+
+### Basic Java 21 template
+
+```java
+// Insert reversed dictionary words into trie.
+// Each node stores terminal index and indices with remaining-palindromic prefix.
+// During query scan, handle (a) earlier terminal + remaining palindrome
+// and (b) query exhausted + palindrome-index list; exclude self-pair.
+```
+
+**Core invariant:** Use Manacher odd/even radii to precompute palindrome prefix/suffix flags in linear time. Reverse trie stores terminal and indices whose remaining original prefix is palindromic. Query checks suffix flags at earlier terminals and candidate list after exhaustion.
+
+<a id="lc-336"></a>
+
+### 336 · Question 27/27
+
+#### Problem statement
+
+Given distinct words (possibly including the empty string), return all ordered pairs of distinct indices whose concatenation is a palindrome. The problem requests linear time in total word length apart from output.
+
+#### Examples
+
+- ["abcd","dcba","lls","s","sssll"] → [[0,1],[1,0],[3,2],[2,4]]
+- ["a",""] → [[0,1],[1,0]]
+
+#### Constraints
+
+1–5000 distinct lowercase words; length 0–300.
+
+#### Why this approach
+
+Find all ordered word pairs forming a palindrome; reverse-word trie stores terminals and remaining palindrome-prefix candidates, check suffix/prefix palindromes during traversal.
+
+#### Solution progression
+
+Foundation of a new algorithm family. trie paths on reversed words with palindrome metadata; report both completed-word and remaining-palindrome cases, not merely suffix equality.
+
+#### Complete Java 21 solution
+
+```java
+import java.util.*;
+class Solution {
+    static class Node {Node[] next=new Node[26];int end=-1;List<Integer> pal=new ArrayList<>();}
+    // flags[0][len] means prefix of length len is palindrome;
+    // flags[1][start] means suffix beginning at start is palindrome.
+    private boolean[][] flags(String s){
+        int n=s.length();boolean[][] f=new boolean[2][n+1];f[0][0]=true;f[1][n]=true;
+        int[] odd=new int[n],even=new int[n];
+        for(int i=0,l=0,r=-1;i<n;i++){
+            int k=i>r?1:Math.min(odd[l+r-i],r-i+1);
+            while(i-k>=0&&i+k<n&&s.charAt(i-k)==s.charAt(i+k))k++;
+            odd[i]=k;int a=i-k+1,b=i+k-1;if(a==0)f[0][b+1]=true;if(b==n-1)f[1][a]=true;
+            if(b>r){l=a;r=b;}
+        }
+        for(int i=0,l=0,r=-1;i<n;i++){
+            int k=i>r?0:Math.min(even[l+r-i+1],r-i+1);
+            while(i-k-1>=0&&i+k<n&&s.charAt(i-k-1)==s.charAt(i+k))k++;
+            even[i]=k;int a=i-k,b=i+k-1;if(k>0){if(a==0)f[0][b+1]=true;if(b==n-1)f[1][a]=true;}
+            if(b>r){l=a;r=b;}
+        }
+        return f;
+    }
+    public List<List<Integer>> palindromePairs(String[] words){
+        Node root=new Node();boolean[][][] all=new boolean[words.length][][];
+        for(int i=0;i<words.length;i++){
+            String s=words[i];all[i]=flags(s);Node p=root;
+            for(int j=s.length()-1;j>=0;j--){if(all[i][0][j+1])p.pal.add(i);int c=s.charAt(j)-'a';if(p.next[c]==null)p.next[c]=new Node();p=p.next[c];}
+            p.end=i;p.pal.add(i);
+        }
+        List<List<Integer>> ans=new ArrayList<>();
+        for(int i=0;i<words.length;i++){
+            String s=words[i];Node p=root;
+            for(int j=0;j<s.length()&&p!=null;j++){if(p.end>=0&&p.end!=i&&all[i][1][j])ans.add(List.of(i,p.end));p=p.next[s.charAt(j)-'a'];}
+            if(p!=null)for(int j:p.pal)if(j!=i)ans.add(List.of(i,j));
+        }
+        return ans;
+    }
+}
+```
+
+#### Key logic
+
+Use Manacher odd/even radii to precompute palindrome prefix/suffix flags in linear time. Reverse trie stores terminal and indices whose remaining original prefix is palindromic. Query checks suffix flags at earlier terminals and candidate list after exhaustion.
+
+#### Complexity
+
+- **Time:** O(S+n+K) for fixed alphabet, K output pairs
+- **Space:** O(S+n+K) including output
+
+**Local validation:** PASS
+
+---
+
+<a id="final-registry"></a>
+
+## Final registry and verification
+
+| Order | LeetCode | Family | Local compile and tests |
+
+|---:|---:|---|---|
+
+| 01 | 208 | TR1 | PASS |
+
+| 02 | 1804 | TR1 | PASS |
+
+| 03 | 211 | TR2 | PASS |
+
+| 04 | 676 | TR2 | PASS |
+
+| 05 | 648 | TR3 | PASS |
+
+| 06 | 720 | TR4 | PASS |
+
+| 07 | 677 | TR5 | PASS |
+
+| 08 | 2416 | TR5 | PASS |
+
+| 09 | 1268 | TR6 | PASS |
+
+| 10 | 212 | TR7 | PASS |
+
+| 11 | 1032 | TR8 | PASS |
+
+| 12 | 820 | TR9 | PASS |
+
+| 13 | 3093 | TR9 | PASS |
+
+| 14 | 3043 | TR10 | PASS |
+
+| 15 | 1233 | TR11 | PASS |
+
+| 16 | 1948 | TR11 | PASS |
+
+| 17 | 472 | TR12 | PASS |
+
+| 18 | 421 | TR13 | PASS |
+
+| 19 | 1707 | TR13 | PASS |
+
+| 20 | 1938 | TR13 | PASS |
+
+| 21 | 1803 | TR14 | PASS |
+
+| 22 | 2935 | TR15 | PASS |
+
+| 23 | 745 | TR16 | PASS |
+
+| 24 | 3045 | TR17 | PASS |
+
+| 25 | 386 | TR18 | PASS |
+
+| 26 | 440 | TR18 | PASS |
+
+| 27 | 336 | TR19 | PASS |
+
+
+
+**Validation:** 27/27 standalone solutions compiled and passed executable Java assertions using `javac --release 21` and `java -ea` (OpenJDK 21.0.12.1). Tests cover the displayed examples; 336, 1803 and 2935 additionally have 200 randomized differential cases each, and 440 checks all ranks for n=1..200. These are local checks, not LeetCode submissions or exhaustive performance tests.
+
+**Registry:** 27 unique IDs in 19 families, exact locked order preserved. Practice progress remains 0/27; next 208. No master file changes.
+
+**Scope note:** Aho–Corasick, suffix automata, compressed/radix tries and Unicode considerations are companion concepts in the source, not additional locked problems.

@@ -1,0 +1,2005 @@
+# T25 — Dynamic Programming | Volume 3 of 3
+
+**Locked sequence:** 61–89 of 89 · **Families:** DP23–DP37 · **Language:** Java 21
+
+Source: `MASTER_DSA_CURRICULUM.md`, section C25. Family names, recognition cues and implementation evolution follow the locked registry. Problem statements, examples, constraints and implementations are author-prepared supplements; constraints have not been independently checked against live LeetCode pages.
+
+**Volume plan:** Volume 1: 1–30; Volume 2: 31–60; Volume 3: 61–89. Families are not split.
+
+## How to study
+
+Define the state, base cases, transition and dependency order before reading the implementation. Compare each solution with its predecessor in the same family. For rolling arrays, identify which values still represent the previous layer. All examples below were executed locally; this does not constitute LeetCode acceptance.
+
+## Contents
+
+- [DP23 — Stock trading under state constraints](#dp23)
+  - [61. 714](#lc-714)
+  - [62. 309](#lc-309)
+  - [63. 123](#lc-123)
+  - [64. 188](#lc-188)
+- [DP24 — Sequence difference and arithmetic progression DP](#dp24)
+  - [65. 1027](#lc-1027)
+  - [66. 446](#lc-446)
+- [DP25 — Alternating / constrained subsequence states](#dp25)
+  - [67. 1911](#lc-1911)
+  - [68. 376](#lc-376)
+- [DP26 — Game theory on optimal suffixes](#dp26)
+  - [69. 1406](#lc-1406)
+  - [70. 1140](#lc-1140)
+- [DP27 — Interval game advantage](#dp27)
+  - [71. 1690](#lc-1690)
+- [DP28 — Probabilistic DP over state transitions](#dp28)
+  - [72. 688](#lc-688)
+  - [73. 837](#lc-837)
+- [DP29 — Memoized stochastic resource depletion](#dp29)
+  - [74. 808](#lc-808)
+- [DP30 — Bitmask state compression and set coverage](#dp30)
+  - [75. 691](#lc-691)
+  - [76. 1125](#lc-1125)
+  - [77. 1799](#lc-1799)
+- [DP31 — Row-profile mask transitions](#dp31)
+  - [78. 1349](#lc-1349)
+- [DP32 — Digit DP on upper bounds](#dp32)
+  - [79. 233](#lc-233)
+  - [80. 902](#lc-902)
+  - [81. 2376](#lc-2376)
+  - [82. 1012](#lc-1012)
+- [DP33 — Minimum cost to cut strings / sequences with automata](#dp33)
+  - [83. 926](#lc-926)
+  - [84. 1653](#lc-1653)
+- [DP34 — Digit string decoding counts](#dp34)
+  - [85. 91](#lc-91)
+  - [86. 639](#lc-639)
+- [DP35 — Distinct subsequence matching counts](#dp35)
+  - [87. 115](#lc-115)
+- [DP36 — Distinct nonempty subsequence totals](#dp36)
+  - [88. 940](#lc-940)
+- [DP37 — Reverse minimum required resource DP](#dp37)
+  - [89. 174](#lc-174)
+
+- [Final registry](#final-registry)
+
+<a id="dp23"></a>
+## DP23 — Stock trading under state constraints
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Each day transitions between cash, holding, cooldown, and number-of-sales states.
+
+**Ordered questions:** 714, 309, 123, 188
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+long cash = 0, hold = Long.MIN_VALUE / 4;
+for (int price : prices) {
+    long oldCash = cash;
+    cash = Math.max(cash, hold + price); // sale, add fee when specified
+    hold = Math.max(hold, oldCash - price);
+}
+```
+
+<a id="lc-714"></a>
+### 61. LeetCode 714
+
+**Problem**
+
+Given daily stock prices, maximize profit from any number of transactions, paying fee once per completed transaction. Hold at most one share at a time and sell before buying again.
+
+**Examples**
+
+- prices=[1,3,2,8,4,9], fee=2 → 8
+- prices=[1,3,7,5,10,3], fee=3 → 6
+
+**Constraints**
+
+1 ≤ n ≤ 50000; 1 ≤ prices[i] < 50000; 0 ≤ fee < 50000
+
+**Why this approach / key logic**
+
+cash is maximum profit without a share; hold is maximum net profit with a share. Sell from old hold minus fee; buy from old cash. Initialize hold to minus first price.
+
+**Locked strategy:** Two-state holding/cash DP; charge fee on sale (or purchase) exactly once.
+
+**Evolution from previous solution:** BASE: each day can hold, buy, sell or rest, with paid transaction fee.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int maxProfit(int[] prices,int fee) {
+        int cash=0,hold=-prices[0];
+        for(int i=1;i<prices.length;i++) {
+            int oldCash=cash;
+            cash=Math.max(cash,hold+prices[i]-fee);
+            hold=Math.max(hold,oldCash-prices[i]);
+        }
+        return cash;
+    }
+}
+```
+
+**Complexity:** O(n) time, O(1) space.
+
+---
+
+<a id="lc-309"></a>
+### 62. LeetCode 309
+
+**Problem**
+
+Maximize profit from unlimited stock trades holding at most one share, but after selling on day i you cannot buy on day i+1.
+
+**Examples**
+
+- [1,2,3,0,2] → 3
+- [1] → 0
+
+**Constraints**
+
+1 ≤ n ≤ 5000; 0 ≤ prices[i] ≤ 1000
+
+**Why this approach / key logic**
+
+Separate nonholding into sold today and rest. Only previous rest can fund a buy; sold becomes eligible to buy after a rest day. Return maximum nonholding state.
+
+**Locked strategy:** Track hold, sold, rest; buying can only come from prior rest.
+
+**Evolution from previous solution:** Replace sale fee with post-sale cooldown state and forbidden immediate repurchase.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int maxProfit(int[] prices) {
+        int hold=-prices[0],sold=Integer.MIN_VALUE/2,rest=0;
+        for(int i=1;i<prices.length;i++) {
+            int nextHold=Math.max(hold,rest-prices[i]);
+            int nextSold=hold+prices[i];
+            rest=Math.max(rest,sold);
+            hold=nextHold;
+            sold=nextSold;
+        }
+        return Math.max(rest,sold);
+    }
+}
+```
+
+**Complexity:** O(n) time, O(1) space.
+
+---
+
+<a id="lc-123"></a>
+### 63. LeetCode 123
+
+**Problem**
+
+Maximize stock trading profit using at most two completed buy-sell transactions. You cannot hold multiple shares simultaneously.
+
+**Examples**
+
+- [3,3,5,0,0,3,1,4] → 6
+- [1,2,3,4,5] → 4
+- [7,6,4,3,1] → 0
+
+**Constraints**
+
+1 ≤ n ≤ 100000; 0 ≤ prices[i] ≤ 100000
+
+**Why this approach / key logic**
+
+Four rolling action states store best profit after first buy, first sale, second buy, second sale. Update in reverse action order to consume previous-day states. Zero sale profits permit fewer transactions.
+
+**Locked strategy:** Track 4 action states or dp[transactions][holding] for up to two sales.
+
+**Evolution from previous solution:** Replace cooldown restriction with sale-count dimension and standard action transitions.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int maxProfit(int[] prices) {
+        int buy1=-prices[0],buy2=-prices[0],sell1=0,sell2=0;
+        for(int p:prices) {
+            sell2=Math.max(sell2,buy2+p);
+            buy2=Math.max(buy2,sell1-p);
+            sell1=Math.max(sell1,buy1+p);
+            buy1=Math.max(buy1,-p);
+        }
+        return sell2;
+    }
+}
+```
+
+**Complexity:** O(n) time, O(1) space.
+
+---
+
+<a id="lc-188"></a>
+### 64. LeetCode 188
+
+**Problem**
+
+Maximize profit using at most k buy-sell transactions, with at most one share held at a time.
+
+**Examples**
+
+- k=2, prices=[2,4,1] → 2
+- k=2, prices=[3,2,6,5,0,3] → 7
+
+**Constraints**
+
+1 ≤ k ≤ 100; 1 ≤ n ≤ 1000; 0 ≤ prices[i] ≤ 1000
+
+**Why this approach / key logic**
+
+Generalize action states to arrays. Descend transaction index so buy[t] uses previous-day sell[t−1]. If k≥n/2, the limit cannot bind; sum positive adjacent gains.
+
+**Locked strategy:** Generalize fixed 2 transactions to parameterized k states, handle k>=n/2 with unlimited-transactions optimization.
+
+**Evolution from previous solution:** Replace fixed action slots with arrays by completed transaction budget and add unlimited-trade shortcut.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int maxProfit(int k,int[] prices) {
+        int n=prices.length;
+        if(k>=n/2) {
+            int ans=0;
+            for(int i=1;i<n;i++)ans+=Math.max(0,prices[i]-prices[i-1]);
+            return ans;
+        }
+        int[] buy=new int[k+1],sell=new int[k+1];
+        Arrays.fill(buy,-prices[0]);
+        for(int p:prices)for(int t=k;t>=1;t--) {
+            sell[t]=Math.max(sell[t],buy[t]+p);
+            buy[t]=Math.max(buy[t],sell[t-1]-p);
+        }
+        return sell[k];
+    }
+}
+```
+
+**Complexity:** O(nk) time, O(k) space; unlimited shortcut O(n) time, O(1) space.
+
+---
+
+<a id="dp24"></a>
+## DP24 — Sequence difference and arithmetic progression DP
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** The last value and a maintained difference determine which previous subsequences extend.
+
+**Ordered questions:** 1027, 446
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+Map<Long,Integer>[] ending = new HashMap[n];
+for (int i = 0; i < n; i++) {
+    ending[i] = new HashMap<>();
+    for (int j = 0; j < i; j++) {
+        long diff = (long)a[i] - a[j];
+        ending[i].merge(diff, ending[j].getOrDefault(diff,1)+1, Math::max);
+    }
+}
+```
+
+<a id="lc-1027"></a>
+### 65. LeetCode 1027
+
+**Problem**
+
+Return length of longest subsequence whose consecutive values have the same difference, preserving original index order.
+
+**Examples**
+
+- [3,6,9,12] → 4
+- [9,4,7,2,10] → 3
+
+**Constraints**
+
+2 ≤ n ≤ 1000; 0 ≤ nums[i] ≤ 500
+
+**Why this approach / key logic**
+
+dp[i][d] stores longest arithmetic chain ending at i with difference d. Offset differences by 500 to use bounded dense maps. A new pair has length two; extend earlier chains by one.
+
+**Locked strategy:** Per-index map diff -> longest length, seeded at 2 for each pair.
+
+**Evolution from previous solution:** BASE: equal difference extends earlier two-point arithmetic chain.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int longestArithSeqLength(int[] nums) {
+        int n=nums.length,ans=2;
+        int[][] dp=new int[n][1001];
+        for(int i=0;i<n;i++)for(int j=0;j<i;j++) {
+            int d=nums[i]-nums[j]+500;
+            dp[i][d]=Math.max(dp[i][d],Math.max(2,dp[j][d]+1));
+            ans=Math.max(ans,dp[i][d]);
+        }
+        return ans;
+    }
+}
+```
+
+**Complexity:** O(n²+nD) time, O(nD) space, D=1001 possible differences.
+
+---
+
+<a id="lc-446"></a>
+### 66. LeetCode 446
+
+**Problem**
+
+Count arithmetic subsequences of length at least three, distinguishing different index choices even if values match.
+
+**Examples**
+
+- [2,4,6,8,10] → 7
+- [7,7,7,7,7] → 16
+
+**Constraints**
+
+1 ≤ n ≤ 1000; signed 32-bit values; answer fits signed int
+
+**Why this approach / key logic**
+
+Map each ending index and difference to number of arithmetic chains of length at least two. Extending any such chain adds a valid answer; the new pair contributes only to future states. Use long difference to avoid overflow.
+
+**Locked strategy:** Per-index map diff -> number of length>=2 sequences; add previous counts to answer while adding previous counts+1 to current.
+
+**Evolution from previous solution:** Replace max-length state with counting states and accumulate only extensions that reach length >=3.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int numberOfArithmeticSlices(int[] nums) {
+        int n=nums.length;
+        List<Map<Long,Long>> dp=new ArrayList<>();
+        long ans=0;
+        for(int i=0;i<n;i++) {
+            Map<Long,Long> cur=new HashMap<>();
+            for(int j=0;j<i;j++) {
+                long d=(long)nums[i]-nums[j];
+                long count=dp.get(j).getOrDefault(d,0L);
+                ans+=count;
+                cur.merge(d,count+1,Long::sum);
+            }
+            dp.add(cur);
+        }
+        return (int)ans;
+    }
+}
+```
+
+**Complexity:** O(n²) expected time, O(n²) space.
+
+---
+
+<a id="dp25"></a>
+## DP25 — Alternating / constrained subsequence states
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** At each new element, choose whether to extend a state with a sign or parity rule.
+
+**Ordered questions:** 1911, 376
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+long positive = 0, negative = 0;
+for (int x : a) {
+    long newPositive = Math.max(positive, negative + x);
+    long newNegative = Math.max(negative, positive - x);
+    positive = newPositive;
+    negative = newNegative;
+}
+```
+
+<a id="lc-1911"></a>
+### 67. LeetCode 1911
+
+**Problem**
+
+Choose a subsequence maximizing alternating sum, adding the first selected element, subtracting the second, and alternating thereafter.
+
+**Examples**
+
+- [4,2,5,3] → 7
+- [5,6,7,8] → 8
+
+**Constraints**
+
+1 ≤ n ≤ 100000; 1 ≤ nums[i] ≤ 100000
+
+**Why this approach / key logic**
+
+odd stores best sum after odd number of picks, even after even number. Skip or append with the appropriate sign. Use long for accumulated sums. Positive values allow the optimum to end with addition.
+
+**Locked strategy:** Two rolling DP states by next sign (+/-) or parity of selected count.
+
+**Evolution from previous solution:** BASE: alternating contribution sign determines two transition states.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public long maxAlternatingSum(int[] nums) {
+        long even=0,odd=Long.MIN_VALUE/4;
+        for(int x:nums) {
+            long nextOdd=Math.max(odd,even+x);
+            even=Math.max(even,odd-x);
+            odd=nextOdd;
+        }
+        return Math.max(even,odd);
+    }
+}
+```
+
+**Complexity:** O(n) time, O(1) space.
+
+---
+
+<a id="lc-376"></a>
+### 68. LeetCode 376
+
+**Problem**
+
+Find longest subsequence whose consecutive differences strictly alternate positive and negative. Zero differences are not allowed; a single element is valid.
+
+**Examples**
+
+- [1,7,4,9,2,5] → 6
+- [1,1,1] → 1
+
+**Constraints**
+
+1 ≤ n ≤ 1000; 0 ≤ nums[i] ≤ 1000
+
+**Why this approach / key logic**
+
+up and down track best lengths for opposite last difference signs. A rise can extend a down state, a fall an up state. Adjacent comparisons suffice because each monotone run can be replaced by its extreme without reducing future options.
+
+**Locked strategy:** Track longest up/down subsequence ending in rise/fall and update on adjacent comparison.
+
+**Evolution from previous solution:** Replace alternating sum objective with length, and sign-of-picked-element with direction of adjacent selected difference.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int wiggleMaxLength(int[] nums) {
+        int up=1,down=1;
+        for(int i=1;i<nums.length;i++) {
+            if(nums[i]>nums[i-1])up=down+1;
+            else if(nums[i]<nums[i-1])down=up+1;
+        }
+        return Math.max(up,down);
+    }
+}
+```
+
+**Complexity:** O(n) time, O(1) space.
+
+---
+
+<a id="dp26"></a>
+## DP26 — Game theory on optimal suffixes
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Current player selects an allowed move, obtaining immediate score minus opponent advantage.
+
+**Ordered questions:** 1406, 1140
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+int[] advantage = new int[n + 1];
+for (int i = n - 1; i >= 0; i--) {
+    int picked = 0, best = Integer.MIN_VALUE;
+    for (int count = 1; count <= maxTake && i + count <= n; count++) {
+        picked += piles[i+count-1];
+        best = Math.max(best, picked - advantage[i+count]);
+    }
+    advantage[i] = best;
+}
+```
+
+<a id="lc-1406"></a>
+### 69. LeetCode 1406
+
+**Problem**
+
+Alice and Bob alternately take one, two or three stones from the front of a row, earning their values (which may be negative). Both play optimally. Return Alice, Bob or Tie according to final score.
+
+**Examples**
+
+- [1,2,3,7] → Bob
+- [1,2,3,-9] → Alice
+- [1,2,3,6] → Tie
+
+**Constraints**
+
+1 ≤ n ≤ 50000; −1000 ≤ values ≤ 1000
+
+**Why this approach / key logic**
+
+dp[i] is best current-player score advantage on suffix i. For each legal take, maximize picked sum minus opponent advantage on remaining suffix. Keep only next three values using a circular array of four slots.
+
+**Locked strategy:** Backward advantage DP: best of prefix-picked score minus opponent advantage.
+
+**Evolution from previous solution:** BASE: zero-sum game transition using current gain minus opponent best.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public String stoneGameIII(int[] a) {
+        int n=a.length;
+        int[] dp=new int[4];
+        for(int i=n-1;i>=0;i--) {
+            int sum=0,best=Integer.MIN_VALUE;
+            for(int x=1;x<=3&&i+x<=n;x++) {
+                sum+=a[i+x-1];
+                best=Math.max(best,sum-dp[(i+x)%4]);
+            }
+            dp[i%4]=best;
+        }
+        return dp[0]>0?"Alice":dp[0]<0?"Bob":"Tie";
+    }
+}
+```
+
+**Complexity:** O(n) time, O(1) space.
+
+---
+
+<a id="lc-1140"></a>
+### 70. LeetCode 1140
+
+**Problem**
+
+Alice and Bob alternate taking first X remaining piles where 1≤X≤2M, initially M=1. Update M=max(M,X) after every move. Both maximize their own stones; return Alice’s total.
+
+**Examples**
+
+- [2,7,9,4,4] → 10
+- [1,2,3,4,5,100] → 104
+
+**Constraints**
+
+1 ≤ n ≤ 100; 1 ≤ piles[i] ≤ 10000
+
+**Why this approach / key logic**
+
+Use suffix totals and memo(i,M) for current-player advantage. If all remaining piles fit, take them. Otherwise maximize picked total minus opponent advantage with updated M. Convert final advantage to Alice score via (total+advantage)/2.
+
+**Locked strategy:** Memoized state (position,M), choose x in [1,2M], score current picked sum minus opponent advantage; use suffix totals.
+
+**Evolution from previous solution:** Extend fixed take bound to state-dependent 2M and add M to memoization key.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    private int[] suffix;
+    private Integer[][] memo;
+    public int stoneGameII(int[] piles) {
+        int n=piles.length;
+        suffix=new int[n+1];
+        memo=new Integer[n][n+1];
+        for(int i=n-1;i>=0;i--)suffix[i]=suffix[i+1]+piles[i];
+        return (suffix[0]+dfs(0,1))/2;
+    }
+    private int dfs(int i,int m) {
+        int n=suffix.length-1;
+        if(i+2*m>=n)return suffix[i];
+        if(memo[i][m]!=null)return memo[i][m];
+        int best=Integer.MIN_VALUE;
+        for(int x=1;x<=2*m;x++)best=Math.max(best,suffix[i]-suffix[i+x]-dfs(i+x,Math.max(m,x)));
+        return memo[i][m]=best;
+    }
+}
+```
+
+**Complexity:** O(n³) time, O(n²) space including recursion.
+
+---
+
+<a id="dp27"></a>
+## DP27 — Interval game advantage
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Choose either boundary and score depends on remaining interval; states indexed by both endpoints.
+
+**Ordered questions:** 1690
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+
+long[][] dp = new long[n][n];
+for (int len = 2; len <= n; len++)
+    for (int l = 0; l + len <= n; l++) {
+        int r = l + len - 1;
+        // dp[l][r] = max(scoreAfterRemoveLeft - dp[l+1][r],
+        //                scoreAfterRemoveRight - dp[l][r-1]);
+    }
+```
+
+<a id="lc-1690"></a>
+### 71. LeetCode 1690
+
+**Problem**
+
+Players alternately remove either endpoint stone, scoring the sum of stones remaining after removal. Alice maximizes final Alice−Bob difference, Bob minimizes it. Return difference under optimal play.
+
+**Examples**
+
+- [5,3,1,4,2] → 6
+- [7,90,5,1,100,10,10,2] → 122
+
+**Constraints**
+
+2 ≤ n ≤ 1000; 1 ≤ stones[i] ≤ 1000
+
+**Why this approach / key logic**
+
+Prefix sums give remaining interval reward. dp[r] initially represents advantage on [l+1,r] while dp[r−1] already represents [l,r−1]. Iterate l descending and r ascending to roll the interval table.
+
+**Locked strategy:** Interval advantage DP; choose left or right removal and gain sum of remaining interval.
+
+**Evolution from previous solution:** BASE: remaining-sum boundary choices on intervals rather than suffix take-count games.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int stoneGameVII(int[] stones) {
+        int n=stones.length;
+        int[] pre=new int[n+1],dp=new int[n];
+        for(int i=0;i<n;i++)pre[i+1]=pre[i]+stones[i];
+        for(int l=n-2;l>=0;l--)for(int r=l+1;r<n;r++) {
+            int left=pre[r+1]-pre[l+1]-dp[r];
+            int right=pre[r]-pre[l]-dp[r-1];
+            dp[r]=Math.max(left,right);
+        }
+        return dp[n-1];
+    }
+}
+```
+
+**Complexity:** O(n²) time, O(n) space.
+
+---
+
+<a id="dp28"></a>
+## DP28 — Probabilistic DP over state transitions
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Each state has a probability distribution over equally likely next states; expected/probability outcome is weighted sum.
+
+**Ordered questions:** 688, 837
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+double[] dp = new double[limit + 1];
+dp[0] = 1.0;
+for (int state = 0; state < limit; state++)
+    for (int step = 1; step <= choices; step++) {
+        // distribute dp[state] / choices to valid next state
+    }
+```
+
+<a id="lc-688"></a>
+### 72. LeetCode 688
+
+**Problem**
+
+A knight begins at (row,column) on an n×n board, chooses uniformly among eight possible knight moves at each step, and stops if it leaves the board. Return probability it remains after k moves.
+
+**Examples**
+
+- n=3,k=2,row=0,column=0 → 0.0625
+- n=1,k=0,row=0,column=0 → 1
+
+**Constraints**
+
+1 ≤ n ≤ 25; 0 ≤ k ≤ 100; coordinates in [0,n−1]
+
+**Why this approach / key logic**
+
+Forward probability mass at each cell is distributed equally among eight destinations. Discard mass leaving board; sum remaining mass after k steps.
+
+**Locked strategy:** Move-step DP over 8 knight moves, 2D probability grids rolled per step.
+
+**Evolution from previous solution:** BASE: distribute state probability evenly over next moves, discarding off-board outcomes.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public double knightProbability(int n,int k,int row,int column) {
+        int[][] moves= {
+            {
+                1,2
+            }
+            , {
+                2,1
+            }
+            , {
+                -1,2
+            }
+            , {
+                -2,1
+            }
+            , {
+                1,-2
+            }
+            , {
+                2,-1
+            }
+            , {
+                -1,-2
+            }
+            , {
+                -2,-1
+            }
+        }
+        ;
+        double[][] dp=new double[n][n];
+        dp[row][column]=1;
+        for(int step=0;step<k;step++) {
+            double[][] next=new double[n][n];
+            for(int r=0;r<n;r++)for(int c=0;c<n;c++)if(dp[r][c]!=0)for(int[] m:moves) {
+                int x=r+m[0],y=c+m[1];
+                if(x>=0&&x<n&&y>=0&&y<n)next[x][y]+=dp[r][c]/8;
+            }
+            dp=next;
+        }
+        double ans=0;
+        for(double[] line:dp)for(double p:line)ans+=p;
+        return ans;
+    }
+}
+```
+
+**Complexity:** O(kn²+n²) time, O(n²) space.
+
+---
+
+<a id="lc-837"></a>
+### 73. LeetCode 837
+
+**Problem**
+
+Alice starts with zero points and draws an independent uniform integer in [1,maxPts] while her score is below k. Return probability her final score is at most n.
+
+**Examples**
+
+- n=10,k=1,maxPts=10 → 1
+- n=6,k=1,maxPts=10 → 0.6
+- n=21,k=17,maxPts=10 → approximately 0.73278
+
+**Constraints**
+
+0 ≤ k ≤ n ≤ 10000; 1 ≤ maxPts ≤ 10000
+
+**Why this approach / key logic**
+
+dp[i] is probability of reaching score i. Maintain a rolling sum of prior active scores in [i−maxPts,i−1] that are below k. Terminal scores add to answer rather than propagating. If n≥k−1+maxPts or k=0, success is certain.
+
+**Locked strategy:** 1D forward probability DP with sliding sum of last maxPts active states; stop propagation at threshold k.
+
+**Evolution from previous solution:** Replace 2D coordinate transitions with scalar score and rolling-window probability accumulation.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public double new21Game(int n,int k,int maxPts) {
+        if(k==0||n>=k-1+maxPts)return 1;
+        double[] dp=new double[n+1];
+        dp[0]=1;
+        double window=1,ans=0;
+        for(int i=1;i<=n;i++) {
+            dp[i]=window/maxPts;
+            if(i<k)window+=dp[i];
+            else ans+=dp[i];
+            int old=i-maxPts;
+            if(old>=0&&old<k)window-=dp[old];
+        }
+        return ans;
+    }
+}
+```
+
+**Complexity:** O(n) time, O(n) space; shortcut O(1).
+
+---
+
+<a id="dp29"></a>
+## DP29 — Memoized stochastic resource depletion
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Multiple resources shrink randomly and terminal conditions determine a weighted probability.
+
+**Ordered questions:** 808
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+
+double dfs(int a, int b) {
+    if (a <= 0 && b <= 0) return 0.5;
+    if (a <= 0) return 1.0;
+    if (b <= 0) return 0.0;
+    // memoize average of four decremented resource states
+    return 0.0;
+}
+```
+
+<a id="lc-808"></a>
+### 74. LeetCode 808
+
+**Problem**
+
+Two soups A and B each start with n mL. Each turn equally likely serves (100,0), (75,25), (50,50), or (25,75) mL, serving only what remains. Stop when either empties. Return P(A empties first)+0.5×P(both empty together).
+
+**Examples**
+
+- n=50 → 0.625
+- n=100 → 0.71875
+
+**Constraints**
+
+0 ≤ n ≤ 10^9; accepted absolute error 10^-5
+
+**Why this approach / key logic**
+
+Scale by 25 mL using ceiling division. Terminal values are 0.5 if both empty, 1 if only A empty, 0 if only B empty. Average four recursive outcomes. For n≥5000 return 1 using the standard numerical cutoff within accepted tolerance.
+
+**Locked strategy:** Memoized 2D probability on rounded portions, four equally likely decrements, half credit for simultaneous depletion.
+
+**Evolution from previous solution:** BASE: two-dimensional memoized stochastic remaining-resource state and terminal payouts.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    private double[][] memo;
+    public double soupServings(int n) {
+        if(n>=5000)return 1;
+        int m=(n+24)/25;
+        memo=new double[m+1][m+1];
+        for(double[] row:memo)Arrays.fill(row,-1);
+        return dfs(m,m);
+    }
+    private double dfs(int a,int b) {
+        if(a<=0&&b<=0)return .5;
+        if(a<=0)return 1;
+        if(b<=0)return 0;
+        if(memo[a][b]>=0)return memo[a][b];
+        return memo[a][b]=.25*(dfs(a-4,b)+dfs(a-3,b-1)+dfs(a-2,b-2)+dfs(a-1,b-3));
+    }
+}
+```
+
+**Complexity:** O(m²) time and space for m=ceil(n/25) below cutoff; O(1) above cutoff.
+
+---
+
+<a id="dp30"></a>
+## DP30 — Bitmask state compression and set coverage
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Small n allows a bitmask representing the exact set of used/covered elements.
+
+**Ordered questions:** 691, 1125, 1799
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+int states = 1 << n;
+int[] dp = new int[states];
+java.util.Arrays.fill(dp, INF);
+dp[0] = 0;
+for (int mask = 0; mask < states; mask++) {
+    // enumerate unused choices and update dp[mask | chosenMask]
+}
+```
+
+<a id="lc-691"></a>
+### 75. LeetCode 691
+
+**Problem**
+
+Each sticker is a lowercase word; unlimited copies of every sticker are available. Cut individual letters and rearrange them to spell target. Return minimum stickers or −1 if impossible.
+
+**Examples**
+
+- stickers=["with","example","science"], target="thehat" → 3
+- stickers=["notice","possible"], target="basicbasic" → -1
+
+**Constraints**
+
+1 ≤ stickers.length ≤ 50; 1 ≤ sticker length ≤ 10; 1 ≤ target length ≤ 15; lowercase letters
+
+**Why this approach / key logic**
+
+Mask denotes covered target positions. For each unused first position, only try stickers containing its letter: an optimal completion can reorder stickers so one covering this position comes first. Fill remaining positions using sticker counts; memoize minimum additional stickers.
+
+**Locked strategy:** Memoized remaining-target state (canonical sorted remainder or bitmask of target positions); choose sticker that reduces it.
+
+**Evolution from previous solution:** BASE: memoize a small coverage state and try one resource to cover additional requirements.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    private int[][] counts;
+    private int[] memo;
+    private String target;
+    private int full;
+    public int minStickers(String[] stickers,String target) {
+        this.target=target;
+        int t=target.length();
+        full=(1<<t)-1;
+        memo=new int[1<<t];
+        Arrays.fill(memo,-2);
+        memo[full]=0;
+        counts=new int[stickers.length][26];
+        for(int i=0;i<stickers.length;i++)for(char c:stickers[i].toCharArray())counts[i][c-'a']++;
+        return dfs(0);
+    }
+    private int dfs(int mask) {
+        if(memo[mask]!=-2)return memo[mask];
+        int first=Integer.numberOfTrailingZeros(full^mask),best=target.length()+1;
+        for(int[] sticker:counts) {
+            if(sticker[target.charAt(first)-'a']==0)continue;
+            int[] remain=sticker.clone();
+            int next=mask;
+            for(int j=0;j<target.length();j++) {
+                int c=target.charAt(j)-'a';
+                if((next&(1<<j))==0&&remain[c]>0) {
+                    remain[c]--;
+                    next|=1<<j;
+                }
+            }
+            int sub=dfs(next);
+            if(sub>=0)best=Math.min(best,sub+1);
+        }
+        return memo[mask]=best>target.length()?-1:best;
+    }
+}
+```
+
+**Complexity:** O(2^t s(t+26)) time, O(2^t+26s+t) space, t=target length, s=sticker count.
+
+---
+
+<a id="lc-1125"></a>
+### 76. LeetCode 1125
+
+**Problem**
+
+Given required skills and a list of people with skills, return indices of any smallest team whose combined skills cover every requirement. A solution is guaranteed.
+
+**Examples**
+
+- skills=["java","nodejs","reactjs"], people=[["java"],["nodejs"],["nodejs","reactjs"]] → [0,2]
+- skills=["a","b"], people=[["a"],["b"],["a","b"]] → [2]
+
+**Constraints**
+
+1 ≤ required skills ≤ 16; 1 ≤ people ≤ 60; skills unique within lists; each listed skill is required
+
+**Why this approach / key logic**
+
+Encode skills as a mask, and each team as a long bitset of person indices. dp[mask] is smallest team bitset or −1 if unreachable. For each person merge skill masks; skip unchanged coverage. Descending masks ensure each person is used at most once because union never decreases mask.
+
+**Locked strategy:** Map skills to bits; DP mask -> smallest selected-person list, update by union with candidate skill mask.
+
+**Evolution from previous solution:** Replace target-letter remainder with covered-skills bitmask, and count of resources with team membership reconstruction.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[] smallestSufficientTeam(String[] req_skills,List<List<String>> people) {
+        Map<String,Integer> index=new HashMap<>();
+        int n=req_skills.length;
+        for(int i=0;i<n;i++)index.put(req_skills[i],i);
+        int full=(1<<n)-1;
+        long[] dp=new long[full+1];
+        Arrays.fill(dp,-1);
+        dp[0]=0;
+        for(int i=0;i<people.size();i++) {
+            int skills=0;
+            for(String skill:people.get(i))skills|=1<<index.get(skill);
+            for(int mask=full;mask>=0;mask--) {
+                if(dp[mask]==-1)continue;
+                int next=mask|skills;
+                if(next==mask)continue;
+                long team=dp[mask]|(1L<<i);
+                if(dp[next]==-1||Long.bitCount(team)<Long.bitCount(dp[next]))dp[next]=team;
+            }
+        }
+        long team=dp[full];
+        int[] ans=new int[Long.bitCount(team)];
+        int p=0;
+        for(int i=0;i<people.size();i++)if((team&(1L<<i))!=0)ans[p++]=i;
+        return ans;
+    }
+}
+```
+
+**Complexity:** O(P·2^S) time, O(2^S+S) space, P=people, S=skills (excluding returned team).
+
+---
+
+<a id="lc-1799"></a>
+### 77. LeetCode 1799
+
+**Problem**
+
+Given 2n positive integers, perform n operations, choosing two unused numbers at operation i and earning i times their greatest common divisor. Maximize total score.
+
+**Examples**
+
+- [1,2] → 1
+- [3,4,6,8] → 11
+- [1,2,3,4,5,6] → 14
+
+**Constraints**
+
+1 ≤ n ≤ 7; nums.length=2n; 1 ≤ nums[i] ≤ 10^6
+
+**Why this approach / key logic**
+
+Mask records used indices; operation number is bitCount(mask)/2+1. Try every unused pair, not just pairs containing the first unused index: operation weights make pair order significant. Precompute gcd and memoize best future score.
+
+**Locked strategy:** Memoize used-index bitmask; choose unused pair, score operationNumber*gcd(pair) plus next state.
+
+**Evolution from previous solution:** Replace monotone coverage with paired unused-index selection, optimize weighted accumulation instead of minimum team size.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    private int[][] gcd;
+    private int[] memo;
+    private int n,full;
+    public int maxScore(int[] nums) {
+        n=nums.length;
+        full=(1<<n)-1;
+        gcd=new int[n][n];
+        for(int i=0;i<n;i++)for(int j=i+1;j<n;j++)gcd[i][j]=gcdOf(nums[i],nums[j]);
+        memo=new int[1<<n];
+        Arrays.fill(memo,-1);
+        memo[full]=0;
+        return dfs(0);
+    }
+    private int dfs(int mask) {
+        if(memo[mask]>=0)return memo[mask];
+        int op=Integer.bitCount(mask)/2+1,best=0;
+        for(int i=0;i<n;i++)if((mask&(1<<i))==0)for(int j=i+1;j<n;j++)if((mask&(1<<j))==0)best=Math.max(best,op*gcd[i][j]+dfs(mask|(1<<i)|(1<<j)));
+        return memo[mask]=best;
+    }
+    private int gcdOf(int a,int b) {
+        while(b!=0) {
+            int t=a%b;
+            a=b;
+            b=t;
+        }
+        return a;
+    }
+}
+```
+
+**Complexity:** O(2^m m² + m² log V) time, O(2^m+m²) space, m=nums.length, V=max value.
+
+---
+
+<a id="dp31"></a>
+## DP31 — Row-profile mask transitions
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Compatibility constraints between neighboring rows make the previous row mask the DP state.
+
+**Ordered questions:** 1349
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+
+int[] prev = new int[1 << cols];
+for (int row = 0; row < rows; row++) {
+    int[] curr = new int[1 << cols];
+    for (int currentMask = 0; currentMask < (1 << cols); currentMask++)
+        for (int prevMask = 0; prevMask < (1 << cols); prevMask++) {
+            // only transition when both row masks and diagonal relations are valid
+        }
+    prev = curr;
+}
+```
+
+<a id="lc-1349"></a>
+### 78. LeetCode 1349
+
+**Problem**
+
+A classroom grid contains usable seats (.) and broken seats (#). Maximize seated students so none can see a student immediately left/right or diagonally upper-left/upper-right. Direct vertical neighbors are allowed.
+
+**Examples**
+
+- seats=[["#",".","#","#",".","#"],[".","#","#","#","#","."],["#",".","#","#",".","#"]] → 4
+- seats=[[".","#"],["#","#"],["#","."],["#","#"],[".","#"]] → 3
+
+**Constraints**
+
+1 ≤ rows,cols ≤ 8; cells are . or #
+
+**Why this approach / key logic**
+
+Build usable-seat mask per row. Enumerate its submasks with no horizontally adjacent bits. Compare each candidate to every reachable previous-row mask, rejecting diagonally adjacent students; add current bit count.
+
+**Locked strategy:** Row-mask DP: enumerate seat-compatible masks and compare diagonal conflicts with previous row.
+
+**Evolution from previous solution:** BASE: previous-row occupancy mask plus current row compatibility, independent of coverage subset DP.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int maxStudents(char[][] seats) {
+        int cols=seats[0].length,size=1<<cols;
+        int[] dp=new int[size];
+        Arrays.fill(dp,-1);
+        dp[0]=0;
+        for(char[] row:seats) {
+            int available=0;
+            for(int c=0;c<cols;c++)if(row[c]=='.')available|=1<<c;
+            int[] next=new int[size];
+            Arrays.fill(next,-1);
+            for(int mask=available;;mask=(mask-1)&available) {
+                if((mask&(mask<<1))==0) {
+                    int count=Integer.bitCount(mask);
+                    for(int prev=0;prev<size;prev++)if(dp[prev]>=0&&(mask&(prev<<1))==0&&(mask&(prev>>1))==0)next[mask]=Math.max(next[mask],dp[prev]+count);
+                }
+                if(mask==0)break;
+            }
+            dp=next;
+        }
+        int ans=0;
+        for(int val:dp)ans=Math.max(ans,val);
+        return ans;
+    }
+}
+```
+
+**Complexity:** O(R·4^C) time upper bound, O(2^C) space, R=rows, C=columns.
+
+---
+
+<a id="dp32"></a>
+## DP32 — Digit DP on upper bounds
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Count integers satisfying digit constraints while retaining tightness, leading zeros, and a small property state.
+
+**Ordered questions:** 233, 902, 2376, 1012
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+long dfs(int pos, boolean tight, boolean started, int state) {
+    if (pos == digits.length) return accept(started, state) ? 1 : 0;
+    int maxDigit = tight ? digits[pos]-'0' : 9;
+    long ways = 0;
+    for (int d = 0; d <= maxDigit; d++) {
+        // update tight, started and property state, memoize non-tight states
+    }
+    return ways;
+}
+```
+
+<a id="lc-233"></a>
+### 79. LeetCode 233
+
+**Problem**
+
+Count total occurrences of digit 1 in the decimal representations of every nonnegative integer from 0 through n, inclusive.
+
+**Examples**
+
+- n=13 → 6
+- n=0 → 0
+- n=99 → 20
+
+**Constraints**
+
+0 ≤ n ≤ 10^9
+
+**Why this approach / key logic**
+
+Digit DFS returns both number of suffix completions and occurrences of 1 across them. For each allowed digit, add suffix occurrences plus suffix completion count when choosing 1. Leading zero padding adds no ones. Cache non-tight states by position; tight states are unique prefixes. This uses the locked digit-DP foundation rather than the equivalent positional arithmetic shortcut.
+
+**Locked strategy:** Digit DP over position, tight, started, and count contribution; alternatively O(log n) positional arithmetic.
+
+**Evolution from previous solution:** BASE: bound-aware digit traversal; count occurrences contributed by chosen digit.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    private char[] digits;
+    private long[][] memo;
+    public int countDigitOne(int n) {
+        digits=Integer.toString(n).toCharArray();
+        memo=new long[digits.length][];
+        return (int)dfs(0,true)[1];
+    }
+    private long[] dfs(int pos,boolean tight) {
+        if(pos==digits.length)return new long[] {
+            1,0
+        }
+        ;
+        if(!tight&&memo[pos]!=null)return memo[pos];
+        int limit=tight?digits[pos]-'0':9;
+        long ways=0,ones=0;
+        for(int d=0;d<=limit;d++) {
+            long[] sub=dfs(pos+1,tight&&d==limit);
+            ways+=sub[0];
+            ones+=sub[1]+(d==1?sub[0]:0);
+        }
+        long[] result= {
+            ways,ones
+        }
+        ;
+        if(!tight)memo[pos]=result;
+        return result;
+    }
+}
+```
+
+**Complexity:** O(10L) time, O(L) space including recursion, L=decimal digit count.
+
+---
+
+<a id="lc-902"></a>
+### 80. LeetCode 902
+
+**Problem**
+
+Given a sorted set of distinct nonzero decimal digit strings, count positive integers at most n that can be written using only those digits. Digits may be reused arbitrarily.
+
+**Examples**
+
+- digits=["1","3","5","7"], n=100 → 20
+- digits=["1","4","9"], n=1000000000 → 29523
+- digits=["7"], n=8 → 1
+
+**Constraints**
+
+1 ≤ digits.length ≤ 9; digits are distinct sorted strings from 1 through 9; 1 ≤ n ≤ 10^9
+
+**Why this approach / key logic**
+
+State is (position,tight,started). Leading zero may be chosen only before the number starts; actual digits must belong to allowed set. Count accepted terminal numbers only if started. Cache non-tight states.
+
+**Locked strategy:** Digit DFS with tight and started, restrict non-leading digits to allowed set.
+
+**Evolution from previous solution:** Replace digit-one aggregate with eligibility restriction on each selected digit and count accepted numbers.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    private char[] bound;
+    private boolean[] allowed;
+    private Integer[][] memo;
+    public int atMostNGivenDigitSet(String[] digits,int n) {
+        bound=Integer.toString(n).toCharArray();
+        allowed=new boolean[10];
+        for(String d:digits)allowed[d.charAt(0)-'0']=true;
+        memo=new Integer[bound.length][2];
+        return dfs(0,true,false);
+    }
+    private int dfs(int pos,boolean tight,boolean started) {
+        if(pos==bound.length)return started?1:0;
+        int state=started?1:0;
+        if(!tight&&memo[pos][state]!=null)return memo[pos][state];
+        int limit=tight?bound[pos]-'0':9,ans=0;
+        for(int d=0;d<=limit;d++) {
+            if(!started&&d==0)ans+=dfs(pos+1,tight&&d==limit,false);
+            else if(allowed[d])ans+=dfs(pos+1,tight&&d==limit,true);
+        }
+        if(!tight)memo[pos][state]=ans;
+        return ans;
+    }
+}
+```
+
+**Complexity:** O(10L) time, O(L) space, L=decimal digit count.
+
+---
+
+<a id="lc-2376"></a>
+### 81. LeetCode 2376
+
+**Problem**
+
+Count positive integers at most n whose decimal digits are all distinct.
+
+**Examples**
+
+- n=20 → 19
+- n=5 → 5
+- n=135 → 110
+
+**Constraints**
+
+1 ≤ n ≤ 2×10^9
+
+**Why this approach / key logic**
+
+Add a 10-bit used-digit mask. A zero mask means no significant digit yet, so leading zero leaves mask unchanged; after starting, zero is a normal digit. Reject reused digits and cache non-tight states. Exclude all-leading-zero completion.
+
+**Locked strategy:** Add used-digit bitmask to digit DFS; reject choices with bits already set.
+
+**Evolution from previous solution:** Extend allowed-digit counting with stateful uniqueness mask.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    private char[] bound;
+    private int[][] memo;
+    public int countSpecialNumbers(int n) {
+        bound=Integer.toString(n).toCharArray();
+        memo=new int[bound.length][1<<10];
+        for(int[] row:memo)Arrays.fill(row,-1);
+        return dfs(0,true,0);
+    }
+    private int dfs(int pos,boolean tight,int mask) {
+        if(pos==bound.length)return mask==0?0:1;
+        if(!tight&&memo[pos][mask]>=0)return memo[pos][mask];
+        int limit=tight?bound[pos]-'0':9,ans=0;
+        for(int d=0;d<=limit;d++) {
+            boolean nextTight=tight&&d==limit;
+            if(mask==0&&d==0)ans+=dfs(pos+1,nextTight,0);
+            else if((mask&(1<<d))==0)ans+=dfs(pos+1,nextTight,mask|(1<<d));
+        }
+        if(!tight)memo[pos][mask]=ans;
+        return ans;
+    }
+}
+```
+
+**Complexity:** O(L·2^10·10) time, O(L·2^10) space including recursion.
+
+---
+
+<a id="lc-1012"></a>
+### 82. LeetCode 1012
+
+**Problem**
+
+Count positive integers at most n that contain at least one repeated decimal digit.
+
+**Examples**
+
+- n=20 → 1
+- n=100 → 10
+- n=1000 → 262
+
+**Constraints**
+
+1 ≤ n ≤ 10^9
+
+**Why this approach / key logic**
+
+Every positive integer up to n has either all distinct digits or a repeated digit. Reuse the exact distinct-digit DFS from 2376 and subtract from n. Leading zeros still do not count as digits.
+
+**Locked strategy:** Compute n minus distinct-digit count (reuse 2376-style digit-mask DP).
+
+**Evolution from previous solution:** Keep distinct-digit DP and return complement for repeated-digit property.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    private char[] bound;
+    private int[][] memo;
+    public int numDupDigitsAtMostN(int n) {
+        bound=Integer.toString(n).toCharArray();
+        memo=new int[bound.length][1<<10];
+        for(int[] row:memo)Arrays.fill(row,-1);
+        return n-dfs(0,true,0);
+    }
+    private int dfs(int pos,boolean tight,int mask) {
+        if(pos==bound.length)return mask==0?0:1;
+        if(!tight&&memo[pos][mask]>=0)return memo[pos][mask];
+        int limit=tight?bound[pos]-'0':9,ans=0;
+        for(int d=0;d<=limit;d++) {
+            boolean nextTight=tight&&d==limit;
+            if(mask==0&&d==0)ans+=dfs(pos+1,nextTight,0);
+            else if((mask&(1<<d))==0)ans+=dfs(pos+1,nextTight,mask|(1<<d));
+        }
+        if(!tight)memo[pos][mask]=ans;
+        return ans;
+    }
+}
+```
+
+**Complexity:** O(L·2^10·10) time, O(L·2^10) space.
+
+---
+
+<a id="dp33"></a>
+## DP33 — Minimum cost to cut strings / sequences with automata
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** DP state captures recent character/run behavior under modification cost.
+
+**Ordered questions:** 926, 1653
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+long[][] dp = new long[n + 1][states];
+for (int i = 0; i < n; i++)
+    for (int st = 0; st < states; st++) {
+        // transition to next automaton state with adjustment cost
+    }
+```
+
+<a id="lc-926"></a>
+### 83. LeetCode 926
+
+**Problem**
+
+Flip individual bits of a binary string to make it monotone increasing: zero or more 0s followed by zero or more 1s. Return fewest flips.
+
+**Examples**
+
+- 00110 → 1
+- 010110 → 2
+- 00011000 → 2
+
+**Constraints**
+
+1 ≤ s.length ≤ 10^5; binary characters
+
+**Why this approach / key logic**
+
+zero is minimum prefix cost ending in the all-zero phase; one is minimum cost after entering one phase. Appending a zero to one phase requires flipping it. To enter or stay in one phase, use minimum prior phase cost.
+
+**Locked strategy:** Rolling zero/one-ending costs; choosing 0 requires no previous 1, choosing 1 may flip current 0.
+
+**Evolution from previous solution:** BASE: minimum edit cost subject to monotone phase (0* then 1*).
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int minFlipsMonoIncr(String s) {
+        int zero=0,one=0;
+        for(int i=0;i<s.length();i++) {
+            char c=s.charAt(i);
+            one=Math.min(zero,one)+(c=='0'?1:0);
+            zero+=c=='1'?1:0;
+        }
+        return Math.min(zero,one);
+    }
+}
+```
+
+**Complexity:** O(n) time, O(1) space.
+
+---
+
+<a id="lc-1653"></a>
+### 84. LeetCode 1653
+
+**Problem**
+
+Delete the fewest characters from a string containing only a and b so no b occurs before any a in the remaining string.
+
+**Examples**
+
+- aababbab → 2
+- bbaaaaabb → 2
+
+**Constraints**
+
+1 ≤ s.length ≤ 10^5; characters a or b
+
+**Why this approach / key logic**
+
+Maintain count of b seen and best deletions for a balanced prefix. A new b is always safe to append; a new a either gets deleted (best+1) or all previous b are deleted (countB).
+
+**Locked strategy:** Track number of b seen and minimum deletions, update on a by delete it or delete prior b's.
+
+**Evolution from previous solution:** Replace flip cost with deletion cost and compress state to running count plus best deletion cost.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int minimumDeletions(String s) {
+        int countB=0,best=0;
+        for(int i=0;i<s.length();i++) {
+            if(s.charAt(i)=='b')countB++;
+            else best=Math.min(best+1,countB);
+        }
+        return best;
+    }
+}
+```
+
+**Complexity:** O(n) time, O(1) space.
+
+---
+
+<a id="dp34"></a>
+## DP34 — Digit string decoding counts
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** A valid decoding ends with a one- or two-character code; multiply contributions for wildcard choices.
+
+**Ordered questions:** 91, 639
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+long previous2 = 1, previous1 = singleWays(s.charAt(0));
+for (int i = 1; i < s.length(); i++) {
+    long curr = singleWays(s.charAt(i)) * previous1
+              + pairWays(s.charAt(i-1),s.charAt(i)) * previous2;
+    previous2 = previous1; previous1 = curr;
+}
+```
+
+<a id="lc-91"></a>
+### 85. LeetCode 91
+
+**Problem**
+
+Decode a string of digits using mapping 1→A through 26→Z. Count valid ways to partition the entire string into one- or two-digit codes; zero cannot stand alone and codes cannot have leading zero.
+
+**Examples**
+
+- 12 → 2
+- 226 → 3
+- 06 → 0
+
+**Constraints**
+
+1 ≤ s.length ≤ 100; digits only; answer fits signed int
+
+**Why this approach / key logic**
+
+dp[i] counts decodings of prefix length i. Add dp[i−1] if last digit nonzero, and dp[i−2] if last pair is 10..26. Empty prefix has one way. Roll previous two states.
+
+**Locked strategy:** Rolling ways for valid single digit (1..9) or valid two-digit (10..26), handling leading zero.
+
+**Evolution from previous solution:** BASE: last token width 1 or 2 adds ways from earlier positions.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int numDecodings(String s) {
+        int prev2=1,prev1=s.charAt(0)=='0'?0:1;
+        for(int i=1;i<s.length();i++) {
+            int curr=s.charAt(i)!='0'?prev1:0;
+            int pair=(s.charAt(i-1)-'0')*10+s.charAt(i)-'0';
+            if(pair>=10&&pair<=26)curr+=prev2;
+            prev2=prev1;
+            prev1=curr;
+        }
+        return prev1;
+    }
+}
+```
+
+**Complexity:** O(n) time, O(1) space.
+
+---
+
+<a id="lc-639"></a>
+### 86. LeetCode 639
+
+**Problem**
+
+Decode a string of digits and * using 1→A through 26→Z. Each * independently represents any digit 1..9. Count all valid decodings over all wildcard assignments, modulo 1,000,000,007.
+
+**Examples**
+
+- * → 9
+- 1* → 18
+- ** → 96
+
+**Constraints**
+
+1 ≤ s.length ≤ 10^5; digits and * only
+
+**Why this approach / key logic**
+
+Reuse rolling prefix recurrence. Replace single/pair validity booleans with counts: ** has 15 valid pairs (11..19,21..26), *d has 2 for d≤6 else 1, d* has 9 for 1 and 6 for 2. Multiply prefix counts by token multiplicities using long.
+
+**Locked strategy:** Reuse two-previous-state recurrence; replace boolean single/pair validity with multiplicity counts (up to 9 or 15), modulo 1e9+7.
+
+**Evolution from previous solution:** Generalize valid-token tests to count multiple wildcard interpretations and apply modular arithmetic.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    private static final long MOD=1000000007L;
+    public int numDecodings(String s) {
+        long prev2=1,prev1=single(s.charAt(0));
+        for(int i=1;i<s.length();i++) {
+            long curr=(prev1*single(s.charAt(i))+prev2*pair(s.charAt(i-1),s.charAt(i)))%MOD;
+            prev2=prev1;
+            prev1=curr;
+        }
+        return (int)prev1;
+    }
+    private int single(char c) {
+        return c=='*'?9:c=='0'?0:1;
+    }
+    private int pair(char a,char b) {
+        if(a=='*'&&b=='*')return 15;
+        if(a=='*')return b<='6'?2:1;
+        if(b=='*')return a=='1'?9:a=='2'?6:0;
+        int value=(a-'0')*10+b-'0';
+        return value>=10&&value<=26?1:0;
+    }
+}
+```
+
+**Complexity:** O(n) time, O(1) space.
+
+---
+
+<a id="dp35"></a>
+## DP35 — Distinct subsequence matching counts
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Count how many ways a fixed target can be formed as a subsequence of a source by including or skipping source characters.
+
+**Ordered questions:** 115
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+long[] ways = new long[target.length()+1];
+ways[0] = 1;
+for (char ch : source.toCharArray())
+    for (int j = target.length(); j >= 1; j--)
+        if (target.charAt(j-1) == ch) ways[j] += ways[j-1];
+```
+
+<a id="lc-115"></a>
+### 87. LeetCode 115
+
+**Problem**
+
+Count the distinct index selections from source string s that form target t in order. Different choices of indices count separately even if selected characters are identical.
+
+**Examples**
+
+- s=rabbbit,t=rabbit → 3
+- s=babgbag,t=bag → 5
+
+**Constraints**
+
+1 ≤ s.length,t.length ≤ 1000; English letters; answer fits signed int
+
+**Why this approach / key logic**
+
+dp[j] counts ways to form first j target characters from processed source prefix. Empty target has one way. Skipping leaves dp[j] unchanged; matching source character adds dp[j−1]. Descend j so a source character cannot be used twice. Cap intermediate counts at Integer.MAX_VALUE: transitions only add nonnegative values, so saturation cannot change a representable final result.
+
+**Locked strategy:** 1D rolling source-prefix vs target-prefix counting; descend target indices to prevent reusing source char.
+
+**Evolution from previous solution:** BASE: skip current source character or consume it when matching target next symbol.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int numDistinct(String s,String t) {
+        int n=t.length();
+        if(n>s.length())return 0;
+        int[] dp=new int[n+1];
+        dp[0]=1;
+        for(int i=0;i<s.length();i++)for(int j=Math.min(n,i+1);j>=1;j--)if(s.charAt(i)==t.charAt(j-1))dp[j]=(int)Math.min(Integer.MAX_VALUE,(long)dp[j]+dp[j-1]);
+        return dp[n];
+    }
+}
+```
+
+**Complexity:** O(mn) time, O(n) space, m=source length, n=target length.
+
+---
+
+<a id="dp36"></a>
+## DP36 — Distinct nonempty subsequence totals
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Count unique subsequence contents rather than index choices by subtracting previously counted duplicates for repeated final characters.
+
+**Ordered questions:** 940
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+long total = 1; // includes empty sequence
+long[] previousContribution = new long[26];
+for (char ch : s.toCharArray()) {
+    int c = ch - 'a';
+    long next = (2 * total - previousContribution[c] + MOD) % MOD;
+    previousContribution[c] = total;
+    total = next;
+}
+```
+
+<a id="lc-940"></a>
+### 88. LeetCode 940
+
+**Problem**
+
+Count distinct nonempty subsequence strings of a lowercase string, identifying subsequences with identical contents even if their index selections differ. Return modulo 1,000,000,007.
+
+**Examples**
+
+- abc → 7
+- aba → 6
+- aaa → 3
+
+**Constraints**
+
+1 ≤ s.length ≤ 2000; lowercase letters
+
+**Why this approach / key logic**
+
+total includes empty subsequence. Appending new character to all old subsequences doubles total, but if character appeared before, some new strings already exist. Subtract total immediately before previous occurrence of that character; save old total for next occurrence. Remove empty at end.
+
+**Locked strategy:** Keep total ways including empty and previous prefix total for each ending symbol; double then subtract duplicates modulo MOD.
+
+**Evolution from previous solution:** BASE: compensate for identical sequences introduced by recurring final character.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int distinctSubseqII(String s) {
+        long mod=1000000007L,total=1;
+        long[] last=new long[26];
+        for(int i=0;i<s.length();i++) {
+            int c=s.charAt(i)-'a';
+            long old=total;
+            total=(2*total-last[c]+mod)%mod;
+            last[c]=old;
+        }
+        return (int)((total-1+mod)%mod);
+    }
+}
+```
+
+**Complexity:** O(n) time, O(26)=O(1) space.
+
+---
+
+<a id="dp37"></a>
+## DP37 — Reverse minimum required resource DP
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** A state requires enough initial resource to survive the current cell and continue via one valid successor.
+
+**Ordered questions:** 174
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+int[][] need = new int[rows+1][cols+1];
+for (int r = rows-1; r >= 0; r--)
+    for (int c = cols-1; c >= 0; c--)
+        need[r][c] = Math.max(1, Math.min(need[r+1][c], need[r][c+1]) - grid[r][c]);
+// Set bottom/right unreachable sentinels and target exit boundary before filling.
+```
+
+<a id="lc-174"></a>
+### 89. LeetCode 174
+
+**Problem**
+
+A knight starts in top-left of a dungeon and moves only right or down to rescue princess at bottom-right. Each cell changes health by its signed value, including both endpoints. Health must remain at least 1 at all times. Return minimum starting health.
+
+**Examples**
+
+- [[-2,-3,3],[-5,-10,1],[10,30,-5]] → 7
+- [[0]] → 1
+- [[-5]] → 6
+
+**Constraints**
+
+1 ≤ rows,cols ≤ 200; −1000 ≤ cell value ≤ 1000
+
+**Why this approach / key logic**
+
+Work backward. need[r][c] is minimum health before entering cell to survive until destination. Choose successor requiring less health, subtract current cell value, clamp to at least 1. Roll rows right-to-left; sentinel neighbors are impossible except one virtual successor of destination requiring 1.
+
+**Locked strategy:** Reverse DP from destination using required-health invariant max(1,min(successorNeed)-cellValue).
+
+**Evolution from previous solution:** BASE: optimize required starting resource backward instead of accumulating path reward forward.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int calculateMinimumHP(int[][] dungeon) {
+        int rows=dungeon.length,cols=dungeon[0].length;
+        int[] dp=new int[cols+1];
+        Arrays.fill(dp,Integer.MAX_VALUE);
+        dp[cols-1]=1;
+        for(int r=rows-1;r>=0;r--)for(int c=cols-1;c>=0;c--) {
+            int need=Math.min(dp[c],dp[c+1]);
+            dp[c]=Math.max(1,need-dungeon[r][c]);
+        }
+        return dp[0];
+    }
+}
+```
+
+**Complexity:** O(RC) time, O(C) space.
+
+---
+
+## Final registry
+
+| Sequence | LeetCode | Family | Local examples |
+|---:|---:|---|---:|
+| 61 | 714 | DP23 | 2 passed |
+| 62 | 309 | DP23 | 2 passed |
+| 63 | 123 | DP23 | 3 passed |
+| 64 | 188 | DP23 | 2 passed |
+| 65 | 1027 | DP24 | 2 passed |
+| 66 | 446 | DP24 | 2 passed |
+| 67 | 1911 | DP25 | 2 passed |
+| 68 | 376 | DP25 | 2 passed |
+| 69 | 1406 | DP26 | 3 passed |
+| 70 | 1140 | DP26 | 2 passed |
+| 71 | 1690 | DP27 | 2 passed |
+| 72 | 688 | DP28 | 2 passed |
+| 73 | 837 | DP28 | 3 passed |
+| 74 | 808 | DP29 | 2 passed |
+| 75 | 691 | DP30 | 2 passed |
+| 76 | 1125 | DP30 | 2 passed |
+| 77 | 1799 | DP30 | 3 passed |
+| 78 | 1349 | DP31 | 2 passed |
+| 79 | 233 | DP32 | 3 passed |
+| 80 | 902 | DP32 | 3 passed |
+| 81 | 2376 | DP32 | 3 passed |
+| 82 | 1012 | DP32 | 3 passed |
+| 83 | 926 | DP33 | 3 passed |
+| 84 | 1653 | DP33 | 2 passed |
+| 85 | 91 | DP34 | 3 passed |
+| 86 | 639 | DP34 | 3 passed |
+| 87 | 115 | DP35 | 2 passed |
+| 88 | 940 | DP36 | 3 passed |
+| 89 | 174 | DP37 | 3 passed |
+
+**Audit:** 29 distinct IDs, exact locked order, 15 complete families. All 29 solution bodies compiled with Java 21 and 71 example checks passed. No online judge submission, stress testing, or exhaustive verification was performed. Master curriculum and learning progress are unchanged.

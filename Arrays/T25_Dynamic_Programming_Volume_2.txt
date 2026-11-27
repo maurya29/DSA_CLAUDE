@@ -1,0 +1,1926 @@
+# T25 — Dynamic Programming | Volume 2 of 3
+
+**Locked sequence:** 31–60 of 89 · **Families:** DP12–DP22 · **Language:** Java 21
+
+Source: `MASTER_DSA_CURRICULUM.md`, section C25. Family names, recognition cues and implementation evolution follow the locked registry. Problem statements, examples, constraints and implementations are author-prepared supplements; constraints have not been independently checked against live LeetCode pages.
+
+**Volume plan:** Volume 1: 1–30; Volume 2: 31–60; Volume 3: 61–89. Families are not split.
+
+## How to study
+
+Define the state, base cases, transition and dependency order before reading the implementation. Compare each solution with its predecessor in the same family. For rolling arrays, identify which values still represent the previous layer. All examples below were executed locally; this does not constitute LeetCode acceptance.
+
+## Contents
+
+- [DP12 — Weighted ordered subsequences](#dp12)
+  - [31. 1626](#lc-1626)
+  - [32. 368](#lc-368)
+- [DP13 — Longest common subsequence family](#dp13)
+  - [33. 1143](#lc-1143)
+  - [34. 1035](#lc-1035)
+  - [35. 583](#lc-583)
+  - [36. 1092](#lc-1092)
+- [DP14 — String edit and alignment DP](#dp14)
+  - [37. 72](#lc-72)
+  - [38. 712](#lc-712)
+  - [39. 97](#lc-97)
+- [DP15 — Wildcard and regular expression automaton DP](#dp15)
+  - [40. 44](#lc-44)
+  - [41. 10](#lc-10)
+- [DP16 — Dictionary segmentation and enumeration](#dp16)
+  - [42. 139](#lc-139)
+  - [43. 140](#lc-140)
+- [DP17 — Palindrome subsequence and insertion DP](#dp17)
+  - [44. 516](#lc-516)
+  - [45. 1312](#lc-1312)
+- [DP18 — Palindrome partition DP](#dp18)
+  - [46. 132](#lc-132)
+  - [47. 1278](#lc-1278)
+  - [48. 1745](#lc-1745)
+- [DP19 — Increasingly complex interval splitting](#dp19)
+  - [49. 312](#lc-312)
+  - [50. 1547](#lc-1547)
+  - [51. 1000](#lc-1000)
+  - [52. 664](#lc-664)
+- [DP20 — Partition into bounded or scored blocks](#dp20)
+  - [53. 1043](#lc-1043)
+  - [54. 1105](#lc-1105)
+  - [55. 1335](#lc-1335)
+- [DP21 — Weighted job scheduling and limited event selections](#dp21)
+  - [56. 1235](#lc-1235)
+  - [57. 2008](#lc-2008)
+  - [58. 1751](#lc-1751)
+- [DP22 — Disjoint interval selection over position](#dp22)
+  - [59. 1031](#lc-1031)
+  - [60. 689](#lc-689)
+
+- [Final registry](#final-registry)
+
+<a id="dp12"></a>
+## DP12 — Weighted ordered subsequences
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Ordering makes earlier compatible states reusable but choosing a candidate changes its score.
+
+**Ordered questions:** 1626, 368
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+int[] dp = new int[n];
+for (int i = 0; i < n; i++) {
+    dp[i] = value[i];
+    for (int j = 0; j < i; j++)
+        if (compatible(j, i)) dp[i] = Math.max(dp[i], dp[j] + value[i]);
+}
+```
+
+<a id="lc-1626"></a>
+### 31. LeetCode 1626
+
+**Problem**
+
+Select a team maximizing sum of scores. A conflict occurs when a strictly younger player has a strictly higher score than an older player. Equal ages never conflict.
+
+**Examples**
+
+- scores=[1,3,5,10,15], ages=[1,2,3,4,5] → 34
+- scores=[4,5,6,5], ages=[2,1,2,1] → 16
+
+**Constraints**
+
+1 ≤ n ≤ 1000; scores ≤ 10^6; ages ≤ 1000; all positive
+
+**Why this approach / key logic**
+
+Sort by age then score so compatible teams are nondecreasing in score. dp[i] is best team ending at player i; extend any compatible predecessor.
+
+**Locked strategy:** Sort by age then score; weighted nondecreasing-score subsequence O(n²) or Fenwick max compression.
+
+**Evolution from previous solution:** BASE: choose best compatible prior chain plus current score.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int bestTeamScore(int[] scores,int[] ages) {
+        int n=scores.length;
+        int[][] p=new int[n][2];
+        for(int i=0;i<n;i++)p[i]=new int[] {
+            ages[i],scores[i]
+        }
+        ;
+        Arrays.sort(p,Comparator.<int[]>comparingInt(a->a[0]).thenComparingInt(a->a[1]));
+        int[] dp=new int[n];
+        int ans=0;
+        for(int i=0;i<n;i++) {
+            dp[i]=p[i][1];
+            for(int j=0;j<i;j++)if(p[j][1]<=p[i][1])dp[i]=Math.max(dp[i],dp[j]+p[i][1]);
+            ans=Math.max(ans,dp[i]);
+        }
+        return ans;
+    }
+}
+```
+
+**Complexity:** O(n²) time, O(n) space.
+
+---
+
+<a id="lc-368"></a>
+### 32. LeetCode 368
+
+**Problem**
+
+Return any largest subset of distinct positive integers in which every pair has one member divisible by the other.
+
+**Examples**
+
+- [1,2,3] → [1,2] or [1,3]
+- [1,2,4,8] → [1,2,4,8]
+
+**Constraints**
+
+1 ≤ n ≤ 1000; 1 ≤ nums[i] ≤ 2×10^9; distinct values
+
+**Why this approach / key logic**
+
+Sort ascending. Divisibility is transitive, so extending a divisible chain guarantees pairwise compatibility. Store predecessor indices to reconstruct it.
+
+**Locked strategy:** Sort numeric values, dp length plus predecessor index, reconstruct maximum divisible chain.
+
+**Evolution from previous solution:** Replace age/score compatibility with later%earlier==0, score with chain length, and add reconstruction pointers.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<Integer> largestDivisibleSubset(int[] nums) {
+        Arrays.sort(nums);
+        int n=nums.length;
+        int[] dp=new int[n],prev=new int[n];
+        Arrays.fill(dp,1);
+        Arrays.fill(prev,-1);
+        int best=0;
+        for(int i=0;i<n;i++) {
+            for(int j=0;j<i;j++)if(nums[i]%nums[j]==0&&dp[j]+1>dp[i]) {
+                dp[i]=dp[j]+1;
+                prev[i]=j;
+            }
+            if(dp[i]>dp[best])best=i;
+        }
+        List<Integer> ans=new ArrayList<>();
+        for(int i=best;i!=-1;i=prev[i])ans.add(nums[i]);
+        Collections.reverse(ans);
+        return ans;
+    }
+}
+```
+
+**Complexity:** O(n²) time, O(n) space.
+
+---
+
+<a id="dp13"></a>
+## DP13 — Longest common subsequence family
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Two sequences may discard characters independently; matching positions contribute a common item.
+
+**Ordered questions:** 1143, 1035, 583, 1092
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+int[] dp = new int[b.length + 1];
+for (int i = 1; i <= a.length; i++) {
+    int diagonal = 0;
+    for (int j = 1; j <= b.length; j++) {
+        int old = dp[j];
+        dp[j] = a[i-1] == b[j-1] ? diagonal + 1 : Math.max(dp[j], dp[j-1]);
+        diagonal = old;
+    }
+}
+```
+
+<a id="lc-1143"></a>
+### 33. LeetCode 1143
+
+**Problem**
+
+Return the maximum length of a sequence obtainable from both strings by deleting zero or more characters without changing order.
+
+**Examples**
+
+- abcde, ace → 3
+- abc, def → 0
+
+**Constraints**
+
+1 ≤ string lengths ≤ 1000; lowercase English letters
+
+**Why this approach / key logic**
+
+dp[j] holds the preceding row before update. Preserve its old diagonal; match adds one, mismatch takes max of top and left.
+
+**Locked strategy:** 2D LCS or one-row DP using diagonal preserved previous-row state.
+
+**Evolution from previous solution:** BASE: equal tokens extend diagonal; unequal tokens discard one side.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int longestCommonSubsequence(String a,String b) {
+        if(a.length()<b.length())return longestCommonSubsequence(b,a);
+        int[] dp=new int[b.length()+1];
+        for(int i=1;i<=a.length();i++) {
+            int diag=0;
+            for(int j=1;j<=b.length();j++) {
+                int old=dp[j];
+                dp[j]=a.charAt(i-1)==b.charAt(j-1)?diag+1:Math.max(dp[j],dp[j-1]);
+                diag=old;
+            }
+        }
+        return dp[b.length()];
+    }
+}
+```
+
+**Complexity:** O(mn) time, O(min(m,n)) space.
+
+---
+
+<a id="lc-1035"></a>
+### 34. LeetCode 1035
+
+**Problem**
+
+Draw lines between equal entries of two arrays. Each entry may be used once and lines must not cross. Return maximum lines.
+
+**Examples**
+
+- [1,4,2], [1,2,4] → 2
+- [2,5,1,2,5], [10,5,2,1,5,2] → 3
+
+**Constraints**
+
+1 ≤ lengths ≤ 500; 1 ≤ values ≤ 2000
+
+**Why this approach / key logic**
+
+Noncrossing forces matches to preserve both index orders, precisely LCS over integers.
+
+**Locked strategy:** Reuse identical LCS length recurrence on integer arrays.
+
+**Evolution from previous solution:** Replace string characters with integer entries; core DP unchanged.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int maxUncrossedLines(int[] a,int[] b) {
+        if(a.length<b.length)return maxUncrossedLines(b,a);
+        int[] dp=new int[b.length+1];
+        for(int x:a) {
+            int diag=0;
+            for(int j=1;j<=b.length;j++) {
+                int old=dp[j];
+                dp[j]=x==b[j-1]?diag+1:Math.max(dp[j],dp[j-1]);
+                diag=old;
+            }
+        }
+        return dp[b.length];
+    }
+}
+```
+
+**Complexity:** O(mn) time, O(min(m,n)) space.
+
+---
+
+<a id="lc-583"></a>
+### 35. LeetCode 583
+
+**Problem**
+
+Delete one character from either string per operation. Return the fewest operations needed to make them equal.
+
+**Examples**
+
+- sea, eat → 2
+- leetcode, etco → 4
+
+**Constraints**
+
+1 ≤ lengths ≤ 500; lowercase letters
+
+**Why this approach / key logic**
+
+The common remainder must be a common subsequence. Keep the longest possible remainder and delete everything else.
+
+**Locked strategy:** Find LCS and calculate len(a)+len(b)-2*LCS.
+
+**Evolution from previous solution:** Keep LCS table; replace output length with deletions computed from LCS.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int minDistance(String a,String b) {
+        if(a.length()<b.length())return minDistance(b,a);
+        int[] dp=new int[b.length()+1];
+        for(int i=0;i<a.length();i++) {
+            char c=a.charAt(i);
+            int diag=0;
+            for(int j=1;j<=b.length();j++) {
+                int old=dp[j];
+                dp[j]=c==b.charAt(j-1)?diag+1:Math.max(dp[j],dp[j-1]);
+                diag=old;
+            }
+        }
+        return a.length()+b.length()-2*dp[b.length()];
+    }
+}
+```
+
+**Complexity:** O(mn) time, O(min(m,n)) space.
+
+---
+
+<a id="lc-1092"></a>
+### 36. LeetCode 1092
+
+**Problem**
+
+Return any shortest string containing both input strings as subsequences.
+
+**Examples**
+
+- abac, cab → cabac
+- aaa, aaa → aaa
+
+**Constraints**
+
+1 ≤ lengths ≤ 1000; lowercase letters
+
+**Why this approach / key logic**
+
+Keep full LCS table for traceback. Matching endpoints are emitted once; otherwise follow the larger LCS predecessor and emit the discarded endpoint. Reverse at end.
+
+**Locked strategy:** Build LCS table, backtrack and emit common characters once and unmatched chars from either input.
+
+**Evolution from previous solution:** Retain LCS recurrence; replace scalar answer with traceback and sequence reconstruction.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public String shortestCommonSupersequence(String a,String b) {
+        int m=a.length(),n=b.length();
+        int[][] dp=new int[m+1][n+1];
+        for(int i=1;i<=m;i++)for(int j=1;j<=n;j++)dp[i][j]=a.charAt(i-1)==b.charAt(j-1)?1+dp[i-1][j-1]:Math.max(dp[i-1][j],dp[i][j-1]);
+        StringBuilder sb=new StringBuilder();
+        int i=m,j=n;
+        while(i>0&&j>0) {
+            if(a.charAt(i-1)==b.charAt(j-1)) {
+                sb.append(a.charAt(--i));
+                j--;
+            }
+            else if(dp[i-1][j]>=dp[i][j-1])sb.append(a.charAt(--i));
+            else sb.append(b.charAt(--j));
+        }
+        while(i>0)sb.append(a.charAt(--i));
+        while(j>0)sb.append(b.charAt(--j));
+        return sb.reverse().toString();
+    }
+}
+```
+
+**Complexity:** O(mn) time, O(mn) space.
+
+---
+
+<a id="dp14"></a>
+## DP14 — String edit and alignment DP
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Prefix-to-prefix transitions allow insertion, deletion, replacement, or matching.
+
+**Ordered questions:** 72, 712, 97
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+int[][] dp = new int[m + 1][n + 1];
+for (int i = 0; i <= m; i++) dp[i][0] = i;
+for (int j = 0; j <= n; j++) dp[0][j] = j;
+for (int i = 1; i <= m; i++)
+    for (int j = 1; j <= n; j++)
+        dp[i][j] = a.charAt(i-1) == b.charAt(j-1) ? dp[i-1][j-1] :
+            1 + Math.min(dp[i-1][j-1], Math.min(dp[i-1][j], dp[i][j-1]));
+```
+
+<a id="lc-72"></a>
+### 37. LeetCode 72
+
+**Problem**
+
+Convert one string into another using single-character insertion, deletion or replacement, each costing one. Return minimum operations.
+
+**Examples**
+
+- horse, ros → 3
+- intention, execution → 5
+- empty, abc → 3
+
+**Constraints**
+
+0 ≤ lengths ≤ 500; lowercase letters
+
+**Why this approach / key logic**
+
+Prefix edit distance uses diagonal for match/replacement, top for deletion, left for insertion. Empty prefix costs its opposite length.
+
+**Locked strategy:** Levenshtein edit-distance 2D or two-row DP.
+
+**Evolution from previous solution:** BASE: prefix alignment with three paid edits.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int minDistance(String a,String b) {
+        if(a.length()<b.length())return minDistance(b,a);
+        int[] dp=new int[b.length()+1];
+        for(int j=0;j<dp.length;j++)dp[j]=j;
+        for(int i=1;i<=a.length();i++) {
+            int diag=dp[0];
+            dp[0]=i;
+            for(int j=1;j<dp.length;j++) {
+                int old=dp[j];
+                dp[j]=a.charAt(i-1)==b.charAt(j-1)?diag:1+Math.min(diag,Math.min(dp[j],dp[j-1]));
+                diag=old;
+            }
+        }
+        return dp[b.length()];
+    }
+}
+```
+
+**Complexity:** O(mn) time, O(min(m,n)) space.
+
+---
+
+<a id="lc-712"></a>
+### 38. LeetCode 712
+
+**Problem**
+
+Delete characters from either string until equal; each deletion costs its character ASCII value. Return minimum total cost.
+
+**Examples**
+
+- sea, eat → 231
+- delete, leet → 403
+
+**Constraints**
+
+1 ≤ lengths ≤ 1000; lowercase letters
+
+**Why this approach / key logic**
+
+Initialize empty-prefix costs as ASCII sums. Matching characters cost zero; mismatches choose one of two weighted deletions.
+
+**Locked strategy:** 2D min-cost DP with delete-from-left/right and zero-cost matching.
+
+**Evolution from previous solution:** Remove substitution branch; replace unit operation costs with character ASCII deletion weights.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int minimumDeleteSum(String a,String b) {
+        if(a.length()<b.length())return minimumDeleteSum(b,a);
+        int[] dp=new int[b.length()+1];
+        for(int j=1;j<dp.length;j++)dp[j]=dp[j-1]+b.charAt(j-1);
+        for(int i=1;i<=a.length();i++) {
+            char x=a.charAt(i-1);
+            int diag=dp[0];
+            dp[0]+=x;
+            for(int j=1;j<dp.length;j++) {
+                char y=b.charAt(j-1);
+                int old=dp[j];
+                dp[j]=x==y?diag:Math.min(old+x,dp[j-1]+y);
+                diag=old;
+            }
+        }
+        return dp[b.length()];
+    }
+}
+```
+
+**Complexity:** O(mn) time, O(min(m,n)) space.
+
+---
+
+<a id="lc-97"></a>
+### 39. LeetCode 97
+
+**Problem**
+
+Determine whether target can be formed by interleaving all characters of two strings while preserving each source order.
+
+**Examples**
+
+- aabcc, dbbca, aadbbcbcac → true
+- aabcc, dbbca, aadbbbaccc → false
+- empty, empty, empty → true
+
+**Constraints**
+
+0 ≤ source lengths ≤ 100; 0 ≤ target length ≤ 200; lowercase letters
+
+**Why this approach / key logic**
+
+Reject unequal total length. State (i,j) reaches target prefix i+j from either source when its next character matches.
+
+**Locked strategy:** Boolean prefix DP where a state is valid if the next target char matches either input source.
+
+**Evolution from previous solution:** Replace min-cost edit state with boolean reachability and enforce exact combined target prefix.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean isInterleave(String a,String b,String c) {
+        if(a.length()+b.length()!=c.length())return false;
+        if(a.length()<b.length())return isInterleave(b,a,c);
+        int n=b.length();
+        boolean[] dp=new boolean[n+1];
+        dp[0]=true;
+        for(int i=0;i<=a.length();i++)for(int j=0;j<=n;j++) {
+            if(i==0&&j==0)continue;
+            char t=c.charAt(i+j-1);
+            dp[j]=(i>0&&dp[j]&&a.charAt(i-1)==t)||(j>0&&dp[j-1]&&b.charAt(j-1)==t);
+        }
+        return dp[n];
+    }
+}
+```
+
+**Complexity:** O(mn+m+n) time, O(min(m,n)+1) space.
+
+---
+
+<a id="dp15"></a>
+## DP15 — Wildcard and regular expression automaton DP
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Pattern symbols match a character or represent an optional/repeated group; state tracks text and pattern prefixes.
+
+**Ordered questions:** 44, 10
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+boolean[][] dp = new boolean[text.length()+1][pattern.length()+1];
+dp[0][0] = true;
+for (int i = 0; i <= text.length(); i++)
+    for (int j = 1; j <= pattern.length(); j++) {
+        // use symbol-specific transitions; empty match may consume pattern only
+    }
+```
+
+<a id="lc-44"></a>
+### 40. LeetCode 44
+
+**Problem**
+
+Match the entire text against a pattern where ? matches exactly one character and * matches any sequence including empty.
+
+**Examples**
+
+- aa, a → false
+- aa, * → true
+- cb, ?a → false
+
+**Constraints**
+
+0 ≤ text and pattern lengths ≤ 2000; lowercase letters and pattern symbols ? and *
+
+**Why this approach / key logic**
+
+For star, left state consumes no text and top state consumes one more character. Literal or question mark uses diagonal.
+
+**Locked strategy:** 2D boolean DP: ? or literal consumes one char, * consumes zero or more.
+
+**Evolution from previous solution:** BASE: wildcard pattern states with zero-length and growing consumption.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean isMatch(String s,String p) {
+        int n=p.length();
+        boolean[] dp=new boolean[n+1];
+        dp[0]=true;
+        for(int j=1;j<=n;j++)dp[j]=dp[j-1]&&p.charAt(j-1)=='*';
+        for(int i=1;i<=s.length();i++) {
+            boolean diag=dp[0];
+            dp[0]=false;
+            for(int j=1;j<=n;j++) {
+                boolean old=dp[j];
+                char x=p.charAt(j-1);
+                dp[j]=x=='*'?(old||dp[j-1]):diag&&(x=='?'||x==s.charAt(i-1));
+                diag=old;
+            }
+        }
+        return dp[n];
+    }
+}
+```
+
+**Complexity:** O(mn+m+n) time, O(n+1) space, n=pattern length.
+
+---
+
+<a id="lc-10"></a>
+### 41. LeetCode 10
+
+**Problem**
+
+Match entire text against regex with . matching any one character and * matching zero or more repetitions of its preceding atom.
+
+**Examples**
+
+- aa, a → false
+- aa, a* → true
+- ab, .* → true
+
+**Constraints**
+
+1 ≤ text and pattern lengths ≤ 20; lowercase letters, . and *; each * has a valid preceding atom
+
+**Why this approach / key logic**
+
+A starred atom either disappears (two pattern positions back) or consumes matching text while retaining the same pattern prefix.
+
+**Locked strategy:** 2D boolean DP: x* removes last two pattern symbols or consumes matching text while staying on quantifier.
+
+**Evolution from previous solution:** Replace free-standing * transition with 0+ repeats tied to preceding pattern atom; initialize empty-text states accordingly.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean isMatch(String s,String p) {
+        int n=p.length();
+        boolean[] dp=new boolean[n+1];
+        dp[0]=true;
+        for(int j=2;j<=n;j++)if(p.charAt(j-1)=='*')dp[j]=dp[j-2];
+        for(int i=1;i<=s.length();i++) {
+            boolean diag=dp[0];
+            dp[0]=false;
+            for(int j=1;j<=n;j++) {
+                boolean old=dp[j];
+                char x=p.charAt(j-1),c=s.charAt(i-1);
+                if(x=='*') {
+                    char a=p.charAt(j-2);
+                    dp[j]=dp[j-2]||((a=='.'||a==c)&&old);
+                }
+                else dp[j]=diag&&(x=='.'||x==c);
+                diag=old;
+            }
+        }
+        return dp[n];
+    }
+}
+```
+
+**Complexity:** O(mn) time, O(n) space.
+
+---
+
+<a id="dp16"></a>
+## DP16 — Dictionary segmentation and enumeration
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** A prefix is segmentable if it can be extended by a dictionary word; enumeration stores valid suffix decompositions.
+
+**Ordered questions:** 139, 140
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+boolean[] dp = new boolean[s.length()+1];
+dp[0] = true;
+for (int end = 1; end <= s.length(); end++)
+    for (int start = 0; start < end; start++)
+        if (dp[start] && dict.contains(s.substring(start,end))) dp[end] = true;
+```
+
+<a id="lc-139"></a>
+### 42. LeetCode 139
+
+**Problem**
+
+Determine whether a string can be segmented into one or more dictionary words. Words may be reused.
+
+**Examples**
+
+- leetcode, [leet,code] → true
+- catsandog, [cats,dog,sand,and,cat] → false
+
+**Constraints**
+
+1 ≤ text length ≤ 300; 1 ≤ dictionary size ≤ 1000; word length 1–20; lowercase, unique words
+
+**Why this approach / key logic**
+
+A reachable prefix ending at i can extend by any matching dictionary word. Bound tested suffix lengths by longest dictionary word. Java substring copies characters.
+
+**Locked strategy:** Boolean prefix dp; dictionary HashSet and bounded word lengths for optimization.
+
+**Evolution from previous solution:** BASE: test possible final word and earlier segmentable prefix.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean wordBreak(String s,List<String> wordDict) {
+        Set<String> set=new HashSet<>(wordDict);
+        int L=0;
+        for(String w:set)L=Math.max(L,w.length());
+        boolean[] dp=new boolean[s.length()+1];
+        dp[0]=true;
+        for(int i=1;i<=s.length();i++)for(int j=Math.max(0,i-L);j<i;j++)if(dp[j]&&set.contains(s.substring(j,i))) {
+            dp[i]=true;
+            break;
+        }
+        return dp[s.length()];
+    }
+}
+```
+
+**Complexity:** O(nL²+D) time, O(n+D) space, L=max word length, D=total dictionary characters.
+
+---
+
+<a id="lc-140"></a>
+### 43. LeetCode 140
+
+**Problem**
+
+Return all sentences formed by inserting spaces into text so that every segment belongs to the dictionary; words can be reused.
+
+**Examples**
+
+- catsanddog, [cat,cats,and,sand,dog] → [cats and dog,cat sand dog]
+- catsandog, [cats,dog,sand,and,cat] → []
+
+**Constraints**
+
+1 ≤ text length ≤ 20; dictionary size 1–1000; word length 1–10; lowercase unique words; output bounded by judge
+
+**Why this approach / key logic**
+
+Compute suffix feasibility first. DFS from each feasible start returns memoized sentences; concatenate each matching word with all feasible suffix sentences. Empty suffix is one valid completion.
+
+**Locked strategy:** Memoized DFS per start index returning full sentences, with boolean feasibility pruning; output-sensitive exponential worst-case.
+
+**Evolution from previous solution:** Replace boolean existence with cached lists of complete suffix sentences; preserve dictionary prefix checks.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<String> wordBreak(String s,List<String> wordDict) {
+        Set<String> set=new HashSet<>(wordDict);
+        int L=0,n=s.length();
+        for(String w:set)L=Math.max(L,w.length());
+        boolean[] ok=new boolean[n+1];
+        ok[n]=true;
+        for(int i=n-1;i>=0;i--)for(int j=i+1;j<=Math.min(n,i+L);j++)if(ok[j]&&set.contains(s.substring(i,j))) {
+            ok[i]=true;
+            break;
+        }
+        return dfs(s,0,L,set,ok,new HashMap<>());
+    }
+    private List<String> dfs(String s,int i,int L,Set<String> set,boolean[] ok,Map<Integer,List<String>> memo) {
+        if(i==s.length())return List.of("");
+        if(!ok[i])return List.of();
+        if(memo.containsKey(i))return memo.get(i);
+        List<String> ans=new ArrayList<>();
+        for(int j=i+1;j<=Math.min(s.length(),i+L);j++) {
+            if(!ok[j])continue;
+            String w=s.substring(i,j);
+            if(set.contains(w))for(String tail:dfs(s,j,L,set,ok,memo))ans.add(tail.isEmpty()?w:w+" "+tail);
+        }
+        memo.put(i,ans);
+        return ans;
+    }
+}
+```
+
+**Complexity:** O(nL²+D+C) time, O(n+D+C) space, C=total characters stored/generated across memoized sentences.
+
+---
+
+<a id="dp17"></a>
+## DP17 — Palindrome subsequence and insertion DP
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** An interval is reduced by either matching its ends or discarding/repairing an endpoint.
+
+**Ordered questions:** 516, 1312
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+int[][] dp = new int[n][n];
+for (int i = n - 1; i >= 0; i--)
+    for (int j = i; j < n; j++) {
+        if (i == j) dp[i][j] = 1;
+        else if (s.charAt(i) == s.charAt(j)) dp[i][j] = 2 + (j-i>1 ? dp[i+1][j-1] : 0);
+        else dp[i][j] = Math.max(dp[i+1][j], dp[i][j-1]);
+    }
+```
+
+<a id="lc-516"></a>
+### 44. LeetCode 516
+
+**Problem**
+
+Find maximum length of a palindromic subsequence, not necessarily contiguous.
+
+**Examples**
+
+- bbbab → 4
+- cbbd → 2
+
+**Constraints**
+
+1 ≤ length ≤ 1000; lowercase letters
+
+**Why this approach / key logic**
+
+Scan left endpoint backward and right endpoint forward. Equal endpoints add two to the inner interval; otherwise discard either endpoint. Preserve old diagonal.
+
+**Locked strategy:** Interval DP on s[i..j], combine matching ends or skip one endpoint.
+
+**Evolution from previous solution:** BASE: solve smaller substring intervals before larger ones.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int longestPalindromeSubseq(String s) {
+        int n=s.length();
+        int[] dp=new int[n];
+        for(int i=n-1;i>=0;i--) {
+            int diag=0;
+            dp[i]=1;
+            for(int j=i+1;j<n;j++) {
+                int old=dp[j];
+                dp[j]=s.charAt(i)==s.charAt(j)?diag+2:Math.max(dp[j],dp[j-1]);
+                diag=old;
+            }
+        }
+        return dp[n-1];
+    }
+}
+```
+
+**Complexity:** O(n²) time, O(n) space.
+
+---
+
+<a id="lc-1312"></a>
+### 45. LeetCode 1312
+
+**Problem**
+
+Insert characters anywhere to turn the string into a palindrome using the fewest insertions.
+
+**Examples**
+
+- zzazz → 0
+- mbadm → 2
+- leetcode → 5
+
+**Constraints**
+
+1 ≤ length ≤ 500; lowercase letters
+
+**Why this approach / key logic**
+
+Equal ends require no extra insertion. Unequal ends need one inserted counterpart plus the cheaper of the two smaller intervals.
+
+**Locked strategy:** Use n-LPS or direct interval DP with matching ends costing 0 and mismatching ends costing 1+min(inner intervals).
+
+**Evolution from previous solution:** Reuse smaller-interval state; replace maximizing matched length with minimizing required insertions.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int minInsertions(String s) {
+        int n=s.length();
+        int[] dp=new int[n];
+        for(int i=n-2;i>=0;i--) {
+            int diag=0;
+            for(int j=i+1;j<n;j++) {
+                int old=dp[j];
+                dp[j]=s.charAt(i)==s.charAt(j)?diag:1+Math.min(dp[j],dp[j-1]);
+                diag=old;
+            }
+        }
+        return dp[n-1];
+    }
+}
+```
+
+**Complexity:** O(n²) time, O(n) space.
+
+---
+
+<a id="dp18"></a>
+## DP18 — Palindrome partition DP
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** First precompute palindromic spans; then optimize cuts or partitions over prefix/interval states.
+
+**Ordered questions:** 132, 1278, 1745
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+boolean[][] palindrome = new boolean[n][n];
+for (int r = 0; r < n; r++)
+    for (int l = r; l >= 0; l--)
+        palindrome[l][r] = s.charAt(l) == s.charAt(r) &&
+            (r-l<2 || palindrome[l+1][r-1]);
+```
+
+<a id="lc-132"></a>
+### 46. LeetCode 132
+
+**Problem**
+
+Partition the string into contiguous nonempty palindromes; return the minimum number of cuts.
+
+**Examples**
+
+- aab → 1
+- a → 0
+- ab → 1
+
+**Constraints**
+
+1 ≤ length ≤ 2000; lowercase letters
+
+**Why this approach / key logic**
+
+Precompute palindrome validity using matching ends and inner span. dp[end] counts minimum pieces of the first end characters; subtract one for cuts.
+
+**Locked strategy:** Palindrome-table precompute then dp[end]=min(dp[start-1]+1) for valid last palindrome.
+
+**Evolution from previous solution:** BASE: palindrome interval validity plus optimized prefix partition count.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int minCut(String s) {
+        int n=s.length();
+        boolean[][] pal=new boolean[n][n];
+        int[] dp=new int[n+1];
+        for(int end=0;end<n;end++) {
+            dp[end+1]=end+1;
+            for(int start=0;start<=end;start++) {
+                pal[start][end]=s.charAt(start)==s.charAt(end)&&(end-start<2||pal[start+1][end-1]);
+                if(pal[start][end])dp[end+1]=Math.min(dp[end+1],dp[start]+1);
+            }
+        }
+        return dp[n]-1;
+    }
+}
+```
+
+**Complexity:** O(n²) time, O(n²) space.
+
+---
+
+<a id="lc-1278"></a>
+### 47. LeetCode 1278
+
+**Problem**
+
+Split the string into exactly k nonempty contiguous pieces. Change as few characters as possible so every piece becomes a palindrome.
+
+**Examples**
+
+- abc, k=2 → 1
+- aabbc, k=3 → 0
+
+**Constraints**
+
+1 ≤ k ≤ n ≤ 100; lowercase letters
+
+**Why this approach / key logic**
+
+Each mismatching mirrored pair costs one replacement. Precompute cost per interval; roll exact-part DP and try all last-piece boundaries.
+
+**Locked strategy:** Precompute mismatch cost per interval; dp[parts][end] minimizes sum of segment costs.
+
+**Evolution from previous solution:** Replace boolean palindrome validity with minimum edit cost; add exact part-count dimension.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int palindromePartition(String s,int k) {
+        int n=s.length();
+        int[][] cost=new int[n][n];
+        for(int i=n-1;i>=0;i--)for(int j=i+1;j<n;j++)cost[i][j]=(s.charAt(i)==s.charAt(j)?0:1)+(j-i>1?cost[i+1][j-1]:0);
+        int[] dp=new int[n+1];
+        Arrays.fill(dp,n+1);
+        dp[0]=0;
+        for(int p=1;p<=k;p++) {
+            int[] next=new int[n+1];
+            Arrays.fill(next,n+1);
+            for(int end=p;end<=n;end++)for(int start=p-1;start<end;start++)next[end]=Math.min(next[end],dp[start]+cost[start][end-1]);
+            dp=next;
+        }
+        return dp[n];
+    }
+}
+```
+
+**Complexity:** O(kn²) time, O(n²) space.
+
+---
+
+<a id="lc-1745"></a>
+### 48. LeetCode 1745
+
+**Problem**
+
+Return whether a string can be split into exactly three nonempty contiguous palindromes.
+
+**Examples**
+
+- abcbdd → true
+- bcbddxy → false
+
+**Constraints**
+
+3 ≤ length ≤ 2000; lowercase letters
+
+**Why this approach / key logic**
+
+Precompute palindrome table, then enumerate two cuts. All three resulting intervals must be palindromic.
+
+**Locked strategy:** Reuse palindrome table; enumerate two split points and test three intervals.
+
+**Evolution from previous solution:** Replace min-change objective with boolean three-part feasibility using same palindrome precomputation.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean checkPartitioning(String s) {
+        int n=s.length();
+        boolean[][] pal=new boolean[n][n];
+        for(int i=n-1;i>=0;i--)for(int j=i;j<n;j++)pal[i][j]=s.charAt(i)==s.charAt(j)&&(j-i<2||pal[i+1][j-1]);
+        for(int i=0;i<n-2;i++)if(pal[0][i])for(int j=i+1;j<n-1;j++)if(pal[i+1][j]&&pal[j+1][n-1])return true;
+        return false;
+    }
+}
+```
+
+**Complexity:** O(n²) time, O(n²) space.
+
+---
+
+<a id="dp19"></a>
+## DP19 — Increasingly complex interval splitting
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Choose a split/pivot inside an interval and combine optimal solutions to smaller intervals.
+
+**Ordered questions:** 312, 1547, 1000, 664
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+int[][] dp = new int[n][n];
+for (int length = 2; length <= n; length++)
+    for (int left = 0; left + length <= n; left++) {
+        int right = left + length - 1;
+        for (int mid = left; mid < right; mid++) {
+            // dp[left][right] = best(dp[left][mid] + dp[mid+1][right] + mergeCost)
+        }
+    }
+```
+
+<a id="lc-312"></a>
+### 49. LeetCode 312
+
+**Problem**
+
+Burst all balloons in any order. Bursting one earns the product of its current left neighbor, own value and current right neighbor; missing neighbors count as 1. Maximize total.
+
+**Examples**
+
+- [3,1,5,8] → 167
+- [1,5] → 10
+
+**Constraints**
+
+1 ≤ n ≤ 300; 0 ≤ nums[i] ≤ 100
+
+**Why this approach / key logic**
+
+Choose the last balloon inside open interval (l,r). Its neighbors are then fixed boundaries; left and right subproblems are independent.
+
+**Locked strategy:** Interval DP with last-removed pivot and fixed outer boundary sentinels, O(n³).
+
+**Evolution from previous solution:** BASE: choose last action within an open interval; combine left/right independent results.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int maxCoins(int[] nums) {
+        int n=nums.length;
+        int[] a=new int[n+2];
+        a[0]=a[n+1]=1;
+        System.arraycopy(nums,0,a,1,n);
+        int[][] dp=new int[n+2][n+2];
+        for(int len=2;len<=n+1;len++)for(int l=0;l+len<=n+1;l++) {
+            int r=l+len;
+            for(int k=l+1;k<r;k++)dp[l][r]=Math.max(dp[l][r],dp[l][k]+dp[k][r]+a[l]*a[k]*a[r]);
+        }
+        return dp[0][n+1];
+    }
+}
+```
+
+**Complexity:** O(n³) time, O(n²) space.
+
+---
+
+<a id="lc-1547"></a>
+### 50. LeetCode 1547
+
+**Problem**
+
+Cut a stick of length n at all specified distinct internal positions in any order. Each cut costs length of the current piece. Minimize total cost.
+
+**Examples**
+
+- n=7, cuts=[1,3,4,5] → 16
+- n=9, cuts=[5,6,1,4,2] → 22
+
+**Constraints**
+
+2 ≤ n ≤ 10^6; 1 ≤ cuts.length ≤ min(n−1,100); distinct internal cuts
+
+**Why this approach / key logic**
+
+Sort cut positions with boundaries 0 and n. Choosing first cut splits interval into independent subproblems; pay full interval length once.
+
+**Locked strategy:** Sort cuts with 0,n boundaries; interval DP chooses first cut and pays segment length.
+
+**Evolution from previous solution:** Replace last-removal reward with first-cut cost; keep pivot split recurrence.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int minCost(int n,int[] cuts) {
+        int m=cuts.length;
+        int[] a=new int[m+2];
+        System.arraycopy(cuts,0,a,1,m);
+        a[m+1]=n;
+        Arrays.sort(a);
+        int[][] dp=new int[m+2][m+2];
+        for(int len=2;len<=m+1;len++)for(int l=0;l+len<=m+1;l++) {
+            int r=l+len,best=Integer.MAX_VALUE;
+            for(int k=l+1;k<r;k++)best=Math.min(best,dp[l][k]+dp[k][r]);
+            dp[l][r]=best+a[r]-a[l];
+        }
+        return dp[0][m+1];
+    }
+}
+```
+
+**Complexity:** O(c³) time, O(c²) space, c=number of cuts.
+
+---
+
+<a id="lc-1000"></a>
+### 51. LeetCode 1000
+
+**Problem**
+
+Merge exactly k consecutive stone piles at a time, paying their total stones. Return minimum cost to reduce to one pile, or −1 if impossible.
+
+**Examples**
+
+- [3,2,4,1], k=2 → 20
+- [3,2,4,1], k=3 → -1
+- [3,5,1,2,6], k=3 → 25
+
+**Constraints**
+
+1 ≤ n ≤ 30; 1 ≤ stones[i] ≤ 100; 2 ≤ k ≤ 30
+
+**Why this approach / key logic**
+
+Every merge reduces pile count by k−1. dp[i][j] reduces interval to its minimum reachable pile count; split at increments k−1 so left can reduce to one. Add interval sum only when final reduction to one is possible.
+
+**Locked strategy:** Interval DP with feasibility (len-1)%(k-1)==0; split in increments of k-1, pay total only on final merge.
+
+**Evolution from previous solution:** Add k-ary merge feasibility and prefix-sum cost; restrict split positions rather than all pivots.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int mergeStones(int[] stones,int k) {
+        int n=stones.length;
+        if((n-1)%(k-1)!=0)return -1;
+        int[] pre=new int[n+1];
+        for(int i=0;i<n;i++)pre[i+1]=pre[i]+stones[i];
+        int[][] dp=new int[n][n];
+        for(int len=2;len<=n;len++)for(int i=0;i+len<=n;i++) {
+            int j=i+len-1,best=Integer.MAX_VALUE;
+            for(int m=i;m<j;m+=k-1)best=Math.min(best,dp[i][m]+dp[m+1][j]);
+            dp[i][j]=best+((len-1)%(k-1)==0?pre[j+1]-pre[i]:0);
+        }
+        return dp[0][n-1];
+    }
+}
+```
+
+**Complexity:** O(n³/(k−1)+n²) time, O(n²) space.
+
+---
+
+<a id="lc-664"></a>
+### 52. LeetCode 664
+
+**Problem**
+
+A printer prints one repeated character over any contiguous range per turn, overwriting previous characters. Find minimum turns to produce target string.
+
+**Examples**
+
+- aaabbb → 2
+- aba → 2
+
+**Constraints**
+
+1 ≤ length ≤ 100; lowercase letters
+
+**Why this approach / key logic**
+
+Compress consecutive duplicates. Print first character separately as baseline; if a later character matches, share its print turn with the first and solve the intervening range independently.
+
+**Locked strategy:** Compress consecutive duplicates, interval DP merges same-character print turns using matching later positions.
+
+**Evolution from previous solution:** Replace numeric merge fees with character-equality opportunities to share a printing turn; use tailored interval recurrence.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int strangePrinter(String s) {
+        StringBuilder b=new StringBuilder();
+        for(int i=0;i<s.length();i++)if(i==0||s.charAt(i)!=s.charAt(i-1))b.append(s.charAt(i));
+        int n=b.length();
+        int[][] dp=new int[n][n];
+        for(int i=n-1;i>=0;i--) {
+            dp[i][i]=1;
+            for(int j=i+1;j<n;j++) {
+                dp[i][j]=1+dp[i+1][j];
+                for(int k=i+1;k<=j;k++)if(b.charAt(i)==b.charAt(k))dp[i][j]=Math.min(dp[i][j],(k==i+1?0:dp[i+1][k-1])+dp[k][j]);
+            }
+        }
+        return dp[0][n-1];
+    }
+}
+```
+
+**Complexity:** O(n+r³) time, O(r²) space, r=compressed length.
+
+---
+
+<a id="dp20"></a>
+## DP20 — Partition into bounded or scored blocks
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** The last chosen contiguous block determines an optimum over earlier prefixes.
+
+**Ordered questions:** 1043, 1105, 1335
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+int[] dp = new int[n + 1];
+for (int end = 1; end <= n; end++)
+    for (int start = Math.max(0, end-k); start < end; start++)
+        dp[end] = Math.max(dp[end], dp[start] + blockScore(start,end));
+```
+
+<a id="lc-1043"></a>
+### 53. LeetCode 1043
+
+**Problem**
+
+Partition array into contiguous blocks of length at most k. Replace each block value with its maximum; maximize total resulting sum.
+
+**Examples**
+
+- [1,15,7,9,2,5,10], k=3 → 84
+- [1], k=1 → 1
+
+**Constraints**
+
+1 ≤ n ≤ 500; 0 ≤ values ≤ 10^9; 1 ≤ k ≤ n; answer fits int
+
+**Why this approach / key logic**
+
+For each prefix end, extend last block backward up to k entries while maintaining maximum; combine prefix optimum with block length times maximum.
+
+**Locked strategy:** Prefix dp; enumerate last block up to k, maintain its maximum and score length*maximum.
+
+**Evolution from previous solution:** BASE: choose last block boundary and combine prefix optimum with block score.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int maxSumAfterPartitioning(int[] arr,int k) {
+        int n=arr.length;
+        int[] dp=new int[n+1];
+        for(int end=1;end<=n;end++) {
+            int max=0;
+            for(int len=1;len<=k&&len<=end;len++) {
+                max=Math.max(max,arr[end-len]);
+                dp[end]=Math.max(dp[end],dp[end-len]+len*max);
+            }
+        }
+        return dp[n];
+    }
+}
+```
+
+**Complexity:** O(nk) time, O(n) space.
+
+---
+
+<a id="lc-1105"></a>
+### 54. LeetCode 1105
+
+**Problem**
+
+Place books in their given order on shelves of fixed width. Each book has thickness and height; a shelf height is its tallest book. Minimize total shelf height.
+
+**Examples**
+
+- [[1,1],[2,3],[2,3],[1,1],[1,1],[1,1],[1,2]], width=4 → 6
+- [[1,3],[2,4],[3,2]], width=6 → 4
+
+**Constraints**
+
+1 ≤ books.length ≤ 1000; 1 ≤ shelfWidth ≤ 1000; thickness ≤ shelfWidth; height ≤ 1000
+
+**Why this approach / key logic**
+
+Extend last shelf backward while accumulated width fits. Maintain maximum height and minimize prefix height plus this shelf height.
+
+**Locked strategy:** Prefix dp; extend last shelf backward until width exceeded and track maximum book height.
+
+**Evolution from previous solution:** Replace max reward with min total shelf height; make block feasibility depend on accumulated width.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int minHeightShelves(int[][] books,int shelfWidth) {
+        int n=books.length;
+        int[] dp=new int[n+1];
+        for(int end=1;end<=n;end++) {
+            dp[end]=Integer.MAX_VALUE;
+            int w=0,h=0;
+            for(int j=end-1;j>=0;j--) {
+                w+=books[j][0];
+                if(w>shelfWidth)break;
+                h=Math.max(h,books[j][1]);
+                dp[end]=Math.min(dp[end],dp[j]+h);
+            }
+        }
+        return dp[n];
+    }
+}
+```
+
+**Complexity:** O(n²) time, O(n) space.
+
+---
+
+<a id="lc-1335"></a>
+### 55. LeetCode 1335
+
+**Problem**
+
+Schedule ordered jobs across exactly d days, at least one job each day. Daily difficulty is maximum of jobs done that day. Minimize total, or return −1 if impossible.
+
+**Examples**
+
+- [6,5,4,3,2,1], d=2 → 7
+- [9,9,9], d=4 → -1
+
+**Constraints**
+
+1 ≤ n ≤ 300; 0 ≤ jobDifficulty[i] ≤ 1000; 1 ≤ d ≤ 10
+
+**Why this approach / key logic**
+
+Roll exact-day prefix states. For each ending position scan backward over last day jobs, maintaining maximum; previous day must cover earlier prefix.
+
+**Locked strategy:** dp[day][end] minimize preceding-day value plus maximum difficulty of final day's block.
+
+**Evolution from previous solution:** Add exact number-of-blocks dimension and constrain nonempty segments; retain backward max scan.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int minDifficulty(int[] jobs,int d) {
+        int n=jobs.length;
+        if(n<d)return -1;
+        int inf=1000000000;
+        int[] dp=new int[n+1];
+        Arrays.fill(dp,inf);
+        dp[0]=0;
+        for(int day=1;day<=d;day++) {
+            int[] next=new int[n+1];
+            Arrays.fill(next,inf);
+            for(int end=day;end<=n;end++) {
+                int max=0;
+                for(int j=end-1;j>=day-1;j--) {
+                    max=Math.max(max,jobs[j]);
+                    next[end]=Math.min(next[end],dp[j]+max);
+                }
+            }
+            dp=next;
+        }
+        return dp[n];
+    }
+}
+```
+
+**Complexity:** O(dn²) time, O(n) space.
+
+---
+
+<a id="dp21"></a>
+## DP21 — Weighted job scheduling and limited event selections
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** Sort by time; compatible previous/next event is found by binary search.
+
+**Ordered questions:** 1235, 2008, 1751
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+long[] dp = new long[n + 1];
+for (int i = n - 1; i >= 0; i--) {
+    int next = lowerBound(starts, events[i].end); // exclusive convention varies
+    dp[i] = Math.max(dp[i+1], events[i].reward + dp[next]);
+}
+```
+
+<a id="lc-1235"></a>
+### 56. LeetCode 1235
+
+**Problem**
+
+Choose nonoverlapping jobs with start, end and profit. A job may start exactly when another ends. Maximize total profit.
+
+**Examples**
+
+- start=[1,2,3,3], end=[3,4,5,6], profit=[50,10,40,70] → 120
+- start=[1,1,1], end=[2,3,4], profit=[5,6,4] → 6
+
+**Constraints**
+
+1 ≤ n ≤ 50000; 1 ≤ start < end ≤ 10^9; 1 ≤ profit ≤ 10000
+
+**Why this approach / key logic**
+
+Sort jobs by start. Binary search first next start at least current end; suffix dp chooses skip or take plus compatible suffix.
+
+**Locked strategy:** Sort by start, binary-search next start >= current end, suffix DP take/skip.
+
+**Evolution from previous solution:** BASE: weighted choice with chronological next-compatible index.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int jobScheduling(int[] startTime,int[] endTime,int[] profit) {
+        int n=profit.length;
+        int[][] jobs=new int[n][3];
+        for(int i=0;i<n;i++)jobs[i]=new int[] {
+            startTime[i],endTime[i],profit[i]
+        }
+        ;
+        Arrays.sort(jobs,Comparator.comparingInt(a->a[0]));
+        int[] dp=new int[n+1];
+        for(int i=n-1;i>=0;i--) {
+            int l=i+1,r=n;
+            while(l<r) {
+                int m=(l+r)/2;
+                if(jobs[m][0]<jobs[i][1])l=m+1;
+                else r=m;
+            }
+            dp[i]=Math.max(dp[i+1],jobs[i][2]+dp[l]);
+        }
+        return dp[0];
+    }
+}
+```
+
+**Complexity:** O(n log n) time, O(n) space.
+
+---
+
+<a id="lc-2008"></a>
+### 57. LeetCode 2008
+
+**Problem**
+
+Drive along a road from position 1 to n. Each ride has start, end and tip; carry only one passenger at a time, earn end−start+tip, and may pick up at drop-off point. Maximize earnings.
+
+**Examples**
+
+- n=5, rides=[[2,5,4],[1,5,1]] → 7
+- n=20, rides=[[1,6,1],[3,10,2],[10,12,3],[11,12,2],[12,15,2],[13,18,1]] → 20
+
+**Constraints**
+
+1 ≤ n ≤ 10^5; 1 ≤ rides.length ≤ 3×10^4; 1 ≤ start < end ≤ n; 1 ≤ tip ≤ 10^5
+
+**Why this approach / key logic**
+
+Reuse weighted job scheduling; replace reward with distance plus tip and use long for total.
+
+**Locked strategy:** Sort rides by start and reuse next-compatible binary search; reward=end-start+tip.
+
+**Evolution from previous solution:** Keep chronological weighted interval DP; change job reward to ride fare plus tip.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public long maxTaxiEarnings(int n,int[][] rides) {
+        Arrays.sort(rides,Comparator.comparingInt(a->a[0]));
+        int m=rides.length;
+        long[] dp=new long[m+1];
+        for(int i=m-1;i>=0;i--) {
+            int l=i+1,r=m;
+            while(l<r) {
+                int mid=(l+r)/2;
+                if(rides[mid][0]<rides[i][1])l=mid+1;
+                else r=mid;
+            }
+            long reward=(long)rides[i][1]-rides[i][0]+rides[i][2];
+            dp[i]=Math.max(dp[i+1],reward+dp[l]);
+        }
+        return dp[0];
+    }
+}
+```
+
+**Complexity:** O(r log r) time, O(r) space, r=rides.length.
+
+---
+
+<a id="lc-1751"></a>
+### 58. LeetCode 1751
+
+**Problem**
+
+Attend at most k events, each with inclusive start/end days and value. No overlapping attendance; maximize value.
+
+**Examples**
+
+- [[1,2,4],[3,4,3],[2,3,1]], k=2 → 7
+- [[1,2,4],[3,4,3],[2,3,10]], k=2 → 10
+
+**Constraints**
+
+1 ≤ k ≤ n; 1 ≤ n×k ≤ 10^6; 1 ≤ start ≤ end ≤ 10^9; 1 ≤ value ≤ 10^6
+
+**Why this approach / key logic**
+
+Precompute next event with start strictly greater than current end. Roll selection-budget layers; take consumes one budget, skip keeps current budget.
+
+**Locked strategy:** Sort events and precompute next strictly later start; DP by event index and remaining k selections.
+
+**Evolution from previous solution:** Add selection-budget dimension; change nonoverlap condition from >= end to > end (inclusive dates).
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int maxValue(int[][] events,int k) {
+        Arrays.sort(events,Comparator.comparingInt(a->a[0]));
+        int n=events.length;
+        int[] next=new int[n];
+        for(int i=0;i<n;i++) {
+            int l=i+1,r=n;
+            while(l<r) {
+                int m=(l+r)/2;
+                if(events[m][0]<=events[i][1])l=m+1;
+                else r=m;
+            }
+            next[i]=l;
+        }
+        int[] dp=new int[n+1];
+        for(int c=1;c<=k;c++) {
+            int[] cur=new int[n+1];
+            for(int i=n-1;i>=0;i--)cur[i]=Math.max(cur[i+1],events[i][2]+dp[next[i]]);
+            dp=cur;
+        }
+        return dp[0];
+    }
+}
+```
+
+**Complexity:** O(n log n+nk) time, O(n) space.
+
+---
+
+<a id="dp22"></a>
+## DP22 — Disjoint interval selection over position
+
+**NEW ALGORITHM FAMILY**
+
+**Recognition:** A few fixed-size or variable windows must be selected without overlaps; combine a chosen range with best elsewhere.
+
+**Ordered questions:** 1031, 689
+
+**Core invariant / foundational template**
+
+The template illustrates the shared state transition; it is not a standalone submission.
+
+```java
+long[] prefix = new long[n+1];
+for (int i = 0; i < n; i++) prefix[i+1] = prefix[i] + a[i];
+// dp[used][end] = best reward using 'used' disjoint windows in prefix [0,end).
+```
+
+<a id="lc-1031"></a>
+### 59. LeetCode 1031
+
+**Problem**
+
+Find maximum combined sum of two nonoverlapping contiguous subarrays of lengths firstLen and secondLen, in either order.
+
+**Examples**
+
+- [0,6,5,2,2,5,1,9,4], lengths 1,2 → 20
+- [3,8,1,3,2,1,8,9,0], lengths 3,2 → 29
+
+**Constraints**
+
+2 ≤ n ≤ 1000; 0 ≤ nums[i] ≤ 1000; positive lengths whose sum ≤ n
+
+**Why this approach / key logic**
+
+Use prefix sums. For each second-window end, update best first window ending before it starts. Run both length orders.
+
+**Locked strategy:** Prefix sums plus best prefix window of one length; scan opposite ordering of lengths.
+
+**Evolution from previous solution:** BASE: combine one chosen window with best nonoverlapping candidate of other length.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int maxSumTwoNoOverlap(int[] nums,int firstLen,int secondLen) {
+        int[] p=new int[nums.length+1];
+        for(int i=0;i<nums.length;i++)p[i+1]=p[i]+nums[i];
+        return Math.max(scan(p,firstLen,secondLen),scan(p,secondLen,firstLen));
+    }
+    private int scan(int[] p,int a,int b) {
+        int best=0,ans=0;
+        for(int end=a+b;end<p.length;end++) {
+            int split=end-b;
+            best=Math.max(best,p[split]-p[split-a]);
+            ans=Math.max(ans,best+p[end]-p[split]);
+        }
+        return ans;
+    }
+}
+```
+
+**Complexity:** O(n) time, O(n) space.
+
+---
+
+<a id="lc-689"></a>
+### 60. LeetCode 689
+
+**Problem**
+
+Choose three disjoint contiguous subarrays of length k maximizing total sum. Return their zero-based start indices in ascending order; break ties by lexicographically smallest triple.
+
+**Examples**
+
+- [1,2,1,2,6,7,5,1], k=2 → [0,3,5]
+- [1,2,1,2,1,2,1,2,1], k=2 → [0,2,4]
+
+**Constraints**
+
+1 ≤ n ≤ 20000; 1 ≤ nums[i] < 2^16; 1 ≤ k ≤ floor(n/3)
+
+**Why this approach / key logic**
+
+Precompute window sums and best window indices on each side. Left scan keeps earliest tie using strict >; right scan uses >= while moving backward. Scan middle ascending and update only for strictly better total.
+
+**Locked strategy:** Precompute k-window sums and best left/right window indices, combine middle; enforce lexicographic tie order.
+
+**Evolution from previous solution:** Generalize two-window combination to three ordered windows, add index reconstruction and tie policy.
+
+**Java 21 solution**
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[] maxSumOfThreeSubarrays(int[] nums,int k) {
+        int m=nums.length-k+1;
+        int[] w=new int[m],left=new int[m],right=new int[m];
+        int sum=0;
+        for(int i=0;i<nums.length;i++) {
+            sum+=nums[i];
+            if(i>=k)sum-=nums[i-k];
+            if(i>=k-1)w[i-k+1]=sum;
+        }
+        for(int i=1;i<m;i++)left[i]=w[i]>w[left[i-1]]?i:left[i-1];
+        right[m-1]=m-1;
+        for(int i=m-2;i>=0;i--)right[i]=w[i]>=w[right[i+1]]?i:right[i+1];
+        int best=-1;
+        int[] ans=new int[3];
+        for(int j=k;j+k<m;j++) {
+            int i=left[j-k],r=right[j+k],total=w[i]+w[j]+w[r];
+            if(total>best) {
+                best=total;
+                ans=new int[] {
+                    i,j,r
+                }
+                ;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+**Complexity:** O(n) time, O(n) space.
+
+---
+
+## Final registry
+
+| Sequence | LeetCode | Family | Local examples |
+|---:|---:|---|---:|
+| 31 | 1626 | DP12 | 2 passed |
+| 32 | 368 | DP12 | 2 passed |
+| 33 | 1143 | DP13 | 2 passed |
+| 34 | 1035 | DP13 | 2 passed |
+| 35 | 583 | DP13 | 2 passed |
+| 36 | 1092 | DP13 | 2 passed |
+| 37 | 72 | DP14 | 3 passed |
+| 38 | 712 | DP14 | 2 passed |
+| 39 | 97 | DP14 | 3 passed |
+| 40 | 44 | DP15 | 3 passed |
+| 41 | 10 | DP15 | 3 passed |
+| 42 | 139 | DP16 | 2 passed |
+| 43 | 140 | DP16 | 2 passed |
+| 44 | 516 | DP17 | 2 passed |
+| 45 | 1312 | DP17 | 3 passed |
+| 46 | 132 | DP18 | 3 passed |
+| 47 | 1278 | DP18 | 2 passed |
+| 48 | 1745 | DP18 | 2 passed |
+| 49 | 312 | DP19 | 2 passed |
+| 50 | 1547 | DP19 | 2 passed |
+| 51 | 1000 | DP19 | 3 passed |
+| 52 | 664 | DP19 | 2 passed |
+| 53 | 1043 | DP20 | 2 passed |
+| 54 | 1105 | DP20 | 2 passed |
+| 55 | 1335 | DP20 | 2 passed |
+| 56 | 1235 | DP21 | 2 passed |
+| 57 | 2008 | DP21 | 2 passed |
+| 58 | 1751 | DP21 | 2 passed |
+| 59 | 1031 | DP22 | 2 passed |
+| 60 | 689 | DP22 | 2 passed |
+
+**Audit:** 30 distinct IDs, exact locked order, 11 complete families. All 30 solution bodies compiled with Java 21 and 67 example checks passed. No online judge submission, stress testing, or exhaustive verification was performed. Master curriculum and learning progress are unchanged.
